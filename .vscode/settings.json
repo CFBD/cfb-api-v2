@@ -1,0 +1,10 @@
+{
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
+  "editor.formatOnType": true,
+  "javascript.format.semicolons": "insert",
+  "javascript.preferences.quoteStyle": "single",
+  "editor.tabSize": 2,
+  "typescript.format.semicolons": "insert",
+  "typescript.preferences.quoteStyle": "single"
+}

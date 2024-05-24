@@ -1,0 +1,95 @@
+{
+  "entryFile": "src/app.ts",
+  "noImplicitAdditionalProperties": "throw-on-extras",
+  "controllerPathGlobs": ["src/**/controller.ts"],
+  "spec": {
+    "outputDirectory": "build",
+    "specVersion": 3,
+    "host": "api.collegefootballdata.com",
+    "name": "College Football Data API",
+    "description": "This is an API for accessing all sorts of college football data. Please note that API keys should be supplied with \"Bearer \" prepended (e.g. \"Bearer your_key\"). API keys can be acquired from the CollegeFootballData.com website.",
+    "version": "5.0.0",
+    "license": "",
+    "contact": {
+      "email": "admin@collegefootballdata.com",
+      "name": "the developer"
+    },
+    "securityDefinitions": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "rootSecurity": [
+      {
+        "apiKey": []
+      }
+    ],
+    "tags": [
+      {
+        "name": "games",
+        "description": "Games scores and statistics"
+      },
+      {
+        "name": "drives",
+        "description": "Drive data"
+      },
+      {
+        "name": "plays",
+        "description": "Play by play data"
+      },
+      {
+        "name": "teams",
+        "description": "Team information"
+      },
+      {
+        "name": "conferences",
+        "description": "Conference information"
+      },
+      {
+        "name": "venues",
+        "description": "Information about venues"
+      },
+      {
+        "name": "coaches",
+        "description": "Information about coaches"
+      },
+      {
+        "name": "players",
+        "description": "Player information and data"
+      },
+      {
+        "name": "rankings",
+        "description": "Historical poll rankings"
+      },
+      {
+        "name": "betting",
+        "description": "Betting lines and data"
+      },
+      {
+        "name": "recruiting",
+        "description": "Recruiting rankings and data"
+      },
+      {
+        "name": "ratings",
+        "description": "Team rating data"
+      },
+      {
+        "name": "metrics",
+        "description": "Data relating to Predicted Points and other metrics"
+      },
+      {
+        "name": "stats",
+        "description": "Statistical data"
+      },
+      {
+        "name": "draft",
+        "description": "NFL Draft data"
+      }
+    ]
+  },
+  "routes": {
+    "routesDir": "build",
+    "authenticationModule": "src/config/auth.ts"
+  }
+}
