@@ -1,8 +1,8 @@
 export interface DraftTeam {
   location: string;
-  nickname: string;
-  displayName: string;
-  logo: string;
+  nickname: string | null;
+  displayName: string | null;
+  logo: string | null;
 }
 
 export interface DraftPosition {
@@ -14,7 +14,7 @@ export interface DraftPick {
   /**
    * @isInt
    */
-  collegeAthleteId: number;
+  collegeAthleteId: number | null;
   /**
    * @isInt
    */
@@ -67,13 +67,13 @@ export interface DraftPick {
   /**
    * @isInt
    */
-  preDraftGrade: number;
+  preDraftGrade: number | null;
   hometownInfo: {
     city: string | null;
     state: string | null;
     country: string | null;
-    latitude: number | null;
-    longitude: number | null;
+    latitude: string | null;
+    longitude: string | null;
     countyFips: string | null;
   };
 }

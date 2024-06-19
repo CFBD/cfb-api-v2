@@ -1,7 +1,7 @@
 import { Promise } from 'bluebird';
 import pgp from 'pg-promise';
 import { Pool } from 'pg';
-import { Kysely, PostgresDialect } from 'kysely';
+import { CamelCasePlugin, Kysely, PostgresDialect } from 'kysely';
 
 const user = process.env.DATABASE_USER;
 const password = process.env.DATABASE_PASSWORD;
@@ -35,4 +35,5 @@ const dialect = new PostgresDialect({
 
 export const kdb = new Kysely<DB>({
   dialect,
+  plugins: [new CamelCasePlugin()]
 });

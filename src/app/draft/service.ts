@@ -1,23 +1,30 @@
-import { db } from '../../config/database';
+import { sql } from 'kysely';
+import { kdb } from '../../config/database';
 import { DraftPick, DraftPosition, DraftTeam } from './types';
 
 export const getTeams = async (): Promise<DraftTeam[]> => {
-  const teams = await db.any(`SELECT * FROM draft_team ORDER BY location`);
+  const teams = await kdb.selectFrom('draftTeam')
+    .select(['location', 'mascot', 'displayName', 'logo'])
+    .distinct()
+    .execute();
 
   return teams.map(
     (t): DraftTeam => ({
       location: t.location,
       nickname: t.mascot,
-      displayName: t.display_name,
+      displayName: t.displayName,
       logo: t.logo,
     }),
   );
 };
 
 export const getPositions = async (): Promise<DraftPosition[]> => {
-  let positions = await db.any(
-    `SELECT DISTINCT name, abbreviation FROM draft_position ORDER BY name`,
-  );
+  const positions = await kdb.selectFrom('draftPosition')
+    .select(['name', 'abbreviation'])
+    .distinct()
+    .orderBy('name')
+    .execute();
+
   return positions;
 };
 
@@ -28,102 +35,90 @@ export const getPicks = async (
   conference?: string,
   position?: string,
 ): Promise<DraftPick[]> => {
-  const filters = [];
-  const params = [];
-  let index = 1;
+  let query = kdb.selectFrom('draftPicks')
+    .innerJoin('draftTeam', 'draftPicks.nflTeamId', 'draftTeam.id')
+    .innerJoin('draftPosition', 'draftPicks.positionId', 'draftPosition.id')
+    .innerJoin('team', 'draftPicks.collegeTeamId', 'team.id')
+    .leftJoin('conferenceTeam', (join) => (
+      join.onRef('team.id', '=', 'conferenceTeam.id')
+        .on(sql`(draft_picks.year - 1) >= conference_team.start_year`)
+        .on(sql`conference_team.end_year is null or (draft_picks.year - 1) <= conference_team.end_year`)
+    ))
+    .leftJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .leftJoin('athlete', 'draftPicks.collegeId', 'athlete.id')
+    .leftJoin('hometown', 'athlete.hometownId', 'hometown.id')
+    .select([
+      'draftPicks.collegeId as collegeAthleteId',
+      'draftPicks.id as nflAthleteId',
+      'team.id as collegeId',
+      'team.school as collegeTeam',
+      'conference.name as conference',
+      'draftPicks.nflTeamId',
+      'draftTeam.location as nflTeam',
+      'draftPicks.year',
+      'draftPicks.overall',
+      'draftPicks.round',
+      'draftPicks.pick',
+      'draftPicks.name',
+      'draftPosition.name as positionName',
+      'draftPicks.height',
+      'draftPicks.weight',
+      'draftPicks.overallRank',
+      'draftPicks.positionRank',
+      'draftPicks.grade',
+      'hometown.city',
+      'hometown.state',
+      'hometown.country',
+      'hometown.latitude',
+      'hometown.longitude',
+      'hometown.countyFips',
+    ]);
 
   if (year) {
-    filters.push(`dp.year = $${index}`);
-    params.push(year);
-    index++;
+    query = query.where('draftPicks.year', '=', year);
   }
 
   if (team) {
-    filters.push(`LOWER(dt.location) = LOWER($${index})`);
-    params.push(team);
-    index++;
+    // @ts-ignore
+    query = query.where(sql`LOWER(draft_team.location) = LOWER(${team})`);
   }
 
   if (school) {
-    filters.push(`LOWER(ct.school) = LOWER($${index})`);
-    params.push(school);
-    index++;
+    // @ts-ignore
+    query = query.where(sql`LOWER(conference_team.school) = LOWER(${school})`);
   }
 
   if (conference) {
-    filters.push(`LOWER(c.abbreviation) = LOWER($${index})`);
-    params.push(conference);
-    index++;
+    // @ts-ignore
+    query = query.where(sql`LOWER(conference.location) = LOWER(${conference})`);
   }
 
   if (position) {
-    filters.push(
-      `(LOWER(pos.name) = LOWER($${index}) OR LOWER(pos.abbreviation) = LOWER($${index}))`,
-    );
-    params.push(position);
-    index++;
+    // @ts-ignore
+    query = await query.where(sql`LOWER(draft_position.name) = LOWER(${position}) OR LOWER(draft_position.abbreviation) = LOWER(${position})`);
   }
 
-  const filter = filters.length ? 'WHERE ' + filters.join(' AND ') : '';
-
-  let picks = await db.any(
-    `
-        SELECT 	dp.college_id AS college_athlete_id,
-                dp.id AS nfl_athlete_id,
-                ct.id AS college_id,
-                ct.school AS college_team,
-                c.name AS conference,
-                dt.location AS nfl_team,
-                dp.year,
-                dp.overall,
-                dp.round,
-                dp.pick,
-                dp.name,
-                pos.name AS "position",
-                dp.height,
-                dp.weight,
-                dp.overall_rank,
-                dp.position_rank,
-                dp.grade,
-                h.city,
-                h.state,
-                h.country,
-                h.latitude,
-                h.longitude,
-                h.county_fips
-        FROM draft_picks AS dp
-            INNER JOIN draft_team AS dt ON dp.nfl_team_id = dt.id
-            INNER JOIN draft_position AS pos ON dp.position_id = pos.id
-            INNER JOIN team AS ct ON dp.college_team_id = ct.id
-            LEFT JOIN conference_team AS cot ON ct.id = cot.team_id AND (dp.year - 1) >= cot.start_year AND (cot.end_year IS NULL OR (dp.year - 1) <= cot.end_year)
-            LEFT JOIN conference AS c ON cot.conference_id = c.id
-            LEFT JOIN athlete AS a ON dp.college_id = a.id
-            LEFT JOIN hometown AS h ON a.hometown_id = h.id
-        ${filter}
-        ORDER BY overall
-        `,
-    params,
-  );
+  const picks = await query.orderBy('draftPicks.overall').execute();
 
   return picks.map(
     (p): DraftPick => ({
-      collegeAthleteId: p.college_athlete_id,
-      nflAthleteId: p.nfl_athlete_id,
-      collegeId: p.college_id,
-      collegeTeam: p.college_team,
+      collegeAthleteId: p.collegeAthleteId,
+      nflAthleteId: p.nflAthleteId,
+      collegeId: p.collegeId,
+      collegeTeam: p.collegeTeam,
       collegeConference: p.conference,
-      nflTeamId: p.nfl_team_id,
-      nflTeam: p.nfl_team,
+      nflTeamId: p.nflTeamId,
+      nflTeam: p.nflTeam,
       year: p.year,
       overall: p.overall,
       round: p.round,
       pick: p.pick,
       name: p.name,
-      position: p.position,
+      position: p.positionName,
       height: p.height,
       weight: p.weight,
-      preDraftRanking: p.overall_rank,
-      preDraftPositionRanking: p.position_rank,
+      preDraftRanking: p.overallRank,
+      preDraftPositionRanking: p.positionRank,
       preDraftGrade: p.grade,
       hometownInfo: {
         city: p.city,
@@ -131,7 +126,7 @@ export const getPicks = async (
         country: p.country,
         latitude: p.latitude,
         longitude: p.longitude,
-        countyFips: p.county_fips,
+        countyFips: p.countyFips,
       },
     }),
   );
