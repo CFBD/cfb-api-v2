@@ -100,8 +100,8 @@ export const getPicks = async (
   }
 
   if (position) {
-    // @ts-ignore
     query = await query.where(
+      // @ts-ignore
       sql`LOWER(draft_position.name) = LOWER(${position}) OR LOWER(draft_position.abbreviation) = LOWER(${position})`,
     );
   }

@@ -199,8 +199,8 @@ export const getConferenceSP = async (
   }
 
   if (conference) {
-    // @ts-ignore
     query = query.where(
+      // @ts-ignore
       sql`LOWER(conference.abbreviation) = LOWER(${conference})`,
     );
   }
@@ -300,8 +300,8 @@ export const getSRS = async (
   }
 
   if (conference) {
-    // @ts-ignore
     query = query.where(
+      // @ts-ignore
       sql`LOWER(conference.abbreviation) = LOWER(${conference})`,
     );
   }
@@ -381,8 +381,8 @@ export const getElo = async (
       }
 
       if (conference) {
-        // @ts-ignore
         cte = cte.where(
+          // @ts-ignore
           sql`LOWER(conference.abbreviation) = LOWER(${conference})`,
         );
       }
@@ -443,8 +443,8 @@ export const getFPI = async (
   }
 
   if (conference) {
-    // @ts-ignore
     query = query.where(
+      // @ts-ignore
       sql`LOWER(conference.abbreviation) = LOWER(${conference})`,
     );
   }
