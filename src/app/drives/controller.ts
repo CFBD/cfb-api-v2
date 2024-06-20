@@ -37,6 +37,17 @@ export class DrivesController extends Controller {
     @Query() defenseConference?: string,
     @Query() classification?: DivisionClassification,
   ): Promise<Drive[]> {
-    return await getDrives(year, seasonType, week, team, offense, defense, offenseConference, defenseConference, conference, classification);
+    return await getDrives(
+      year,
+      seasonType,
+      week,
+      team,
+      offense,
+      defense,
+      offenseConference,
+      defenseConference,
+      conference,
+      classification,
+    );
   }
 }

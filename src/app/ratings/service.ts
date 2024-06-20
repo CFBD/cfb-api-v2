@@ -1,4 +1,5 @@
-import { db } from '../../config/database';
+import { sql } from 'kysely';
+import { kdb } from '../../config/database';
 import { SeasonType } from '../enums';
 import { ConferenceSP, TeamElo, TeamFPI, TeamSP, TeamSRS } from './types';
 import { ValidateError } from 'tsoa';
@@ -17,114 +18,127 @@ export const getSP = async (
     );
   }
 
-  let filter = 'WHERE';
-  let index = 1;
-  let params = [];
+  let ratingsQuery = kdb
+    .selectFrom('ratings')
+    .innerJoin('team', 'ratings.teamId', 'team.id')
+    .innerJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .on('conferenceTeam.endYear', 'is', null),
+    )
+    .innerJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .orderBy(['ratings.year', 'ratings.rating desc'])
+    .select(['team.school as team', 'conference.name as conference'])
+    .select((eb) =>
+      eb.fn
+        .agg<number>('rank')
+        .over((ob) => ob.orderBy('ratings.rating', 'desc'))
+        .as('overallRank'),
+    )
+    .select((eb) =>
+      eb.fn
+        .agg<number>('rank')
+        .over((ob) => ob.orderBy('ratings.oRating', 'desc'))
+        .as('offenseRank'),
+    )
+    .select((eb) =>
+      eb.fn
+        .agg<number>('rank')
+        .over((ob) => ob.orderBy('ratings.dRating', 'desc'))
+        .as('defenseRank'),
+    )
+    .selectAll('ratings');
+
+  let averagesQuery = kdb
+    .selectFrom('ratings')
+    .groupBy('year')
+    .select('year')
+    .select((eb) => eb.fn.avg('rating').as('rating'))
+    .select((eb) => eb.fn.avg('oRating').as('oRating'))
+    .select((eb) => eb.fn.avg('dRating').as('dRating'))
+    .select((eb) => eb.fn.avg('stRating').as('stRating'))
+    .select((eb) => eb.fn.avg('sos').as('sos'))
+    .select((eb) => eb.fn.avg('secondOrderWins').as('secondOrderWins'))
+    .select((eb) => eb.fn.avg('oSuccess').as('oSuccess'))
+    .select((eb) => eb.fn.avg('oExplosiveness').as('oExplosiveness'))
+    .select((eb) => eb.fn.avg('oRushing').as('oRushing'))
+    .select((eb) => eb.fn.avg('oPassing').as('oPassing'))
+    .select((eb) => eb.fn.avg('oStandardDowns').as('oStandardDowns'))
+    .select((eb) => eb.fn.avg('oPassingDowns').as('oPassingDowns'))
+    .select((eb) => eb.fn.avg('oRunRate').as('oRunRate'))
+    .select((eb) => eb.fn.avg('oPace').as('oPace'))
+    .select((eb) => eb.fn.avg('dSuccess').as('dSuccess'))
+    .select((eb) => eb.fn.avg('dExplosiveness').as('dExplosiveness'))
+    .select((eb) => eb.fn.avg('dRushing').as('dRushing'))
+    .select((eb) => eb.fn.avg('dPassing').as('dPassing'))
+    .select((eb) => eb.fn.avg('dStandardDowns').as('dStandardDowns'))
+    .select((eb) => eb.fn.avg('dPassingDowns').as('dPassingDowns'))
+    .select((eb) => eb.fn.avg('dHavoc').as('dHavoc'))
+    .select((eb) => eb.fn.avg('dFrontSevenHavoc').as('dFrontSevenHavoc'))
+    .select((eb) => eb.fn.avg('dDbHavoc').as('dDbHavoc'))
+    .orderBy('year');
+
   if (year) {
-    filter += ` r.year = $${index}`;
-    params.push(year);
-    index++;
+    ratingsQuery = ratingsQuery.where('year', '=', year);
+    averagesQuery = averagesQuery.where('year', '=', year);
   }
 
   if (team) {
-    filter += `${params.length ? ' AND' : ''} LOWER(t.school) = LOWER($${index})`;
-    params.push(team);
+    // @ts-ignore
+    ratingsQuery = ratingsQuery.where(sql`LOWER(team) = ${team}`);
   }
 
-  const ratings = await db.any(
-    `
-            SELECT t.school, c.name AS conference, RANK() OVER(ORDER BY r.rating DESC) AS overall_rank, RANK() OVER(ORDER BY r.o_rating DESC) AS offense_rank, RANK() OVER(ORDER BY r.d_rating) AS defense_rank, r.*
-            FROM ratings AS r
-                INNER JOIN team AS t ON r.team_id = t.id
-                INNER JOIN conference_team AS ct ON ct.team_id = t.id AND ct.end_year IS NULL
-                INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-            ${filter}
-            ORDER BY r.year, r.rating DESC
-        `,
-    params,
-  );
-
-  const averages = await db.any(
-    `
-            SELECT 	year,
-                    AVG(rating) AS rating,
-                    AVG(o_rating) AS o_rating,
-                    AVG(d_rating) AS d_rating,
-                    AVG(st_rating) AS st_rating,
-                    AVG(sos) AS sos,
-                    AVG(second_order_wins) AS second_order_wins,
-                    AVG(o_success) AS o_success,
-                    AVG(o_explosiveness) AS o_explosiveness,
-                    AVG(o_rushing) AS o_rushing,
-                    AVG(o_passing) AS o_passing,
-                    AVG(o_standard_downs) AS o_standard_downs,
-                    AVG(o_passing_downs) AS o_passing_downs,
-                    AVG(o_run_rate) AS o_run_rate,
-                    AVG(o_pace) AS o_pace,
-                    AVG(d_success) AS d_success,
-                    AVG(d_explosiveness) AS d_explosiveness,
-                    AVG(d_rushing) AS d_rushing,
-                    AVG(d_passing) AS d_passing,
-                    AVG(d_standard_downs) AS d_standard_downs,
-                    AVG(d_passing_downs) AS d_passing_downs,
-                    AVG(d_havoc) AS d_havoc,
-                    AVG(d_front_seven_havoc) AS d_front_seven_havoc,
-                    AVG(d_db_havoc) AS d_db_havoc
-            FROM ratings
-            ${year ? 'WHERE year = $1' : ''}
-            GROUP BY year
-            ORDER BY year
-        `,
-    year ? [year] : [],
-  );
+  const ratings = await ratingsQuery.execute();
+  const averages = await averagesQuery.execute();
 
   ratings.push(
-    ...averages.map(
-      (a): TeamSP => ({
-        school: 'nationalAverages',
-        ...a,
-      }),
-    ),
+    // @ts-ignore
+    ...averages.map((a) => ({
+      team: 'nationalAverages',
+      ...a,
+    })),
   );
 
   return ratings.map(
     (r): TeamSP => ({
       year: r.year,
-      team: r.school,
+      team: r.team,
       conference: r.conference,
       rating: parseFloat(r.rating),
-      ranking: parseInt(r.overall_rank),
-      secondOrderWins: parseFloat(r.second_order_wins),
-      sos: parseFloat(r.sos),
+      ranking: r.overallRank,
+      secondOrderWins: r.secondOrderWins ? parseFloat(r.secondOrderWins) : null,
+      sos: r.sos ? parseFloat(r.sos) : null,
       offense: {
-        ranking: parseInt(r.offense_rank),
-        rating: parseFloat(r.o_rating),
-        success: parseFloat(r.o_success),
-        explosiveness: parseFloat(r.o_explosiveness),
-        rushing: parseFloat(r.o_rushing),
-        passing: parseFloat(r.o_passing),
-        standardDowns: parseFloat(r.o_standard_downs),
-        passingDowns: parseFloat(r.o_passing_downs),
-        runRate: parseFloat(r.o_run_rate),
-        pace: parseFloat(r.o_pace),
+        ranking: r.offenseRank,
+        rating: parseFloat(r.oRating),
+        success: r.oSuccess ? parseFloat(r.oSuccess) : null,
+        explosiveness: r.oExplosiveness ? parseFloat(r.oExplosiveness) : null,
+        rushing: r.oRushing ? parseFloat(r.oRushing) : null,
+        passing: r.oPassing ? parseFloat(r.oPassing) : null,
+        standardDowns: r.oStandardDowns ? parseFloat(r.oStandardDowns) : null,
+        passingDowns: r.oPassingDowns ? parseFloat(r.oPassingDowns) : null,
+        runRate: r.oRunRate ? parseFloat(r.oRunRate) : null,
+        pace: r.oPace ? parseFloat(r.oPace) : null,
       },
       defense: {
-        ranking: parseInt(r.defense_rank),
-        rating: parseFloat(r.d_rating),
-        success: parseFloat(r.d_success),
-        explosiveness: parseFloat(r.d_explosiveness),
-        rushing: parseFloat(r.d_rushing),
-        passing: parseFloat(r.d_passing),
-        standardDowns: parseFloat(r.d_standard_downs),
-        passingDowns: parseFloat(r.d_passing_downs),
+        ranking: r.defenseRank,
+        rating: parseFloat(r.dRating),
+        success: r.dSuccess ? parseFloat(r.dSuccess) : null,
+        explosiveness: r.dExplosiveness ? parseFloat(r.dExplosiveness) : null,
+        rushing: r.dRushing ? parseFloat(r.dRushing) : null,
+        passing: r.dPassing ? parseFloat(r.dPassing) : null,
+        standardDowns: r.dStandardDowns ? parseFloat(r.dStandardDowns) : null,
+        passingDowns: r.dPassingDowns ? parseFloat(r.dPassingDowns) : null,
         havoc: {
-          total: parseFloat(r.d_havoc),
-          frontSeven: parseFloat(r.d_front_seven_havoc),
-          db: parseFloat(r.d_db_havoc),
+          total: r.dHavoc ? parseFloat(r.dHavoc) : null,
+          frontSeven: r.dFrontSevenHavoc
+            ? parseFloat(r.dFrontSevenHavoc)
+            : null,
+          db: r.dDbHavoc ? parseFloat(r.dDbHavoc) : null,
         },
       },
       specialTeams: {
-        rating: r.st_rating ? parseFloat(r.st_rating) : null,
+        rating: r.stRating ? parseFloat(r.stRating) : null,
       },
     }),
   );
@@ -134,94 +148,99 @@ export const getConferenceSP = async (
   year?: number,
   conference?: string,
 ): Promise<ConferenceSP[]> => {
-  let filter = '';
-  let index = 1;
-  let params = [];
+  let query = kdb
+    .selectFrom('ratings')
+    .innerJoin('conferenceTeam', (join) =>
+      join
+        .onRef('ratings.teamId', '=', 'conferenceTeam.teamId')
+        .onRef('conferenceTeam.startYear', '<=', 'ratings.year')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', '>=', eb.ref('ratings.year')),
+            eb('conferenceTeam.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .innerJoin('conference', (join) =>
+      join
+        .onRef('conferenceTeam.conferenceId', '=', 'conference.id')
+        .on('conference.division', '=', 'fbs'),
+    )
+    .groupBy(['year', 'conference.name'])
+    .select(['year', 'conference.name as conference'])
+    .select((eb) => eb.fn.avg('rating').as('rating'))
+    .select((eb) => eb.fn.avg('oRating').as('oRating'))
+    .select((eb) => eb.fn.avg('dRating').as('dRating'))
+    .select((eb) => eb.fn.avg('stRating').as('stRating'))
+    .select((eb) => eb.fn.avg('sos').as('sos'))
+    .select((eb) => eb.fn.avg('secondOrderWins').as('secondOrderWins'))
+    .select((eb) => eb.fn.avg('oSuccess').as('oSuccess'))
+    .select((eb) => eb.fn.avg('oExplosiveness').as('oExplosiveness'))
+    .select((eb) => eb.fn.avg('oRushing').as('oRushing'))
+    .select((eb) => eb.fn.avg('oPassing').as('oPassing'))
+    .select((eb) => eb.fn.avg('oStandardDowns').as('oStandardDowns'))
+    .select((eb) => eb.fn.avg('oPassingDowns').as('oPassingDowns'))
+    .select((eb) => eb.fn.avg('oRunRate').as('oRunRate'))
+    .select((eb) => eb.fn.avg('oPace').as('oPace'))
+    .select((eb) => eb.fn.avg('dSuccess').as('dSuccess'))
+    .select((eb) => eb.fn.avg('dExplosiveness').as('dExplosiveness'))
+    .select((eb) => eb.fn.avg('dRushing').as('dRushing'))
+    .select((eb) => eb.fn.avg('dPassing').as('dPassing'))
+    .select((eb) => eb.fn.avg('dStandardDowns').as('dStandardDowns'))
+    .select((eb) => eb.fn.avg('dPassingDowns').as('dPassingDowns'))
+    .select((eb) => eb.fn.avg('dHavoc').as('dHavoc'))
+    .select((eb) => eb.fn.avg('dFrontSevenHavoc').as('dFrontSevenHavoc'))
+    .select((eb) => eb.fn.avg('dDbHavoc').as('dDbHavoc'))
+    .orderBy('conference.name')
+    .orderBy('year');
+
   if (year) {
-    filter += `WHERE r.year = $${index}`;
-    params.push(year);
-    index++;
+    query = query.where('ratings.year', '=', year);
   }
 
   if (conference) {
-    if (!year) {
-      filter += 'WHERE';
-    }
-    filter += `${params.length ? ' AND' : ''} LOWER(c.abbreviation) = LOWER($${index})`;
-    params.push(conference);
+    // @ts-ignore
+    query = query.where(
+      sql`LOWER(conference.abbreviation) = LOWER(${conference})`,
+    );
   }
 
-  const ratings = await db.any(
-    `
-            SELECT 	year,
-                    c.name AS conference,
-                    AVG(r.rating) AS rating,
-                    AVG(r.o_rating) AS o_rating,
-                    AVG(r.d_rating) AS d_rating,
-                    AVG(r.st_rating) AS st_rating,
-                    AVG(r.sos) AS sos,
-                    AVG(r.second_order_wins) AS second_order_wins,
-                    AVG(r.o_success) AS o_success,
-                    AVG(r.o_explosiveness) AS o_explosiveness,
-                    AVG(r.o_rushing) AS o_rushing,
-                    AVG(r.o_passing) AS o_passing,
-                    AVG(r.o_standard_downs) AS o_standard_downs,
-                    AVG(r.o_passing_downs) AS o_passing_downs,
-                    AVG(r.o_run_rate) AS o_run_rate,
-                    AVG(r.o_pace) AS o_pace,
-                    AVG(r.d_success) AS d_success,
-                    AVG(r.d_explosiveness) AS d_explosiveness,
-                    AVG(r.d_rushing) AS d_rushing,
-                    AVG(r.d_passing) AS d_passing,
-                    AVG(r.d_standard_downs) AS d_standard_downs,
-                    AVG(r.d_passing_downs) AS d_passing_downs,
-                    AVG(r.d_havoc) AS d_havoc,
-                    AVG(r.d_front_seven_havoc) AS d_front_seven_havoc,
-                    AVG(r.d_db_havoc) AS d_db_havoc
-            FROM ratings AS r
-                INNER JOIN conference_team AS ct ON ct.team_id = r.team_id AND ct.start_year <= r.year AND (ct.end_year >= r.year OR ct.end_year IS NULL)
-                INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-            ${filter}
-            GROUP BY year, c.name
-            ORDER BY c.name, year
-        `,
-    params,
-  );
+  const ratings = await query.execute();
 
   return ratings.map(
     (r): ConferenceSP => ({
       year: r.year,
       conference: r.conference,
-      rating: parseFloat(r.rating),
-      secondOrderWins: parseFloat(r.second_order_wins),
-      sos: parseFloat(r.sos),
+      rating: r.rating as number,
+      secondOrderWins: (r.secondOrderWins as number) ?? null,
+      sos: (r.sos as number) ?? null,
       offense: {
-        rating: parseFloat(r.o_rating),
-        success: parseFloat(r.o_success),
-        explosiveness: parseFloat(r.o_explosiveness),
-        rushing: parseFloat(r.o_rushing),
-        passing: parseFloat(r.o_passing),
-        standardDowns: parseFloat(r.o_standard_downs),
-        passingDowns: parseFloat(r.o_passing_downs),
-        runRate: parseFloat(r.o_run_rate),
-        pace: parseFloat(r.o_pace),
+        rating: r.oRating as number,
+        success: (r.oSuccess as number) ?? null,
+        explosiveness: (r.oExplosiveness as number) ?? null,
+        rushing: (r.oRushing as number) ?? null,
+        passing: (r.oPassing as number) ?? null,
+        standardDowns: (r.oStandardDowns as number) ?? null,
+        passingDowns: (r.oPassingDowns as number) ?? null,
+        runRate: (r.oRunRate as number) ?? null,
+        pace: (r.oPace as number) ?? null,
       },
       defense: {
-        rating: parseFloat(r.d_rating),
-        success: parseFloat(r.d_success),
-        explosiveness: parseFloat(r.d_explosiveness),
-        rushing: parseFloat(r.d_rushing),
-        passing: parseFloat(r.d_passing),
-        standardDowns: parseFloat(r.d_standard_downs),
-        passingDowns: parseFloat(r.d_passing_downs),
+        rating: (r.dRating as number) ?? null,
+        success: (r.dSuccess as number) ?? null,
+        explosiveness: (r.dExplosiveness as number) ?? null,
+        rushing: (r.dRushing as number) ?? null,
+        passing: (r.dPassing as number) ?? null,
+        standardDowns: (r.dStandardDowns as number) ?? null,
+        passingDowns: (r.dPassingDowns as number) ?? null,
         havoc: {
-          total: parseFloat(r.d_havoc),
-          frontSeven: parseFloat(r.d_front_seven_havoc),
-          db: parseFloat(r.d_db_havoc),
+          total: (r.dHavoc as number) ?? null,
+          frontSeven: (r.dFrontSevenHavoc as number) ?? null,
+          db: (r.dDbHavoc as number) ?? null,
         },
       },
       specialTeams: {
-        rating: r.st_rating ? parseFloat(r.st_rating) : null,
+        rating: (r.stRating as number) ?? null,
       },
     }),
   );
@@ -242,43 +261,61 @@ export const getSRS = async (
     );
   }
 
-  let filters = [];
-  let params = [];
-  let index = 1;
+  let query = kdb
+    .selectFrom('srs')
+    .innerJoin('team', 'srs.teamId', 'team.id')
+    .leftJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .onRef('conferenceTeam.startYear', '<=', 'srs.year')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', '>=', eb.ref('srs.year')),
+            eb('conferenceTeam.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .select([
+      'srs.year',
+      'team.school as team',
+      'conference.name as conference',
+      'conferenceTeam.division',
+      'srs.rating',
+    ])
+    .select((eb) =>
+      eb.fn
+        .agg<number>('rank')
+        .over((ob) => ob.orderBy('srs.rating', 'desc'))
+        .as('ranking'),
+    );
 
   if (year) {
-    filters.push(`s.year = $${index}`);
-    params.push(year);
-    index++;
+    query = query.where('srs.year', '=', year);
   }
 
   if (team) {
-    filters.push(`LOWER(t.school) = LOWER($${index})`);
-    params.push(team);
-    index++;
+    // @ts-ignore
+    query = query.where(sql`LOWER(team.school) = LOWER(${team})`);
   }
 
   if (conference) {
-    filters.push(`LOWER(c.abbreviation) = LOWER($${index})`);
-    params.push(conference);
-    index++;
+    // @ts-ignore
+    query = query.where(
+      sql`LOWER(conference.abbreviation) = LOWER(${conference})`,
+    );
   }
 
-  const filter = 'WHERE ' + filters.join(' AND ');
+  const results = await query.execute();
 
-  const results = await db.any(
-    `
-            SELECT s.year, t.school AS team, c.name AS conference, ct.division, s.rating, RANK() OVER(ORDER BY s.rating DESC) AS ranking
-            FROM srs AS s
-                INNER JOIN team AS t ON s.team_id = t.id
-                LEFT JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= s.year AND (ct.end_year >= s.year OR ct.end_year IS NULL)
-                LEFT JOIN conference AS c ON ct.conference_id = c.id
-            ${filter}
-        `,
-    params,
-  );
-
-  return results;
+  return results.map((r) => ({
+    year: r.year,
+    team: r.team,
+    conference: r.conference,
+    division: r.division,
+    ranking: r.ranking,
+    rating: parseFloat(r.rating),
+  }));
 };
 
 export const getElo = async (
@@ -288,63 +325,75 @@ export const getElo = async (
   team?: string,
   conference?: string,
 ): Promise<TeamElo[]> => {
-  let filter = '';
-  let filters = [];
-  let params = [];
-  let index = 1;
-
-  if (year) {
-    filters.push(`g.season = $${index}`);
-    params.push(year);
-    index++;
-  }
-
-  if (week) {
-    filters.push(`g.week <= $${index}`);
-    params.push(week);
-    index++;
-  }
-
-  if ((seasonType && seasonType === SeasonType.Regular) || week) {
-    filters.push(`g.season_type = $${index}`);
-    params.push(SeasonType.Regular);
-    index++;
-  }
-
-  if (team) {
-    filters.push(`LOWER(t.school) = LOWER($${index})`);
-    params.push(team);
-    index++;
-  }
-
-  if (conference) {
-    filters.push(`LOWER(c.abbreviation) = LOWER($${index})`);
-    params.push(conference);
-    index++;
-  }
-
-  if (params.length) {
-    filter = 'AND ' + filters.join(' AND ');
-  }
-
-  let results = await db.any(
-    `
-        WITH elos AS (
-            SELECT ROW_NUMBER() OVER(PARTITION BY g.season, t.school ORDER BY g.start_date DESC) AS rownum, g.season, t.school AS team, c.name AS conference, gt.end_elo AS elo
-            FROM game AS g
-                INNER JOIN game_team AS gt ON g.id = gt.game_id
-                INNER JOIN team AS t ON gt.team_id = t.id
-                INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year IS NULL OR ct.end_year > g.season)
-                INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-            WHERE gt.end_elo IS NOT NULL AND g.status = 'completed' ${filter}
+  let query = kdb
+    .with('elos', (eb) => {
+      let cte = eb
+        .selectFrom('game')
+        .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
+        .innerJoin('team', 'gameTeam.teamId', 'team.id')
+        .innerJoin('conferenceTeam', (join) =>
+          join
+            .onRef('team.id', '=', 'conferenceTeam.teamId')
+            .onRef('conferenceTeam.startYear', '<=', 'game.season')
+            .on((eb) =>
+              eb.or([
+                eb('conferenceTeam.endYear', 'is', null),
+                eb('conferenceTeam.endYear', '>', eb.ref('game.season')),
+              ]),
+            ),
         )
-        SELECT season AS year, team, conference, elo
-        FROM elos
-        WHERE rownum = 1
-        `,
-    params,
-  );
+        .innerJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+        .where('gameTeam.endElo', 'is not', null)
+        .where('game.status', '=', 'completed')
+        .select((eb) =>
+          eb.fn
+            .agg<number>('rank')
+            .over((over) =>
+              over
+                .partitionBy(['game.season', 'team.school'])
+                .orderBy('game.startDate', 'desc'),
+            )
+            .as('rowNum'),
+        )
+        .select([
+          'game.season as year',
+          'team.school as team',
+          'conference.name as conference',
+          'gameTeam.endElo as elo',
+        ]);
 
+      if (year) {
+        cte = cte.where('game.season', '=', year);
+      }
+
+      if (week) {
+        cte = cte.where('game.week', '=', week);
+      }
+
+      if ((seasonType && seasonType === SeasonType.Regular) || week) {
+        // @ts-ignore
+        cte = cte.where('game.seasonType', '=', seasonType);
+      }
+
+      if (team) {
+        // @ts-ignore
+        cte = cte.where(sql`LOWER(team.school) = LOWER(${team})`);
+      }
+
+      if (conference) {
+        // @ts-ignore
+        cte = cte.where(
+          sql`LOWER(conference.abbreviation) = LOWER(${conference})`,
+        );
+      }
+
+      return cte;
+    })
+    .selectFrom('elos')
+    .select(['year', 'team', 'conference', 'elo'])
+    .where('rowNum', '=', 1);
+
+  const results = await query.execute();
   return results;
 };
 
@@ -366,68 +415,67 @@ export const getFPI = async (
     );
   }
 
-  let filter = '';
-  let filters = [];
-  let params = [];
-  let index = 1;
+  let query = kdb
+    .selectFrom('fpi')
+    .innerJoin('team', 'fpi.teamId', 'team.id')
+    .leftJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .onRef('conferenceTeam.startYear', '<=', 'fpi.year')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', 'is', null),
+            eb('conferenceTeam.endYear', '>=', eb.ref('fpi.year')),
+          ]),
+        ),
+    )
+    .leftJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .select(['team.school', 'conference.name as conference'])
+    .selectAll('fpi');
 
   if (year) {
-    filters.push(`fpi.year = $${index}`);
-    params.push(year);
-    index++;
+    query = query.where('fpi.year', '=', year);
   }
 
   if (team) {
-    filters.push(`LOWER(t.school) = LOWER($${index})`);
-    params.push(team);
-    index++;
+    // @ts-ignore
+    query = query.where(sql`LOWER(team.school) = LOWER(${team})`);
   }
 
   if (conference) {
-    filters.push(`LOWER(c.abbreviation) = LOWER($${index})`);
-    params.push(conference);
-    index++;
+    // @ts-ignore
+    query = query.where(
+      sql`LOWER(conference.abbreviation) = LOWER(${conference})`,
+    );
   }
 
-  if (params.length) {
-    filter = 'WHERE ' + filters.join(' AND ');
-  }
-
-  let results = await db.any(
-    `
-        SELECT 	t.school,
-                c.name AS conference,
-                fpi.*
-        FROM fpi
-            INNER JOIN team AS t ON fpi.team_id = t.id
-            LEFT JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= fpi.year AND (ct.end_year >= fpi.year OR ct.end_year IS NULL)
-            LEFT JOIN conference AS c ON ct.conference_id = c.id
-            ${filter}
-        `,
-    params,
-  );
+  const results = await query.execute();
 
   return results.map(
     (r): TeamFPI => ({
-      year: parseInt(r.year),
+      year: r.year,
       team: r.school,
       conference: r.conference,
-      fpi: parseFloat(r.fpi),
+      fpi: r.fpi ? parseFloat(r.fpi) : null,
       resumeRanks: {
-        strengthOfRecord: parseInt(r.strength_of_record_rank),
-        fpi: parseInt(r.fpi_resume_rank),
-        averageWinProbability: parseInt(r.avg_win_prob_rank),
-        strengthOfSchedule: parseInt(r.sos_rank),
-        remainingStrengthOfSchedule: r.remaining_sos_rank
-          ? parseInt(r.remaining_sos_rank)
-          : null,
-        gameControl: parseInt(r.game_control_rank),
+        strengthOfRecord: r.strengthOfRecordRank,
+        fpi: r.fpiResumeRank,
+        averageWinProbability: r.avgWinProbRank,
+        strengthOfSchedule: r.sosRank,
+        remainingStrengthOfSchedule: r.remainingSosRank,
+        gameControl: r.gameControlRank,
       },
       efficiencies: {
-        overall: parseFloat(r.overall_efficiency),
-        offense: parseFloat(r.offensive_efficiency),
-        defense: parseFloat(r.defensive_efficiency),
-        specialTeams: parseFloat(r.special_teams_efficiency),
+        overall: r.overallEfficiency ? parseFloat(r.overallEfficiency) : null,
+        offense: r.offensiveEfficiency
+          ? parseFloat(r.offensiveEfficiency)
+          : null,
+        defense: r.defensiveEfficiency
+          ? parseFloat(r.defensiveEfficiency)
+          : null,
+        specialTeams: r.specialTeamsEfficiency
+          ? parseFloat(r.specialTeamsEfficiency)
+          : null,
       },
     }),
   );

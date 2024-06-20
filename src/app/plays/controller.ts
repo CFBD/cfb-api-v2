@@ -2,7 +2,12 @@ import { Controller, Get, Middlewares, Query, Route, Tags } from 'tsoa';
 
 import middlewares from '../../config/middleware';
 import { Play, PlayStat, PlayStatType, PlayType } from './types';
-import { getPlayStatTypes, getPlayStats, getPlayTypes, getPlays } from './service';
+import {
+  getPlayStatTypes,
+  getPlayStats,
+  getPlayTypes,
+  getPlays,
+} from './service';
 import { DivisionClassification, SeasonType } from '../enums';
 
 @Route('plays')
@@ -39,7 +44,19 @@ export class PlaysController extends Controller {
     @Query() seasonType?: SeasonType,
     @Query() classification?: DivisionClassification,
   ): Promise<Play[]> {
-    return await getPlays(year, week, team, offense, defense, offenseConference, defenseConference, conference, playType, seasonType, classification);
+    return await getPlays(
+      year,
+      week,
+      team,
+      offense,
+      defense,
+      offenseConference,
+      defenseConference,
+      conference,
+      playType,
+      seasonType,
+      classification,
+    );
   }
 
   /**
@@ -77,7 +94,16 @@ export class PlaysController extends Controller {
     @Query() seasonType?: SeasonType,
     @Query() conference?: string,
   ): Promise<PlayStat[]> {
-    return await getPlayStats(year, week, team, gameId, athleteId, statTypeId, seasonType, conference);
+    return await getPlayStats(
+      year,
+      week,
+      team,
+      gameId,
+      athleteId,
+      statTypeId,
+      seasonType,
+      conference,
+    );
   }
 
   /**
@@ -87,4 +113,4 @@ export class PlaysController extends Controller {
   public async getPlayStatTypes(): Promise<PlayStatType[]> {
     return await getPlayStatTypes();
   }
-};
+}

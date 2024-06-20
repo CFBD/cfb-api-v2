@@ -843,18 +843,23 @@ export const getScoreboard = async (
   let filterIndex = 1;
 
   filterParams.push(classification.toLowerCase());
-  filters.push(`(c.division = $${filterIndex} OR c2.division = $${filterIndex})`);
+  filters.push(
+    `(c.division = $${filterIndex} OR c2.division = $${filterIndex})`,
+  );
   filterIndex++;
 
   if (conference) {
     filterParams.push(conference.toLowerCase());
-    filters.push(`(LOWER(c.abbreviation) = $${filterIndex} OR LOWER(c2.abbreviation) = $${filterIndex})`);
+    filters.push(
+      `(LOWER(c.abbreviation) = $${filterIndex} OR LOWER(c2.abbreviation) = $${filterIndex})`,
+    );
     filterIndex++;
   }
 
-  let filterClause = filters.length ? `WHERE ${filters.join(" AND ")}` : '';
+  let filterClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
 
-  let scoreboard = await db.any(`
+  let scoreboard = await db.any(
+    `
         WITH this_week AS (
             SELECT DISTINCT g.id, g.season, g.season_type, g.week
             FROM game AS g
@@ -915,50 +920,54 @@ export const getScoreboard = async (
             LEFT JOIN game_lines AS gl ON g.id = gl.game_id AND gl.lines_provider_id = 999999
         ${filterClause}
         ORDER BY g.start_date
-        `, filterParams);
+        `,
+    filterParams,
+  );
 
-  return scoreboard.map((s): ScoreboardGame => ({
-    id: parseInt(s.id),
-    startDate: s.start_date,
-    startTimeTBD: s.start_time_tbd,
-    tv: s.tv,
-    neutralSite: s.neutral_site,
-    conferenceGame: s.conference_game,
-    status: s.status,
-    period: parseInt(s.current_period),
-    clock: s.current_clock,
-    situation: s.current_situation,
-    possession: s.current_possession,
-    venue: {
-      name: s.venue,
-      city: s.city,
-      state: s.state
-    },
-    homeTeam: {
-      id: s.home_id,
-      name: s.home_team,
-      conference: s.home_conference,
-      classification: s.home_classification,
-      points: s.home_points
-    },
-    awayTeam: {
-      id: s.away_id,
-      name: s.away_team,
-      conference: s.away_conference,
-      classification: s.away_classification,
-      points: s.away_points
-    },
-    weather: {
-      temperature: s.temperature,
-      description: s.weather_description,
-      windSpeed: s.wind_speed,
-      windDirection: s.wind_direction
-    },
-    betting: {
-      spread: s.spread,
-      overUnder: s.over_under,
-      homeMoneyline: s.moneyline_home,
-      awayMoneyline: s.moneyline_away
-    }
-  }));
+  return scoreboard.map(
+    (s): ScoreboardGame => ({
+      id: parseInt(s.id),
+      startDate: s.start_date,
+      startTimeTBD: s.start_time_tbd,
+      tv: s.tv,
+      neutralSite: s.neutral_site,
+      conferenceGame: s.conference_game,
+      status: s.status,
+      period: parseInt(s.current_period),
+      clock: s.current_clock,
+      situation: s.current_situation,
+      possession: s.current_possession,
+      venue: {
+        name: s.venue,
+        city: s.city,
+        state: s.state,
+      },
+      homeTeam: {
+        id: s.home_id,
+        name: s.home_team,
+        conference: s.home_conference,
+        classification: s.home_classification,
+        points: s.home_points,
+      },
+      awayTeam: {
+        id: s.away_id,
+        name: s.away_team,
+        conference: s.away_conference,
+        classification: s.away_classification,
+        points: s.away_points,
+      },
+      weather: {
+        temperature: s.temperature,
+        description: s.weather_description,
+        windSpeed: s.wind_speed,
+        windDirection: s.wind_direction,
+      },
+      betting: {
+        spread: s.spread,
+        overUnder: s.over_under,
+        homeMoneyline: s.moneyline_home,
+        awayMoneyline: s.moneyline_away,
+      },
+    }),
+  );
 };

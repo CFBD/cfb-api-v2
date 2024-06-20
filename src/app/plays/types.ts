@@ -83,7 +83,7 @@ export interface Play {
   playText: string;
   ppa?: number;
   wallclock?: string;
-};
+}
 
 export interface PlayType {
   /**
@@ -92,7 +92,7 @@ export interface PlayType {
   id: number;
   text: string;
   abbreviation: string;
-};
+}
 
 export interface PlayStatType {
   /**
@@ -100,7 +100,7 @@ export interface PlayStatType {
    */
   id: number;
   name: string;
-};
+}
 
 export interface PlayStat {
   gameId: number;
@@ -125,4 +125,4 @@ export interface PlayStat {
   athleteName: string;
   statType: string;
   stat: number;
-};
+}

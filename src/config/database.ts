@@ -30,10 +30,10 @@ const dialect = new PostgresDialect({
     user,
     password,
     max: 10,
-  })
+  }),
 });
 
 export const kdb = new Kysely<DB>({
   dialect,
-  plugins: [new CamelCasePlugin()]
+  plugins: [new CamelCasePlugin()],
 });

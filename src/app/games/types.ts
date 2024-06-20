@@ -1,4 +1,9 @@
-import { DivisionClassification, GameStatus, MediaType, SeasonType } from '../enums';
+import {
+  DivisionClassification,
+  GameStatus,
+  MediaType,
+  SeasonType,
+} from '../enums';
 
 export interface Game {
   /**

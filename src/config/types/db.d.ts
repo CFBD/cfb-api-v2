@@ -1,36 +1,51 @@
-import type { ColumnType } from "kysely";
-import type { IPostgresInterval } from "postgres-interval";
+import type { ColumnType } from 'kysely';
+import type { IPostgresInterval } from 'postgres-interval';
 
-export type Division = "fbs" | "fcs" | "ii" | "ii/iii" | "iii";
+export type Division = 'fbs' | 'fcs' | 'ii' | 'ii/iii' | 'iii';
 
-export type DownType = "passing" | "standard";
+export type DownType = 'passing' | 'standard';
 
-export type GameStatus = "completed" | "in_progress" | "scheduled";
+export type GameStatus = 'completed' | 'in_progress' | 'scheduled';
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
-export type HomeAway = "away" | "home";
+export type HomeAway = 'away' | 'home';
 
-export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+export type Int8 = ColumnType<
+  string,
+  bigint | number | string,
+  bigint | number | string
+>;
 
-export type Interval = ColumnType<IPostgresInterval, IPostgresInterval | number, IPostgresInterval | number>;
+export type Interval = ColumnType<
+  IPostgresInterval,
+  IPostgresInterval | number,
+  IPostgresInterval | number
+>;
 
-export type MediaType = "mobile" | "ppv" | "radio" | "tv" | "web";
+export type MediaType = 'mobile' | 'ppv' | 'radio' | 'tv' | 'web';
 
 export type Numeric = ColumnType<string, number | string, number | string>;
 
-export type PlayCall = "pass" | "rush";
+export type PlayCall = 'pass' | 'rush';
 
 export type Point = {
   x: number;
   y: number;
 };
 
-export type RecruitType = "HighSchool" | "JUCO" | "PrepSchool";
+export type RecruitType = 'HighSchool' | 'JUCO' | 'PrepSchool';
 
-export type SeasonType = "allstar" | "postseason" | "preseason" | "regular" | "spring_postseason" | "spring_regular";
+export type SeasonType =
+  | 'allstar'
+  | 'postseason'
+  | 'preseason'
+  | 'regular'
+  | 'spring_postseason'
+  | 'spring_regular';
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 

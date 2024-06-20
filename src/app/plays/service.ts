@@ -13,7 +13,7 @@ export const getPlays = async (
   conference?: string,
   playType?: string,
   seasonType?: SeasonType,
-  classification?: DivisionClassification
+  classification?: DivisionClassification,
 ): Promise<Play[]> => {
   let filters = ['g.season = $1'];
   let params: any[] = [year];
@@ -21,14 +21,15 @@ export const getPlays = async (
   let index = 2;
 
   if (week) {
-
     filters.push(`g.week = $${index}`);
     params.push(week);
     index++;
   }
 
   if (team) {
-    filters.push(`(LOWER(offense.school) = LOWER($${index}) OR LOWER(defense.school) = LOWER($${index}))`);
+    filters.push(
+      `(LOWER(offense.school) = LOWER($${index}) OR LOWER(defense.school) = LOWER($${index}))`,
+    );
     params.push(team);
     index++;
   }
@@ -58,7 +59,9 @@ export const getPlays = async (
   }
 
   if (conference) {
-    filters.push(`(LOWER(oc.abbreviation) = LOWER($${index}) OR LOWER(dc.abbreviation) = LOWER($${index}))`);
+    filters.push(
+      `(LOWER(oc.abbreviation) = LOWER($${index}) OR LOWER(dc.abbreviation) = LOWER($${index}))`,
+    );
     params.push(conference);
     index++;
   }
@@ -83,7 +86,8 @@ export const getPlays = async (
 
   const filter = `WHERE ${filters.join(' AND ')}`;
 
-  const plays = await db.any(`
+  const plays = await db.any(
+    `
                     SELECT  p.id,
                             offense.school as offense,
                             oc.name as offense_conference,
@@ -126,7 +130,9 @@ export const getPlays = async (
                         INNER JOIN play_type pt ON p.play_type_id = pt.id
                     ${filter}
                     ORDER BY g.id, d.drive_number, p.play_number
-            `, params);
+            `,
+    params,
+  );
 
   for (let play of plays) {
     if (!play.clock.minutes) {
@@ -138,38 +144,40 @@ export const getPlays = async (
     }
   }
 
-  return plays.map((p): Play => ({
-    gameId: p.game_id,
-    driveId: p.drive_id,
-    id: p.id,
-    driveNumber: p.drive_number,
-    playNumber: p.play_number,
-    offense: p.offense,
-    offenseConference: p.offense_conference,
-    offenseScore: p.offense_score,
-    defense: p.defense,
-    defenseConference: p.defense_conference,
-    defenseScore: p.defense_score,
-    home: p.home,
-    away: p.away,
-    period: p.period,
-    clock: {
-      minutes: p.clock.minutes,
-      seconds: p.clock.seconds,
-    },
-    offenseTimeouts: p.offense_timeouts,
-    defenseTimeouts: p.defense_timeouts,
-    yardline: p.yard_line,
-    yardsToGoal: p.yards_to_goal,
-    down: p.down,
-    distance: p.distance,
-    yardsGained: p.yards_gained,
-    scoring: p.scoring,
-    playType: p.play_type,
-    playText: p.play_text,
-    ppa: p.ppa,
-    wallclock: p.wallclock,
-  }));
+  return plays.map(
+    (p): Play => ({
+      gameId: p.game_id,
+      driveId: p.drive_id,
+      id: p.id,
+      driveNumber: p.drive_number,
+      playNumber: p.play_number,
+      offense: p.offense,
+      offenseConference: p.offense_conference,
+      offenseScore: p.offense_score,
+      defense: p.defense,
+      defenseConference: p.defense_conference,
+      defenseScore: p.defense_score,
+      home: p.home,
+      away: p.away,
+      period: p.period,
+      clock: {
+        minutes: p.clock.minutes,
+        seconds: p.clock.seconds,
+      },
+      offenseTimeouts: p.offense_timeouts,
+      defenseTimeouts: p.defense_timeouts,
+      yardline: p.yard_line,
+      yardsToGoal: p.yards_to_goal,
+      down: p.down,
+      distance: p.distance,
+      yardsGained: p.yards_gained,
+      scoring: p.scoring,
+      playType: p.play_type,
+      playText: p.play_text,
+      ppa: p.ppa,
+      wallclock: p.wallclock,
+    }),
+  );
 };
 
 export const getPlayTypes = async (): Promise<PlayType[]> => {
@@ -246,7 +254,8 @@ export const getPlayStats = async (
 
   let filter = `WHERE ${filters.join(' AND ')}`;
 
-  const results = await db.any(`
+  const results = await db.any(
+    `
             SELECT 	g.id as game_id,
                     g.season,
                     g.week,
@@ -290,7 +299,9 @@ export const getPlayStats = async (
                 INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
             ${filter}
             LIMIT 2000
-        `, params);
+        `,
+    params,
+  );
 
   for (let play of results) {
     if (!play.clock.minutes) {
@@ -302,30 +313,32 @@ export const getPlayStats = async (
     }
   }
 
-  return results.map((r): PlayStat => ({
-    gameId: r.game_id,
-    season: r.season,
-    week: r.week,
-    team: r.team,
-    conference: r.conference,
-    opponent: r.opponent,
-    teamScore: r.team_score,
-    opponentScore: r.opponent_score,
-    driveId: r.drive_id,
-    playId: r.play_id,
-    period: r.period,
-    clock: {
-      minutes: r.minutes,
-      seconds: r.seconds,
-    },
-    yardsToGoal: r.yards_to_goal,
-    down: r.down,
-    distance: r.distance,
-    athleteId: r.athlete_id,
-    athleteName: r.athlete_name,
-    statType: r.stat_name,
-    stat: r.stat
-  }));
+  return results.map(
+    (r): PlayStat => ({
+      gameId: r.game_id,
+      season: r.season,
+      week: r.week,
+      team: r.team,
+      conference: r.conference,
+      opponent: r.opponent,
+      teamScore: r.team_score,
+      opponentScore: r.opponent_score,
+      driveId: r.drive_id,
+      playId: r.play_id,
+      period: r.period,
+      clock: {
+        minutes: r.minutes,
+        seconds: r.seconds,
+      },
+      yardsToGoal: r.yards_to_goal,
+      down: r.down,
+      distance: r.distance,
+      athleteId: r.athlete_id,
+      athleteName: r.athlete_name,
+      statType: r.stat_name,
+      stat: r.stat,
+    }),
+  );
 };
 
 export const getPlayStatTypes = async (): Promise<PlayStatType[]> => {

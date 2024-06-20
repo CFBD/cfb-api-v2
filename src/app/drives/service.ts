@@ -12,7 +12,7 @@ export const getDrives = async (
   offenseConference?: string,
   defenseConference?: string,
   conference?: string,
-  classification?: DivisionClassification
+  classification?: DivisionClassification,
 ): Promise<Drive[]> => {
   let filters = ['g.season = $1'];
   let params: any[] = [year];
@@ -31,7 +31,9 @@ export const getDrives = async (
   }
 
   if (team) {
-    filters.push(`(LOWER(offense.school) = LOWER($${index}) OR LOWER(defense.school) = LOWER($${index}))`);
+    filters.push(
+      `(LOWER(offense.school) = LOWER($${index}) OR LOWER(defense.school) = LOWER($${index}))`,
+    );
     params.push(team);
     index++;
   }
@@ -61,7 +63,9 @@ export const getDrives = async (
   }
 
   if (conference) {
-    filters.push(`(LOWER(oc.abbreviation) = LOWER($${index}) OR LOWER(dc.abbreviation) = LOWER($${index}))`);
+    filters.push(
+      `(LOWER(oc.abbreviation) = LOWER($${index}) OR LOWER(dc.abbreviation) = LOWER($${index}))`,
+    );
     params.push(conference);
     index++;
   }
@@ -74,7 +78,8 @@ export const getDrives = async (
 
   const filter = `WHERE ${filters.join(' AND ')}`;
 
-  const drives = await db.any(`
+  const drives = await db.any(
+    `
         WITH drives AS (
             SELECT  offense.school as offense,
                     oc.name as offense_conference,
@@ -122,7 +127,9 @@ export const getDrives = async (
                 CASE WHEN d.is_home_offense THEN p.ending_away_score ELSE p.ending_home_score END AS end_defense_score
         FROM drives AS d
             INNER JOIN points AS p ON d.id = p.id
-                        `, params);
+                        `,
+    params,
+  );
 
   for (let drive of drives) {
     if (!drive.start_time.minutes) {
@@ -150,36 +157,38 @@ export const getDrives = async (
     }
   }
 
-  return drives.map((d): Drive => ({
-    id: d.id,
-    gameId: d.game_id,
-    offense: d.offense,
-    offenseConference: d.offense_conference,
-    defense: d.defense,
-    defenseConference: d.defense_conference,
-    driveNumber: d.drive_number,
-    scoring: d.scoring,
-    startPeriod: d.start_period,
-    startYardline: d.start_yardline,
-    startYardsToGoal: d.start_yards_to_goal,
-    startTime: {
-      minutes: d.start_time.minutes,
-      seconds: d.start_time.seconds,
-    },
-    endPeriod: d.end_period,
-    endYardline: d.end_yardline,
-    endYardsToGoal: d.end_yards_to_goal,
-    endTime: {
-      minutes: d.end_time.minutes,
-      seconds: d.end_time.seconds,
-    },
-    plays: d.plays,
-    yards: d.yards,
-    driveResult: d.drive_result,
-    isHomeOffense: d.is_home_offense,
-    startOffenseScore: d.start_offense_score,
-    startDefenseScore: d.start_defense_score,
-    endOffenseScore: d.end_offense_score,
-    endDefenseScore: d.end_defense_score,
-  }));
+  return drives.map(
+    (d): Drive => ({
+      id: d.id,
+      gameId: d.game_id,
+      offense: d.offense,
+      offenseConference: d.offense_conference,
+      defense: d.defense,
+      defenseConference: d.defense_conference,
+      driveNumber: d.drive_number,
+      scoring: d.scoring,
+      startPeriod: d.start_period,
+      startYardline: d.start_yardline,
+      startYardsToGoal: d.start_yards_to_goal,
+      startTime: {
+        minutes: d.start_time.minutes,
+        seconds: d.start_time.seconds,
+      },
+      endPeriod: d.end_period,
+      endYardline: d.end_yardline,
+      endYardsToGoal: d.end_yards_to_goal,
+      endTime: {
+        minutes: d.end_time.minutes,
+        seconds: d.end_time.seconds,
+      },
+      plays: d.plays,
+      yards: d.yards,
+      driveResult: d.drive_result,
+      isHomeOffense: d.is_home_offense,
+      startOffenseScore: d.start_offense_score,
+      startDefenseScore: d.start_defense_score,
+      endOffenseScore: d.end_offense_score,
+      endDefenseScore: d.end_defense_score,
+    }),
+  );
 };

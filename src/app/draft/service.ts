@@ -3,7 +3,8 @@ import { kdb } from '../../config/database';
 import { DraftPick, DraftPosition, DraftTeam } from './types';
 
 export const getTeams = async (): Promise<DraftTeam[]> => {
-  const teams = await kdb.selectFrom('draftTeam')
+  const teams = await kdb
+    .selectFrom('draftTeam')
     .select(['location', 'mascot', 'displayName', 'logo'])
     .distinct()
     .execute();
@@ -19,7 +20,8 @@ export const getTeams = async (): Promise<DraftTeam[]> => {
 };
 
 export const getPositions = async (): Promise<DraftPosition[]> => {
-  const positions = await kdb.selectFrom('draftPosition')
+  const positions = await kdb
+    .selectFrom('draftPosition')
     .select(['name', 'abbreviation'])
     .distinct()
     .orderBy('name')
@@ -35,15 +37,19 @@ export const getPicks = async (
   conference?: string,
   position?: string,
 ): Promise<DraftPick[]> => {
-  let query = kdb.selectFrom('draftPicks')
+  let query = kdb
+    .selectFrom('draftPicks')
     .innerJoin('draftTeam', 'draftPicks.nflTeamId', 'draftTeam.id')
     .innerJoin('draftPosition', 'draftPicks.positionId', 'draftPosition.id')
     .innerJoin('team', 'draftPicks.collegeTeamId', 'team.id')
-    .leftJoin('conferenceTeam', (join) => (
-      join.onRef('team.id', '=', 'conferenceTeam.id')
+    .leftJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.id')
         .on(sql`(draft_picks.year - 1) >= conference_team.start_year`)
-        .on(sql`conference_team.end_year is null or (draft_picks.year - 1) <= conference_team.end_year`)
-    ))
+        .on(
+          sql`conference_team.end_year is null or (draft_picks.year - 1) <= conference_team.end_year`,
+        ),
+    )
     .leftJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
     .leftJoin('athlete', 'draftPicks.collegeId', 'athlete.id')
     .leftJoin('hometown', 'athlete.hometownId', 'hometown.id')
@@ -95,7 +101,9 @@ export const getPicks = async (
 
   if (position) {
     // @ts-ignore
-    query = await query.where(sql`LOWER(draft_position.name) = LOWER(${position}) OR LOWER(draft_position.abbreviation) = LOWER(${position})`);
+    query = await query.where(
+      sql`LOWER(draft_position.name) = LOWER(${position}) OR LOWER(draft_position.abbreviation) = LOWER(${position})`,
+    );
   }
 
   const picks = await query.orderBy('draftPicks.overall').execute();

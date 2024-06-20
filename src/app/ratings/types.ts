@@ -95,8 +95,8 @@ export interface TeamSRS {
    */
   year: number;
   team: string;
-  conference: string;
-  division: string;
+  conference: string | null;
+  division: string | null;
   rating: number;
   /**
    * @isInt
@@ -114,7 +114,7 @@ export interface TeamElo {
   /**
    * @isInt
    */
-  elo: number;
+  elo: number | null;
 }
 
 export interface TeamFPI {
@@ -123,25 +123,25 @@ export interface TeamFPI {
    */
   year: number;
   team: string;
-  conference: string;
-  fpi: number;
+  conference: string | null;
+  fpi: number | null;
   resumeRanks: {
     /**
      * @isInt
      */
-    strengthOfRecord: number;
+    strengthOfRecord: number | null;
     /**
      * @isInt
      */
-    fpi: number;
+    fpi: number | null;
     /**
      * @isInt
      */
-    averageWinProbability: number;
+    averageWinProbability: number | null;
     /**
      * @isInt
      */
-    strengthOfSchedule: number;
+    strengthOfSchedule: number | null;
     /**
      * @isInt
      */
@@ -149,12 +149,12 @@ export interface TeamFPI {
     /**
      * @isInt
      */
-    gameControl: number;
+    gameControl: number | null;
   };
   efficiencies: {
-    overall: number;
-    offense: number;
-    defense: number;
-    specialTeams: number;
+    overall: number | null;
+    offense: number | null;
+    defense: number | null;
+    specialTeams: number | null;
   };
 }
