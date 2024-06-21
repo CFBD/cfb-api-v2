@@ -22,9 +22,9 @@ export interface PollRank {
   /**
    * @isInt
    */
-  rank: number;
+  rank: number | null;
   school: string;
-  conference: string;
+  conference: string | null;
   /**
    * @isInt
    */

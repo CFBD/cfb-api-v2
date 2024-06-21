@@ -1,4 +1,3 @@
-import { sql } from 'kysely';
 import { kdb } from '../../config/database';
 import { SeasonType } from '../enums';
 import { ConferenceSP, TeamElo, TeamFPI, TeamSP, TeamSRS } from './types';
@@ -84,8 +83,9 @@ export const getSP = async (
   }
 
   if (team) {
-    // @ts-ignore
-    ratingsQuery = ratingsQuery.where(sql`LOWER(team) = ${team}`);
+    ratingsQuery = ratingsQuery.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
   }
 
   const ratings = await ratingsQuery.execute();
@@ -199,9 +199,12 @@ export const getConferenceSP = async (
   }
 
   if (conference) {
-    query = query.where(
-      // @ts-ignore
-      sql`LOWER(conference.abbreviation) = LOWER(${conference})`,
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
     );
   }
 
@@ -295,14 +298,18 @@ export const getSRS = async (
   }
 
   if (team) {
-    // @ts-ignore
-    query = query.where(sql`LOWER(team.school) = LOWER(${team})`);
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
   }
 
   if (conference) {
-    query = query.where(
-      // @ts-ignore
-      sql`LOWER(conference.abbreviation) = LOWER(${conference})`,
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
     );
   }
 
@@ -376,14 +383,18 @@ export const getElo = async (
       }
 
       if (team) {
-        // @ts-ignore
-        cte = cte.where(sql`LOWER(team.school) = LOWER(${team})`);
+        cte = cte.where((eb) =>
+          eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+        );
       }
 
       if (conference) {
-        cte = cte.where(
-          // @ts-ignore
-          sql`LOWER(conference.abbreviation) = LOWER(${conference})`,
+        cte = cte.where((eb) =>
+          eb(
+            eb.fn('lower', ['conference.abbreviation']),
+            '=',
+            conference.toLowerCase(),
+          ),
         );
       }
 
@@ -438,14 +449,18 @@ export const getFPI = async (
   }
 
   if (team) {
-    // @ts-ignore
-    query = query.where(sql`LOWER(team.school) = LOWER(${team})`);
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
   }
 
   if (conference) {
-    query = query.where(
-      // @ts-ignore
-      sql`LOWER(conference.abbreviation) = LOWER(${conference})`,
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
     );
   }
 

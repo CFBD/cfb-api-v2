@@ -1,5 +1,5 @@
 import { ValidateError } from 'tsoa';
-import { db } from '../../config/database';
+import { kdb } from '../../config/database';
 import {
   Conference,
   Matchup,
@@ -11,49 +11,84 @@ import {
 } from './types';
 
 export const getTeams = async (conference?: string): Promise<Team[]> => {
-  let filter = conference ? 'WHERE LOWER(c.abbreviation) = LOWER($1)' : '';
-  let params = [conference];
+  let query = kdb
+    .selectFrom('team')
+    .leftJoin('venue', 'team.venueId', 'venue.id')
+    .leftJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .on('conferenceTeam.endYear', 'is', null),
+    )
+    .leftJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .select([
+      'team.id',
+      'team.school',
+      'team.mascot',
+      'team.abbreviation',
+      'team.altName as altName1',
+      'team.abbreviation as altName2',
+      'team.nickname as altName3',
+      'team.twitter',
+      'conference.division as classification',
+      'conference.name as conference',
+      'conferenceTeam.division',
+      'team.color',
+      'team.altColor',
+      'team.images as logos',
+      'venue.id as venueId',
+      'venue.name as venueName',
+      'venue.capacity',
+      'venue.grass',
+      'venue.city',
+      'venue.state',
+      'venue.zip',
+      'venue.countryCode',
+      'venue.location',
+      'venue.elevation',
+      'venue.yearConstructed',
+      'venue.dome',
+      'venue.timezone',
+    ]);
 
-  let teams = await db.any(
-    `
-        SELECT t.id, t.school, t.mascot, t.abbreviation, t.alt_name as alt_name1, t.abbreviation as alt_name2, t.nickname as alt_name3, t.twitter, c.division AS classification, c.name as conference, ct.division as division, ('#' || t.color) as color, ('#' || t.alt_color) as alt_color, t.images as logos, v.id AS venue_id, v.name AS venue_name, v.capacity, v.grass, v.city, v.state, v.zip, v.country_code, v.location, v.elevation, v.year_constructed, v.dome, v.timezone
-        FROM team t
-            LEFT JOIN venue AS v ON t.venue_id = v.id
-            LEFT JOIN conference_team ct ON t.id = ct.team_id AND ct.end_year IS NULL
-            LEFT JOIN  conference c ON c.id = ct.conference_id
-        ${filter}
-        ORDER BY t.active DESC, t.school
-    `,
-    params,
-  );
+  if (conference) {
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
+    );
+  }
 
+  const teams = await query.execute();
   return teams.map(
     (t): Team => ({
       id: t.id,
       school: t.school,
       mascot: t.mascot,
       abbreviation: t.abbreviation,
-      alternateNames: [t.alt_name1, t.alt_name2, t.alt_name3].filter((n) => n),
+      // @ts-ignore
+      alternateNames: [t.altName1, t.altName2, t.altName3].filter((n) => n),
       conference: t.conference,
       division: t.division,
       classification: t.classification,
-      color: t.color,
-      alternateColor: t.alt_color,
+      color: `#${t.color}`,
+      alternateColor: `#${t.altColor}`,
       logos: t.logos,
       twitter: t.twitter,
       location: {
-        id: t.venue_id,
-        name: t.venue_name,
+        id: t.venueId,
+        name: t.venueName,
         city: t.city,
         state: t.state,
         zip: t.zip,
-        countryCode: t.country_code,
+        countryCode: t.countryCode,
         timezone: t.timezone,
         latitude: t.location ? t.location.x : null,
         longitude: t.location ? t.location.y : null,
         elevation: t.elevation,
         capacity: t.capacity,
-        constructionYear: t.year_constructed,
+        constructionYear: t.yearConstructed,
         grass: t.grass,
         dome: t.dome,
       },
@@ -62,23 +97,61 @@ export const getTeams = async (conference?: string): Promise<Team[]> => {
 };
 
 export const getFBSTeams = async (year?: number): Promise<Team[]> => {
-  let filter = year
-    ? 'WHERE ct.start_year <= $1 AND (ct.end_year >= $1 OR ct.end_year IS NULL)'
-    : 'WHERE ct.end_year IS NULL';
-  let params = year ? [year] : [];
+  let query = kdb
+    .selectFrom('team')
+    .innerJoin('conferenceTeam', 'team.id', 'conferenceTeam.teamId')
+    .innerJoin('conference', (join) =>
+      join
+        .onRef('conferenceTeam.conferenceId', '=', 'conference.id')
+        .on('conference.division', '=', 'fbs'),
+    )
+    .leftJoin('venue', 'team.venueId', 'venue.id')
+    .select([
+      'team.id',
+      'team.school',
+      'team.abbreviation',
+      'team.mascot',
+      'team.altName as altName1',
+      'team.abbreviation as altName2',
+      'team.nickname as altName3',
+      'team.twitter',
+      'conference.name as conference',
+      'conference.division as classification',
+      'conferenceTeam.division as division',
+      'team.color',
+      'team.altColor',
+      'team.images as logos',
+      'venue.id as venueId',
+      'venue.name as venueName',
+      'venue.capacity',
+      'venue.grass',
+      'venue.city',
+      'venue.state',
+      'venue.zip',
+      'venue.countryCode',
+      'venue.location',
+      'venue.elevation',
+      'venue.dome',
+      'venue.timezone',
+      'venue.yearConstructed',
+    ])
+    .orderBy('team.active desc')
+    .orderBy('team.school');
 
-  let teams = await db.any(
-    `
-        SELECT t.id, t.school, t.mascot, t.abbreviation, t.alt_name as alt_name1, t.abbreviation as alt_name2, t.nickname as alt_name3, t.twitter, c.name as conference, ct.division as division, ('#' || t.color) as color, ('#' || t.alt_color) as alt_color, t.images as logos, v.id AS venue_id, v.name AS venue_name, v.capacity, v.grass, v.city, v.state, v.zip, v.country_code, v.location, v.elevation, v.year_constructed, v.dome, v.timezone
-        FROM team t
-            INNER JOIN conference_team ct ON t.id = ct.team_id
-            INNER JOIN  conference c ON c.id = ct.conference_id AND c.division = 'fbs'
-            LEFT JOIN venue AS v ON t.venue_id = v.id
-        ${filter}
-        ORDER BY t.active DESC, t.school
-    `,
-    params,
-  );
+  if (year) {
+    query = query
+      .where('conferenceTeam.startYear', '<=', year)
+      .where((eb) =>
+        eb.or([
+          eb('conferenceTeam.endYear', 'is', null),
+          eb('conferenceTeam.endYear', '>=', year),
+        ]),
+      );
+  } else {
+    query = query.where('conferenceTeam.endYear', 'is', null);
+  }
+
+  const teams = await query.execute();
 
   return teams.map(
     (t): Team => ({
@@ -86,27 +159,28 @@ export const getFBSTeams = async (year?: number): Promise<Team[]> => {
       school: t.school,
       mascot: t.mascot,
       abbreviation: t.abbreviation,
-      alternateNames: [t.alt_name1, t.alt_name2, t.alt_name3].filter((n) => n),
+      // @ts-ignore
+      alternateNames: [t.altName1, t.altName2, t.altName3].filter((n) => n),
       conference: t.conference,
       division: t.division,
       classification: t.classification,
-      color: t.color,
-      alternateColor: t.alt_color,
+      color: `#${t.color}`,
+      alternateColor: `#${t.altColor}`,
       logos: t.logos,
       twitter: t.twitter,
       location: {
-        id: t.venue_id,
-        name: t.venue_name,
+        id: t.venueId,
+        name: t.venueName,
         city: t.city,
         state: t.state,
         zip: t.zip,
-        countryCode: t.country_code,
+        countryCode: t.countryCode,
         timezone: t.timezone,
         latitude: t.location ? t.location.x : null,
         longitude: t.location ? t.location.y : null,
         elevation: t.elevation,
         capacity: t.capacity,
-        constructionYear: t.year_constructed,
+        constructionYear: t.yearConstructed,
         grass: t.grass,
         dome: t.dome,
       },
@@ -120,48 +194,69 @@ export const getMatchup = async (
   minYear?: number,
   maxYear?: number,
 ): Promise<Matchup> => {
-  let filter = `WHERE g.start_date < now() AND ((LOWER(home_team.school) = LOWER($1) AND LOWER(away_team.school) = LOWER($2)) OR (LOWER(away_team.school) = LOWER($1) AND LOWER(home_team.school) = LOWER($2)))`;
-  let params: any[] = [team1, team2];
-
-  let index = 3;
+  let query = kdb
+    .selectFrom('game')
+    .innerJoin('gameTeam as home', (join) =>
+      join
+        .onRef('game.id', '=', 'home.gameId')
+        .on('home.homeAway', '=', 'home'),
+    )
+    .innerJoin('team as homeTeam', 'home.teamId', 'homeTeam.id')
+    .innerJoin('gameTeam as away', (join) =>
+      join
+        .onRef('game.id', '=', 'away.gameId')
+        .on('away.homeAway', '=', 'away'),
+    )
+    .innerJoin('team as awayTeam', 'away.teamId', 'awayTeam.id')
+    .leftJoin('venue', 'game.venueId', 'venue.id')
+    // @ts-ignore
+    .where((eb) => eb('game.startDate', '<', eb.fn('now')))
+    .where((eb) =>
+      eb.or([
+        eb.and([
+          eb(eb.fn('lower', ['homeTeam.school']), '=', team1.toLowerCase()),
+          eb(eb.fn('lower', ['awayTeam.school']), '=', team2.toLowerCase()),
+        ]),
+        eb.and([
+          eb(eb.fn('lower', ['homeTeam.school']), '=', team2.toLowerCase()),
+          eb(eb.fn('lower', ['awayTeam.school']), '=', team1.toLowerCase()),
+        ]),
+      ]),
+    )
+    .orderBy('game.season')
+    .select([
+      'game.season',
+      'game.seasonType',
+      'game.week',
+      'game.startDate',
+      'game.neutralSite',
+      'venue.name as venue',
+      'homeTeam.school as home',
+      'home.points as homePoints',
+      'awayTeam.school as away',
+      'away.points as awayPoints',
+    ]);
 
   if (minYear) {
-    filter += ` AND g.season >= $${index}`;
-    params.push(minYear);
-    index++;
+    query = query.where('game.season', '>=', minYear);
   }
 
   if (maxYear) {
-    filter += ` AND g.season <= $${index}`;
-    params.push(maxYear);
-    index++;
+    query = query.where('game.season', '<=', maxYear);
   }
 
-  let results = await db.any(
-    `
-        SELECT g.season, g.week, g.season_type, g.start_date, g.neutral_site, v.name as venue, home_team.school as home, home.points as home_points, away_team.school as away, away.points as away_points
-        FROM game g
-            INNER JOIN game_team home ON g.id = home.game_id AND home.home_away = 'home'
-            INNER JOIN team home_team ON home.team_id = home_team.id
-            INNER JOIN game_team away ON g.id = away.game_id AND away.home_away = 'away'
-            INNER JOIN team away_team ON away.team_id = away_team.id
-            LEFT JOIN venue v ON g.venue_id = v.id
-        ${filter}
-        ORDER BY g.season
-    `,
-    params,
-  );
+  const results = await query.execute();
 
   let games = results.map((r): MatchupGame => {
-    let homePoints = r.home_points * 1.0;
-    let awayPoints = r.away_points * 1.0;
+    let homePoints = (r.homePoints ?? 0) * 1.0;
+    let awayPoints = (r.awayPoints ?? 0) * 1.0;
 
     return {
       season: r.season as number,
       week: r.week as number,
-      seasonType: r.season_type as string,
-      date: r.start_date as string,
-      neutralSite: r.neutral_site as boolean,
+      seasonType: r.seasonType as string,
+      date: r.startDate.toISOString(),
+      neutralSite: r.neutralSite as boolean,
       venue: r.venue as string,
       homeTeam: r.home as string,
       homeScore: homePoints as number,
@@ -180,15 +275,15 @@ export const getMatchup = async (
     new Set([...games.map((g) => g.homeTeam), ...games.map((g) => g.awayTeam)]),
   );
   let team1Team = teams.find((t) => t.toLowerCase() == team1.toLowerCase());
-  let team2team = teams.find((t) => t.toLowerCase() == team2.toLowerCase());
+  let team2Team = teams.find((t) => t.toLowerCase() == team2.toLowerCase());
 
   let data: Matchup = {
     team1: team1Team as string,
-    team2: team2team as string,
+    team2: team2Team as string,
     startYear: minYear,
     endYear: maxYear,
-    team1Wins: games.filter((g) => g.winner == team1).length,
-    team2Wins: games.filter((g) => g.winner == team2).length,
+    team1Wins: games.filter((g) => g.winner == team1Team).length,
+    team2Wins: games.filter((g) => g.winner == team2Team).length,
     ties: games.filter((g) => !g.winner).length,
     games: games,
   };
@@ -198,87 +293,110 @@ export const getMatchup = async (
 
 export const getRoster = async (
   team?: string,
-  year?: number,
+  year: number = 2023,
 ): Promise<RosterPlayer[]> => {
-  let filters = [];
-  let params = [];
-  let index = 1;
+  let query = kdb
+    .selectFrom('team')
+    .innerJoin('athleteTeam', 'team.id', 'athleteTeam.teamId')
+    .innerJoin('athlete', 'athleteTeam.athleteId', 'athlete.id')
+    .leftJoin('hometown', 'athlete.hometownId', 'hometown.id')
+    .leftJoin('position', 'athlete.positionId', 'position.id')
+    .leftJoin('recruit', 'athlete.id', 'recruit.athleteId')
+    .where('athleteTeam.startYear', '<=', year)
+    .where('athleteTeam.endYear', '>=', year)
+    .groupBy([
+      'athlete.id',
+      'athlete.firstName',
+      'athlete.lastName',
+      'team.school',
+      'athlete.weight',
+      'athlete.height',
+      'athlete.jersey',
+      'athlete.year',
+      'position.abbreviation',
+      'hometown.city',
+      'hometown.state',
+      'hometown.country',
+      'hometown.latitude',
+      'hometown.longitude',
+      'hometown.countyFips',
+    ])
+    .select([
+      'athlete.id',
+      'athlete.firstName',
+      'athlete.lastName',
+      'team.school as team',
+      'athlete.weight',
+      'athlete.height',
+      'athlete.jersey',
+      'athlete.year',
+      'position.abbreviation as position',
+      'hometown.city as homeCity',
+      'hometown.state as homeState',
+      'hometown.country as homeCountry',
+      'hometown.latitude as homeLatitude',
+      'hometown.longitude as homeLongitude',
+      'hometown.countyFips as homeCountyFips',
+    ])
+    .select((eb) =>
+      eb.fn
+        .agg<string[]>('array_agg', ['recruit.id'])
+        .distinct()
+        .as('recruitIds'),
+    );
 
   if (team) {
-    filters.push(`LOWER(t.school) = LOWER($${index})`);
-    params.push(team);
-    index++;
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
   }
 
-  if (year) {
-    if (!Number.isInteger(year)) {
-      throw new ValidateError(
-        { year: { value: year, message: 'integer type expected' } },
-        'Validation error',
-      );
-    }
-
-    params.push(year);
-  } else {
-    params.push(2023);
-  }
-
-  filters.push(`att.start_year <= $${index} AND att.end_year >= $${index}`);
-  index++;
-
-  const filter = `WHERE a.id > 0 AND ${filters.join(' AND ')}`;
-  const roster = await db.any(
-    `
-        SELECT a.id, a.first_name, a.last_name, t.school AS team, a.weight, a.height, a.jersey, a.year, p.abbreviation as position, h.city as home_city, h.state as home_state, h.country as home_country, h.latitude as home_latitude, h.longitude as home_longitude, h.county_fips as home_county_fips, array_agg(DISTINCT r.id) AS recruit_ids
-        FROM team t
-            INNER JOIN athlete_team AS att ON t.id = att.team_id
-            INNER JOIN athlete a ON att.athlete_id = a.id
-            LEFT JOIN hometown h ON a.hometown_id = h.id
-            LEFT JOIN position p ON a.position_id = p.id
-            LEFT JOIN recruit AS r ON r.athlete_id = a.id
-        ${filter}
-        GROUP BY a.id, a.first_name, a.last_name, t.school, a.weight, a.height, a.jersey, a.year, p.abbreviation, h.city, h.state, h.country, h.latitude, h.longitude, h.county_fips
-    `,
-    params,
-  );
+  const roster = await query.execute();
 
   return roster.map(
     (r): RosterPlayer => ({
       id: r.id,
-      firstName: r.first_name,
-      lastName: r.last_name,
-      team: r.school,
+      firstName: r.firstName ?? '',
+      lastName: r.lastName ?? '',
+      team: r.team,
       weight: r.weight,
       height: r.height,
       jersey: r.jersey,
-      year: r.year,
+      year: r.year ?? year,
       position: r.position,
-      homeCity: r.home_city,
-      homeState: r.home_state,
-      homeCountry: r.home_country,
-      homeLatitude: r.home_latitude,
-      homeLongitude: r.home_longitude,
-      homeCountyFIPS: r.home_county_fips,
-      recruitIds: r.recruit_ids?.length
-        ? r.recruit_ids.filter((r: number | undefined) => r)
+      homeCity: r.homeCity,
+      homeState: r.homeState,
+      homeCountry: r.homeCountry,
+      homeLatitude: r.homeLatitude ? parseFloat(r.homeLatitude) : null,
+      homeLongitude: r.homeLongitude ? parseFloat(r.homeLongitude) : null,
+      homeCountyFIPS: r.homeCountyFips,
+      recruitIds: r.recruitIds?.length
+        ? r.recruitIds.filter((r: string | null) => r)
         : [],
     }),
   );
 };
 
 export const getConferences = async (): Promise<Conference[]> => {
-  let conferences = await db.any(`
-        SELECT id, name, short_name, abbreviation, division as classification
-        FROM conference
-        ORDER BY id
-    `);
+  const query = kdb
+    .selectFrom('conference')
+    .select([
+      'id',
+      'name',
+      'shortName',
+      'abbreviation',
+      'division as classification',
+    ]);
+
+  const conferences = await query.execute();
 
   return conferences.map(
     (c): Conference => ({
       id: c.id,
       name: c.name,
-      shortName: c.short_name,
+      shortName: c.shortName,
       abbreviation: c.abbreviation,
+      // @ts-ignore
       classification: c.classification,
     }),
   );
@@ -292,24 +410,24 @@ export const getTalent = async (year: number): Promise<TeamTalent[]> => {
     );
   }
 
-  return await await db.any(
-    `
-        SELECT tt.year, t.school, tt.talent
-        FROM team_talent tt
-            INNER JOIN team t ON tt.team_id = t.id
-        WHERE tt.year = $1
-        ORDER BY tt.year DESC, tt.talent DESC
-    `,
-    [year],
-  );
+  const talent = await kdb
+    .selectFrom('teamTalent')
+    .innerJoin('team', 'teamTalent.teamId', 'team.id')
+    .where('teamTalent.year', '=', year)
+    .orderBy('teamTalent.year desc')
+    .orderBy('teamTalent.talent desc')
+    .select(['teamTalent.year', 'team.school as team', 'teamTalent.talent'])
+    .execute();
+
+  return talent.map((t) => ({
+    year: t.year,
+    team: t.team,
+    talent: parseFloat(t.talent),
+  }));
 };
 
 export const getVenues = async (): Promise<Venue[]> => {
-  const venues = await db.any(`
-                SELECT id, name, capacity, grass, city, state, zip, country_code, location, elevation, year_constructed, dome, timezone
-                FROM venue
-                ORDER BY name
-            `);
+  const venues = await kdb.selectFrom('venue').selectAll().execute();
 
   return venues.map(
     (v): Venue => ({
@@ -321,12 +439,12 @@ export const getVenues = async (): Promise<Venue[]> => {
       city: v.city,
       state: v.state,
       zip: v.zip,
-      countryCode: v.country_code,
+      countryCode: v.countryCode,
       timezone: v.timezone,
       latitude: v.location ? v.location.x : null,
       longitude: v.location ? v.location.y : null,
       elevation: v.elevation,
-      constructionYear: v.constructionYear,
+      constructionYear: v.yearConstructed,
     }),
   );
 };

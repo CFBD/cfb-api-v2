@@ -1,4 +1,4 @@
-import { db } from '../../config/database';
+import { kdb } from '../../config/database';
 import { SeasonType } from '../enums';
 import { PollWeek } from './types';
 
@@ -7,56 +7,64 @@ export const getRankings = async (
   seasonType?: SeasonType,
   week?: number,
 ): Promise<PollWeek[]> => {
-  const filters = ['p.season = $1'];
-  const params: any[] = [year];
-
-  let index = 2;
+  let query = kdb
+    .selectFrom('pollType')
+    .innerJoin('poll', 'pollType.id', 'poll.pollTypeId')
+    .innerJoin('pollRank', 'poll.id', 'pollRank.pollId')
+    .innerJoin('team', 'pollRank.teamId', 'team.id')
+    .leftJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .onRef('conferenceTeam.startYear', '<=', 'poll.season')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', 'is', null),
+            eb('conferenceTeam.endYear', '>=', eb.ref('poll.season')),
+          ]),
+        ),
+    )
+    .leftJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .where('poll.season', '=', year)
+    .select([
+      'poll.seasonType',
+      'poll.season',
+      'poll.week',
+      'pollType.name as poll',
+      'pollRank.rank',
+      'team.school',
+      'conference.name as conference',
+      'pollRank.firstPlaceVotes',
+      'pollRank.points',
+    ]);
 
   if (seasonType && seasonType !== SeasonType.Both) {
-    filters.push(`p.season_type = $${index}`);
-    params.push(seasonType);
-    index++;
+    query = query.where('poll.seasonType', '=', seasonType);
   }
 
   if (week) {
-    filters.push(`p.week = $${index}`);
-    params.push(week);
-    index++;
+    query = query.where('poll.week', '=', week);
   }
 
-  const filter = `WHERE ${filters.join(' AND ')}`;
-
-  let data = await db.any(
-    `
-  select p.season_type, p.season, p.week, pt.name as poll, pr.rank, t.school, c.name as conference, pr.first_place_votes, pr.points
-  from poll_type pt
-      inner join poll p on pt.id = p.poll_type_id
-      inner join poll_rank pr on p.id = pr.poll_id
-      inner join team t on pr.team_id = t.id
-      left join conference_team ct on t.id = ct.team_id AND ct.start_year <= p.season AND (ct.end_year >= p.season OR ct.end_year IS NULL)
-      left join conference c on ct.conference_id = c.id
-                                            ${filter}`,
-    params,
-  );
-
+  let data = await query.execute();
   let results = [];
 
   let seasons = Array.from(new Set(data.map((d) => d.season)));
   for (let season of seasons) {
     let seasonTypes = Array.from(
-      new Set(data.filter((d) => d.season == season).map((d) => d.season_type)),
+      new Set(data.filter((d) => d.season == season).map((d) => d.seasonType)),
     );
     for (let seasonType of seasonTypes) {
       let weeks = Array.from(
         new Set(
           data
-            .filter((d) => d.season == season && d.season_type == seasonType)
+            .filter((d) => d.season == season && d.seasonType == seasonType)
             .map((d) => d.week),
         ),
       );
       for (let week of weeks) {
         let weekRecord: PollWeek = {
           season,
+          // @ts-ignore
           seasonType,
           week,
           polls: [],
@@ -66,7 +74,7 @@ export const getRankings = async (
           .filter(
             (d) =>
               d.season == season &&
-              d.season_type == seasonType &&
+              d.seasonType == seasonType &&
               d.week == week,
           )
           .map((d) => d);
@@ -82,7 +90,7 @@ export const getRankings = async (
                   rank: r.rank,
                   school: r.school,
                   conference: r.conference,
-                  firstPlaceVotes: r.first_place_votes,
+                  firstPlaceVotes: r.firstPlaceVotes,
                   points: r.points,
                 };
               }),

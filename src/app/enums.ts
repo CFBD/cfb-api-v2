@@ -2,6 +2,9 @@ export enum SeasonType {
   Regular = 'regular',
   Postseason = 'postseason',
   Both = 'both',
+  AllStar = 'allstar',
+  SpringRegular = 'spring_regular',
+  SpringPostseason = 'spring_postseason',
 }
 
 export enum TransferEligibility {

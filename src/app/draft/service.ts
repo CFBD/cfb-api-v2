@@ -85,24 +85,37 @@ export const getPicks = async (
   }
 
   if (team) {
-    // @ts-ignore
-    query = query.where(sql`LOWER(draft_team.location) = LOWER(${team})`);
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['draftTeam.location']), '=', team.toLowerCase()),
+    );
   }
 
   if (school) {
-    // @ts-ignore
-    query = query.where(sql`LOWER(conference_team.school) = LOWER(${school})`);
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', school.toLowerCase()),
+    );
   }
 
   if (conference) {
-    // @ts-ignore
-    query = query.where(sql`LOWER(conference.location) = LOWER(${conference})`);
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
+    );
   }
 
   if (position) {
-    query = await query.where(
-      // @ts-ignore
-      sql`LOWER(draft_position.name) = LOWER(${position}) OR LOWER(draft_position.abbreviation) = LOWER(${position})`,
+    query = query.where((eb) =>
+      eb.or([
+        eb(eb.fn('lower', ['draftPosition.name']), '=', position.toLowerCase()),
+        eb(
+          eb.fn('lower', ['draftPosition.abbreviation']),
+          '=',
+          position.toLowerCase(),
+        ),
+      ]),
     );
   }
 

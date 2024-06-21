@@ -1,3 +1,5 @@
+import { DivisionClassification } from '../enums';
+
 export interface Team {
   /**
    * @isInt
@@ -21,8 +23,8 @@ export interface Venue {
   /**
    * @isInt
    */
-  id: number;
-  name: string;
+  id: number | null;
+  name: string | null;
   city: string | null;
   state: string | null;
   zip: string | null;
@@ -96,10 +98,7 @@ export interface MatchupGame {
 }
 
 export interface RosterPlayer {
-  /**
-   * @isInt
-   */
-  id: number;
+  id: string;
   firstName: string;
   lastName: string;
   team: string;
@@ -119,7 +118,7 @@ export interface RosterPlayer {
    * @isInt
    */
   year: number;
-  position: string;
+  position: string | null;
   homeCity: string | null;
   homeState: string | null;
   homeCountry: string | null;
@@ -129,7 +128,7 @@ export interface RosterPlayer {
   /**
    * @isInt
    */
-  recruitIds: number[] | null;
+  recruitIds: string[] | null;
 }
 
 export interface Conference {
@@ -138,9 +137,9 @@ export interface Conference {
    */
   id: number;
   name: string;
-  shortName: string;
-  abbreviation: string;
-  classification: 'fbs' | 'fcs' | 'ii' | 'iii';
+  shortName: string | null;
+  abbreviation: string | null;
+  classification: DivisionClassification | null;
 }
 
 export interface TeamTalent {
