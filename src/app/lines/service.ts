@@ -1,5 +1,5 @@
 import { ValidateError } from 'tsoa';
-import { db } from '../../config/database';
+import { kdb } from '../../config/database';
 import { SeasonType } from '../enums';
 import { BettingGame, GameLine } from './types';
 
@@ -22,92 +22,127 @@ export const getLines = async (
     );
   }
 
-  let filter: string;
-  let params: any[];
+  let gamesQuery = kdb
+    .selectFrom('game')
+    .innerJoin('gameTeam as hgt', (join) =>
+      join.onRef('game.id', '=', 'hgt.gameId').on('hgt.homeAway', '=', 'home'),
+    )
+    .innerJoin('team as ht', 'hgt.teamId', 'ht.id')
+    .innerJoin('gameTeam as agt', (join) =>
+      join.onRef('game.id', '=', 'agt.gameId').on('agt.homeAway', '=', 'away'),
+    )
+    .innerJoin('team as awt', 'agt.teamId', 'awt.id')
+    .leftJoin('conferenceTeam as hct', (join) =>
+      join
+        .onRef('ht.id', '=', 'hct.teamId')
+        .onRef('hct.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('hct.endYear', 'is', null),
+            eb('hct.endYear', '>=', eb.ref('game.season')),
+          ]),
+        ),
+    )
+    .leftJoin('conference as hc', 'hct.conferenceId', 'hc.id')
+    .leftJoin('conferenceTeam as act', (join) =>
+      join
+        .onRef('awt.id', '=', 'act.teamId')
+        .onRef('act.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('act.endYear', 'is', null),
+            eb('act.endYear', '>=', eb.ref('game.season')),
+          ]),
+        ),
+    )
+    .leftJoin('conference as ac', 'act.conferenceId', 'ac.id')
+    .select([
+      'game.id',
+      'game.season',
+      'game.week',
+      'game.seasonType',
+      'game.startDate',
+      'ht.school as homeSchool',
+      'hc.name as homeConference',
+      'hgt.points as homeScore',
+      'awt.school as awaySchool',
+      'ac.name as awayConference',
+      'agt.points as awayScore',
+    ]);
 
   if (gameId) {
-    filter = 'WHERE g.id = $1';
-    params = [gameId];
+    gamesQuery = gamesQuery.where('game.id', '=', gameId);
   } else {
-    const filters = ['g.season = $1'];
-    params = [year];
-    let index = 2;
-
     if (seasonType && seasonType != SeasonType.Both) {
-      filters.push(`g.season_type = $${index}`);
-      params.push(seasonType);
-      index++;
+      gamesQuery = gamesQuery.where('game.seasonType', '=', seasonType);
     }
 
     if (week) {
-      filters.push(`g.week = $${index}`);
-      params.push(week);
-      index++;
+      gamesQuery = gamesQuery.where('game.week', '=', week);
     }
 
     if (team) {
-      filters.push(
-        `(LOWER(awt.school) = LOWER($${index}) OR LOWER(ht.school) = LOWER($${index}))`,
+      gamesQuery = gamesQuery.where((eb) =>
+        eb.or([
+          eb(eb.fn('lower', ['awt.school']), '=', team.toLowerCase()),
+          eb(eb.fn('lower', ['ht.school']), '=', team.toLowerCase()),
+        ]),
       );
-      params.push(team);
-      index++;
     }
 
     if (home) {
-      filters.push(`LOWER(ht.school) = LOWER($${index})`);
-      params.push(home);
-      index++;
+      gamesQuery = gamesQuery.where((eb) =>
+        eb(eb.fn('lower', ['ht.school']), '=', home.toLowerCase()),
+      );
     }
 
     if (away) {
-      filters.push(`LOWER(awt.school) = LOWER($${index})`);
-      params.push(away);
-      index++;
+      gamesQuery = gamesQuery.where((eb) =>
+        eb(eb.fn('lower', ['awt.school']), '=', away.toLowerCase()),
+      );
     }
 
     if (conference) {
-      filters.push(
-        `(LOWER(hc.abbreviation) = LOWER($${index}) OR LOWER(ac.abbreviation) = LOWER($${index}))`,
+      gamesQuery = gamesQuery.where((eb) =>
+        eb.or([
+          eb(
+            eb.fn('lower', ['hc.abbreviation']),
+            '=',
+            conference.toLowerCase(),
+          ),
+          eb(
+            eb.fn('lower', ['ac.abbreviation']),
+            '=',
+            conference.toLowerCase(),
+          ),
+        ]),
       );
-      params.push(conference);
-      index++;
     }
-
-    filter = `WHERE ${filters.join(' AND ')}`;
   }
 
-  const games = await db.any(
-    `
-                SELECT g.id, g.season, g.week, g.season_type, g.start_date, ht.school AS home_team, hc.name AS home_conference, hgt.points AS home_score, awt.school AS away_team, ac.name AS away_conference, agt.points AS away_score
-                FROM game AS g
-                    INNER JOIN game_team AS hgt ON hgt.game_id = g.id AND hgt.home_away = 'home'
-                    INNER JOIN team AS ht ON hgt.team_id = ht.id
-                    LEFT JOIN conference_team hct ON ht.id = hct.team_id AND hct.start_year <= g.season AND (hct.end_year >= g.season OR hct.end_year IS NULL)
-                    LEFT JOIN conference hc ON hct.conference_id = hc.id
-                    INNER JOIN game_team AS agt ON agt.game_id = g.id AND agt.home_away = 'away'
-                    INNER JOIN team AS awt ON agt.team_id = awt.id
-                    LEFT JOIN conference_team act ON awt.id = act.team_id AND act.start_year <= g.season AND (act.end_year >= g.season OR act.end_year IS NULL)
-                    LEFT JOIN conference ac ON act.conference_id = ac.id
-                ${filter}
-            `,
-    params,
-  );
+  const games = await gamesQuery.execute();
 
   const gameIds = games.map((g) => g.id);
   if (!gameIds.length) {
     return [];
   }
 
-  const lines = await db.any(
-    `
-                SELECT g.id, p.name, gl.spread, gl.spread_open, gl.over_under, gl.over_under_open, gl.moneyline_home, gl.moneyline_away
-                FROM game AS g
-                    INNER JOIN game_lines AS gl ON g.id = gl.game_id
-                    INNER JOIN lines_provider AS p ON gl.lines_provider_id = p.id
-                WHERE g.id IN ($1:list)
-            `,
-    [gameIds],
-  );
+  const lines = await kdb
+    .selectFrom('game')
+    .innerJoin('gameLines', 'game.id', 'gameLines.gameId')
+    .innerJoin('linesProvider', 'gameLines.linesProviderId', 'linesProvider.id')
+    .where('game.id', 'in', gameIds)
+    .select([
+      'game.id',
+      'linesProvider.name',
+      'gameLines.spread',
+      'gameLines.spreadOpen',
+      'gameLines.overUnder',
+      'gameLines.overUnderOpen',
+      'gameLines.moneylineHome',
+      'gameLines.moneylineAway',
+    ])
+    .execute();
 
   const results = games.map((g): BettingGame => {
     const gameLines = lines
@@ -115,31 +150,33 @@ export const getLines = async (
       .map(
         (l): GameLine => ({
           provider: l.name,
-          spread: l.spread,
-          formattedSpread:
-            l.spread < 0
-              ? `${g.home_team} ${l.spread}`
-              : `${g.away_team} -${l.spread}`,
-          spreadOpen: l.spread_open,
-          overUnder: l.over_under,
-          overUnderOpen: l.over_under_open,
-          homeMoneyline: l.moneyline_home,
-          awayMoneyline: l.moneyline_away,
+          spread: l.spread ? parseFloat(l.spread) : null,
+          formattedSpread: !l.spread
+            ? ''
+            : parseFloat(l.spread) < 0
+              ? `${g.homeSchool} ${l.spread}`
+              : `${g.awaySchool} -${l.spread}`,
+          spreadOpen: l.spreadOpen ? parseFloat(l.spreadOpen) : null,
+          overUnder: l.overUnder ? parseFloat(l.overUnder) : null,
+          overUnderOpen: l.overUnderOpen ? parseFloat(l.overUnderOpen) : null,
+          homeMoneyline: l.moneylineHome,
+          awayMoneyline: l.moneylineAway,
         }),
       );
 
     return {
       id: g.id,
       season: g.season,
-      seasonType: g.season_type,
+      // @ts-ignore
+      seasonType: g.seasonType,
       week: g.week,
-      startDate: g.start_date,
-      homeTeam: g.home_team,
-      homeConference: g.home_conference,
-      homeScore: g.home_score,
-      awayTeam: g.away_team,
-      awayConference: g.away_conference,
-      awayScore: g.away_score,
+      startDate: g.startDate,
+      homeTeam: g.homeSchool,
+      homeConference: g.homeConference,
+      homeScore: g.homeScore,
+      awayTeam: g.awaySchool,
+      awayConference: g.awayConference,
+      awayScore: g.awayScore,
       lines: gameLines,
     };
   });

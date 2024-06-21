@@ -1,4 +1,5 @@
-import { db } from '../../config/database';
+import { sql } from 'kysely';
+import { kdb } from '../../config/database';
 import { Coach, CoachSeason } from './types';
 
 export const getCoaches = async (
@@ -9,77 +10,86 @@ export const getCoaches = async (
   minYear?: number,
   maxYear?: number,
 ): Promise<Coach[]> => {
-  let filters: string[] = [];
-  let params: any[] = [];
-  let index = 1;
+  let query = kdb
+    .selectFrom('coach')
+    .innerJoin('coachSeason', 'coach.id', 'coachSeason.coachId')
+    .innerJoin('team', 'coachSeason.teamId', 'team.id')
+    .leftJoin('srs', (join) =>
+      join
+        .onRef('coachSeason.year', '=', 'srs.year')
+        .onRef('team.id', '=', 'srs.teamId'),
+    )
+    .leftJoin('ratings', (join) =>
+      join
+        .onRef('srs.year', '=', 'ratings.year')
+        .onRef('srs.teamId', '=', 'ratings.teamId'),
+    )
+    .leftJoin('coachTeam', (join) =>
+      join
+        .onRef('coach.id', '=', 'coachTeam.coachId')
+        .onRef('team.id', '=', 'coachTeam.teamId')
+        .on((eb) =>
+          eb(
+            'coachSeason.year',
+            '>=',
+            // @ts-ignore
+            sql`extract(year from coach_team.hire_date)`,
+          ),
+        ),
+    )
+    .select([
+      'coach.id',
+      'coach.firstName',
+      'coach.lastName',
+      'team.school',
+      'coachTeam.hireDate',
+      'coachSeason.year',
+      'coachSeason.games',
+      'coachSeason.wins',
+      'coachSeason.losses',
+      'coachSeason.ties',
+      'coachSeason.preseasonRank',
+      'coachSeason.postseasonRank',
+      'srs.rating as srs',
+      'ratings.rating as sp',
+      'ratings.oRating as spOffense',
+      'ratings.dRating as spDefense',
+    ])
+    .orderBy('coach.lastName')
+    .orderBy('coach.firstName')
+    .orderBy('coachSeason.year');
 
   if (firstName) {
-    filters.push(`LOWER(c.first_name) = LOWER($${index})`);
-    params.push(firstName);
-    index++;
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['coach.firstName']), '=', firstName.toLowerCase()),
+    );
   }
 
   if (lastName) {
-    filters.push(`LOWER(c.last_name) = LOWER($${index})`);
-    params.push(lastName);
-    index++;
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['coach.lastName']), '=', lastName.toLowerCase()),
+    );
   }
 
   if (team) {
-    filters.push(`LOWER(t.school) = LOWER($${index})`);
-    params.push(team);
-    index++;
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
   }
 
   if (year) {
-    filters.push(`cs.year = $${index}`);
-    params.push(year);
-    index++;
+    query = query.where('coachSeason.year', '=', year);
   }
 
   if (minYear) {
-    filters.push(`cs.year >= $${index}`);
-    params.push(minYear);
-    index++;
+    query = query.where('coachSeason.year', '>=', minYear);
   }
 
   if (maxYear) {
-    filters.push(`cs.year <= $${index}`);
-    params.push(maxYear);
-    index++;
+    query = query.where('coachSeason.year', '<=', maxYear);
   }
 
-  const filter = `WHERE ${filters.join(' AND ')}`;
-
-  let results = await db.any(
-    `
-        SELECT 	c.id,
-                c.first_name,
-                c.last_name,
-                t.school,
-                ct.hire_date,
-                cs.year,
-                cs.games,
-                cs.wins,
-                cs.losses,
-                cs.ties,
-                cs.preseason_rank,
-                cs.postseason_rank,
-                ROUND(srs.rating, 1) AS srs,
-                r.rating AS sp,
-                r.o_rating AS sp_offense,
-                r.d_rating AS sp_defense
-        FROM coach c
-            INNER JOIN coach_season cs ON c.id = cs.coach_id
-            INNER JOIN team t ON cs.team_id = t.id
-            LEFT JOIN srs ON cs.year = srs.year AND t.id = srs.team_id
-            LEFT JOIN ratings AS r ON r.year = srs.year AND r.team_id = srs.team_id
-            LEFT JOIN coach_team AS ct ON ct.coach_id = c.id AND ct.team_id = t.id AND cs.year >= EXTRACT(year FROM ct.hire_date)
-        ${filter}
-        ORDER BY c.last_name, c.first_name, cs.year
-        `,
-    params,
-  );
+  const results = await query.execute();
 
   let coaches: Coach[] = [];
   let ids = Array.from(new Set(results.map((r) => r.id)));
@@ -87,9 +97,9 @@ export const getCoaches = async (
     let coachSeasons = results.filter((r) => r.id == id);
 
     coaches.push({
-      firstName: coachSeasons[0].first_name,
-      lastName: coachSeasons[0].last_name,
-      hireDate: coachSeasons[0].hire_date,
+      firstName: coachSeasons[0].firstName,
+      lastName: coachSeasons[0].lastName,
+      hireDate: coachSeasons[0].hireDate,
       seasons: coachSeasons.map((cs): CoachSeason => {
         return {
           school: cs.school,
@@ -98,12 +108,16 @@ export const getCoaches = async (
           wins: cs.wins,
           losses: cs.losses,
           ties: cs.ties,
-          preseasonRank: cs.preseason_rank,
-          postseasonRank: cs.postseason_rank,
-          srs: cs.srs,
-          spOverall: cs.sp,
-          spOffense: cs.sp_offense,
-          spDefense: cs.sp_defense,
+          preseasonRank: cs.preseasonRank,
+          postseasonRank: cs.postseasonRank,
+          srs: cs.srs ? Math.round(parseFloat(cs.srs) * 10) / 10 : null,
+          spOverall: cs.sp ? Math.round(parseFloat(cs.sp) * 10) / 10 : null,
+          spOffense: cs.spOffense
+            ? Math.round(parseFloat(cs.spOffense) * 10) / 10
+            : null,
+          spDefense: cs.spDefense
+            ? Math.round(parseFloat(cs.spDefense) * 10) / 10
+            : null,
         };
       }),
     });

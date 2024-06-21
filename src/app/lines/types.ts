@@ -19,13 +19,13 @@ export interface BettingGame {
    */
   startDate: Date;
   homeTeam: string;
-  homeConference: string;
+  homeConference: string | null;
   /**
    * @isInt
    */
   homeScore: number | null;
   awayTeam: string;
-  awayConference: string;
+  awayConference: string | null;
   /**
    * @isInt
    */
