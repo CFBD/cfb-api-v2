@@ -1,5 +1,5 @@
 import { ValidateError } from 'tsoa';
-import { db } from '../../config/database';
+import { kdb } from '../../config/database';
 import { RecruitClassification } from '../enums';
 import {
   AggregatedTeamRecruiting,
@@ -24,74 +24,96 @@ export const getPlayerRankings = async (
     );
   }
 
-  let filters = ['r.recruit_type = $1'];
-  let params: any[] = [classification ?? RecruitClassification.HighSchool];
-
-  let index = 2;
+  let query = kdb
+    .selectFrom('recruit')
+    .leftJoin('recruitSchool', 'recruit.recruitSchoolId', 'recruitSchool.id')
+    .leftJoin(
+      'recruitPosition',
+      'recruit.recruitPositionId',
+      'recruitPosition.id',
+    )
+    .leftJoin('team', 'recruit.collegeId', 'team.id')
+    .leftJoin('hometown', 'recruit.hometownId', 'hometown.id')
+    .leftJoin('athlete', 'recruit.athleteId', 'athlete.id')
+    .where(
+      'recruit.recruitType',
+      '=',
+      classification ?? RecruitClassification.HighSchool,
+    )
+    .orderBy('recruit.ranking')
+    .select([
+      'recruit.id',
+      'recruit.recruitType',
+      'recruit.year',
+      'recruit.ranking',
+      'recruit.name',
+      'recruitSchool.name as school',
+      'recruitPosition.position',
+      'recruit.height',
+      'recruit.weight',
+      'recruit.stars',
+      'recruit.rating',
+      'team.school as committedTo',
+      'hometown.city',
+      'hometown.state',
+      'hometown.country',
+      'hometown.latitude',
+      'hometown.longitude',
+      'hometown.countyFips',
+      'athlete.id as athleteId',
+    ]);
 
   if (year) {
-    filters.push(`r.year = $${index}`);
-    params.push(year);
-    index++;
+    query = query.where('recruit.year', '=', year);
   }
 
   if (position) {
-    filters.push(`LOWER(pos.position) = LOWER($${index})`);
-    params.push(position);
-    index++;
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['recruitPosition.position']),
+        '=',
+        position.toLowerCase(),
+      ),
+    );
   }
 
   if (state) {
-    filters.push(`LOWER(h.state) = LOWER($${index})`);
-    params.push(state);
-    index++;
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['hometown.state']), '=', state.toLowerCase()),
+    );
   }
 
   if (team) {
-    filters.push(`LOWER(t.school) = LOWER($${index})`);
-    params.push(team);
-    index++;
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
   }
 
-  const filter = 'WHERE ' + filters.join(' AND ');
-
-  let recruits = await db.any(
-    `
-                SELECT r.id, r.recruit_type, r.year, r.ranking, r.name, rs.name AS school, pos.position, r.height, r.weight, r.stars, r.rating, t.school AS committed_to, h.city AS city, h.state AS state_province, h.country AS country, h.latitude, h.longitude, h.county_fips, a.id AS athlete_id
-                FROM recruit AS r
-                    LEFT JOIN recruit_school AS rs ON r.recruit_school_id = rs.id
-                    LEFT JOIN recruit_position AS pos ON r.recruit_position_id = pos.id
-                    LEFT JOIN team AS t ON r.college_id = t.id
-                    LEFT JOIN hometown AS h ON r.hometown_id = h.id
-                    LEFT JOIN athlete AS a ON r.athlete_id = a.id
-                ${filter}
-                ORDER BY r.ranking
-            `,
-    params,
-  );
+  const recruits = await query.execute();
 
   return recruits.map(
     (r): Recruit => ({
       id: r.id,
-      athleteId: r.athlete_id,
-      recruitType: r.recruit_type,
+      athleteId: r.athleteId,
+      // @ts-ignore
+      recruitType: r.recruitType,
       year: r.year,
       ranking: r.ranking,
       name: r.name,
       school: r.school,
-      committedTo: r.committed_to,
+      committedTo: r.committedTo,
       position: r.position,
       height: r.height,
       weight: r.weight,
       stars: r.stars,
       rating: r.rating,
       city: r.city,
-      stateProvince: r.state_province,
+      stateProvince: r.state,
       country: r.country,
       hometownInfo: {
-        latitude: r.latitude,
-        longitude: r.longitude,
-        fipsCode: r.county_fips,
+        latitude: r.latitude ? parseFloat(r.latitude) : null,
+        longitude: r.longitude ? parseFloat(r.longitude) : null,
+        fipsCode: r.countyFips,
       },
     }),
   );
@@ -101,34 +123,36 @@ export const getTeamRankings = async (
   year?: number,
   team?: string,
 ): Promise<TeamRecruitingRanking[]> => {
-  let filters = [];
-  let params: any[] = [];
-  let index = 1;
+  let query = kdb
+    .selectFrom('recruitingTeam')
+    .innerJoin('team', 'recruitingTeam.teamId', 'team.id')
+    .orderBy('recruitingTeam.year')
+    .orderBy('recruitingTeam.rank')
+    .select([
+      'recruitingTeam.year',
+      'recruitingTeam.rank',
+      'team.school as team',
+      'recruitingTeam.points',
+    ]);
 
   if (year) {
-    filters.push(`rt.year = $${index}`);
-    params.push(year);
-    index++;
+    query = query.where('recruitingTeam.year', '=', year);
   }
 
   if (team) {
-    filters.push(`LOWER(t.school) = LOWER($${index})`);
-    params.push(team);
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
   }
 
-  let filter = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
-  let ranks = await db.any(
-    `
-                SELECT rt.year, rt.rank, t.school AS team, rt.points
-                FROM recruiting_team AS rt
-                    INNER JOIN team AS t ON rt.team_id = t.id
-                ${filter}
-                ORDER BY year, rank
-            `,
-    params,
-  );
+  const ranks = await query.execute();
 
-  return ranks;
+  return ranks.map((r) => ({
+    year: r.year,
+    team: r.team,
+    rank: r.rank,
+    points: parseFloat(r.points),
+  }));
 };
 
 export const getAggregatedPlayerRatings = async (
@@ -138,62 +162,118 @@ export const getAggregatedPlayerRatings = async (
   startYear?: number,
   endYear?: number,
 ): Promise<AggregatedTeamRecruiting[]> => {
-  let filters: string[] = [
-    'r.recruit_type = $1',
-    'r.year <= $2',
-    'r.year >= $3',
-  ];
+  let query = kdb
+    .selectFrom('recruitPosition')
+    .innerJoin('recruit', 'recruitPosition.id', 'recruit.recruitPositionId')
+    .innerJoin('team', 'recruit.collegeId', 'team.id')
+    .innerJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .on('conferenceTeam.startYear', '<=', startYear ?? 2000)
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', 'is', null),
+            eb(
+              'conferenceTeam.endYear',
+              '>=',
+              endYear ?? new Date().getFullYear(),
+            ),
+          ]),
+        ),
+    )
+    .innerJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .where(
+      'recruit.recruitType',
+      '=',
+      recruitType ?? RecruitClassification.HighSchool,
+    )
+    .where('recruit.year', '>=', startYear ?? 2000)
+    .where('recruit.year', '<=', endYear ?? new Date().getFullYear())
+    .groupBy([
+      'team.school',
+      'recruitPosition.positionGroup',
+      'conference.name',
+    ])
+    .orderBy('team.school')
+    .orderBy('recruitPosition.positionGroup')
+    .select([
+      'team.school',
+      'recruitPosition.positionGroup',
+      'conference.name as conference',
+    ])
+    .select((eb) => eb.fn.avg<number>('recruit.rating').as('averageRating'))
+    .select((eb) => eb.fn.sum<number>('recruit.rating').as('totalRating'))
+    .select((eb) => eb.fn.count<number>('recruit.id').as('totalCommits'))
+    .select((eb) => eb.fn.avg<number>('recruit.stars').as('averageStars'));
 
-  let params: (string | number)[] = [
-    recruitType ?? RecruitClassification.HighSchool,
-    endYear ?? new Date().getFullYear(),
-    startYear ?? 2000,
-  ];
-  let index = 4;
-
-  if (conference) {
-    filters.push(`LOWER(c.abbreviation) = LOWER($${index})`);
-    params.push(conference);
-    index++;
-  }
+  let totalsQuery = kdb
+    .selectFrom('recruitPosition')
+    .innerJoin('recruit', 'recruitPosition.id', 'recruit.recruitPositionId')
+    .innerJoin('team', 'recruit.collegeId', 'team.id')
+    .innerJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .on('conferenceTeam.startYear', '<=', startYear ?? 2000)
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', 'is', null),
+            eb(
+              'conferenceTeam.endYear',
+              '>=',
+              endYear ?? new Date().getFullYear(),
+            ),
+          ]),
+        ),
+    )
+    .innerJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .where(
+      'recruit.recruitType',
+      '=',
+      recruitType ?? RecruitClassification.HighSchool,
+    )
+    .where('recruit.year', '>=', startYear ?? 2000)
+    .where('recruit.year', '<=', endYear ?? new Date().getFullYear())
+    .groupBy([
+      'team.school',
+      'recruitPosition.positionGroup',
+      'conference.name',
+    ])
+    .orderBy('team.school')
+    .select(['team.school', 'conference.name as conference'])
+    .select((eb) => eb.val('All Positions').as('positionGroup'))
+    .select((eb) => eb.fn.avg<number>('recruit.rating').as('averageRating'))
+    .select((eb) => eb.fn.sum<number>('recruit.rating').as('totalRating'))
+    .select((eb) => eb.fn.count<number>('recruit.id').as('totalCommits'))
+    .select((eb) => eb.fn.avg<number>('recruit.stars').as('averageStars'));
 
   if (team) {
-    filters.push(`LOWER(t.school) = LOWER($${index})`);
-    params.push(team);
-    index++;
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
+    totalsQuery = totalsQuery.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
   }
 
-  const filter = `WHERE ${filters.join(' AND ')}`;
+  if (conference) {
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
+    );
+    totalsQuery = totalsQuery.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
+    );
+  }
 
-  let results = await db.any(
-    `
-                    SELECT t.school, p.position_group, c.name as conference, AVG(r.rating) AS avg_rating, SUM(r.rating) AS total_rating, COUNT(r.id) AS total_commits, AVG(stars) AS avg_stars
-                    FROM recruit_position AS p
-                        INNER JOIN recruit AS r ON p.id = r.recruit_position_id
-                        INNER JOIN team AS t ON r.college_id = t.id
-                        INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= $2 AND (ct.end_year IS NULL OR ct.end_year >= $2)
-                        INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-                    ${filter}
-                    GROUP BY t.school, p.position_group, c.name
-                    ORDER BY t.school, p.position_group
-                `,
-    params,
-  );
-
-  const totalResults = await db.any(
-    `
-                    SELECT t.school, 'All Positions' AS position_group, c.name as conference, AVG(r.rating) AS avg_rating, SUM(r.rating) AS total_rating, COUNT(r.id) AS total_commits, AVG(stars) AS avg_stars
-                    FROM recruit_position AS p
-                        INNER JOIN recruit AS r ON p.id = r.recruit_position_id
-                        INNER JOIN team AS t ON r.college_id = t.id
-                        INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= $2 AND (ct.end_year IS NULL OR ct.end_year >= $2)
-                        INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-                    ${filter}
-                    GROUP BY t.school, c.name
-                    ORDER BY t.school
-                `,
-    params,
-  );
+  let results = await query.execute();
+  const totalResults = await totalsQuery.execute();
 
   results = [...results, ...totalResults];
 
@@ -201,11 +281,11 @@ export const getAggregatedPlayerRatings = async (
     (r): AggregatedTeamRecruiting => ({
       team: r.school,
       conference: r.conference,
-      positionGroup: r.position_group,
-      averageRating: parseFloat(r.avg_rating),
-      totalRating: parseFloat(r.total_rating),
-      commits: parseInt(r.total_commits),
-      averageStars: parseFloat(r.avg_stars),
+      positionGroup: r.positionGroup,
+      averageRating: r.averageRating,
+      totalRating: r.totalRating,
+      commits: r.totalCommits,
+      averageStars: r.averageStars,
     }),
   );
 };

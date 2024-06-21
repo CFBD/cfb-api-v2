@@ -1,14 +1,11 @@
 import { RecruitClassification } from '../enums';
 
 export interface Recruit {
+  id: string;
   /**
    * @isInt
    */
-  id: number;
-  /**
-   * @isInt
-   */
-  athleteId: number | null;
+  athleteId: string | null;
   recruitType: RecruitClassification;
   /**
    * @isInt
@@ -17,19 +14,19 @@ export interface Recruit {
   /**
    * @isInt
    */
-  ranking: number;
+  ranking: number | null;
   name: string;
-  school: string;
+  school: string | null;
   committedTo: string | null;
-  position: string;
+  position: string | null;
   /**
    * @isInt
    */
-  height: number;
+  height: number | null;
   /**
    * @isInt
    */
-  weight: number;
+  weight: number | null;
   /**
    * @isInt
    */
@@ -61,7 +58,7 @@ export interface TeamRecruitingRanking {
 export interface AggregatedTeamRecruiting {
   team: string;
   conference: string;
-  positionGroup: string;
+  positionGroup: string | null;
   averageRating: number;
   totalRating: number;
   /**
