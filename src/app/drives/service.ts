@@ -1,4 +1,5 @@
-import { db } from '../../config/database';
+import { sql } from 'kysely';
+import { kdb } from '../../config/database';
 import { DivisionClassification, SeasonType } from '../enums';
 import { Drive } from './types';
 
@@ -14,138 +15,235 @@ export const getDrives = async (
   conference?: string,
   classification?: DivisionClassification,
 ): Promise<Drive[]> => {
-  let filters = ['g.season = $1'];
-  let params: any[] = [year];
-  let index = 2;
-
-  if (seasonType !== SeasonType.Both) {
-    filters.push(`g.season_type = $${index}`);
-    params.push(seasonType || SeasonType.Regular);
-    index++;
-  }
-
-  if (week) {
-    filters.push(`g.week = $${index}`);
-    params.push(week);
-    index++;
-  }
-
-  if (team) {
-    filters.push(
-      `(LOWER(offense.school) = LOWER($${index}) OR LOWER(defense.school) = LOWER($${index}))`,
-    );
-    params.push(team);
-    index++;
-  }
-
-  if (offense) {
-    filters.push(`LOWER(offense.school) = LOWER($${index})`);
-    params.push(offense);
-    index++;
-  }
-
-  if (defense) {
-    filters.push(`LOWER(defense.school) = LOWER($${index})`);
-    params.push(defense);
-    index++;
-  }
-
-  if (offenseConference) {
-    filters.push(`LOWER(oc.abbreviation) = LOWER($${index})`);
-    params.push(offenseConference);
-    index++;
-  }
-
-  if (defenseConference) {
-    filters.push(`LOWER(dc.abbreviation) = LOWER($${index})`);
-    params.push(defenseConference);
-    index++;
-  }
-
-  if (conference) {
-    filters.push(
-      `(LOWER(oc.abbreviation) = LOWER($${index}) OR LOWER(dc.abbreviation) = LOWER($${index}))`,
-    );
-    params.push(conference);
-    index++;
-  }
-
-  if (classification) {
-    filters.push(`(oc.division = $${index} OR dc.division = $${index})`);
-    params.push(classification.toLowerCase());
-    index++;
-  }
-
-  const filter = `WHERE ${filters.join(' AND ')}`;
-
-  const drives = await db.any(
-    `
-        WITH drives AS (
-            SELECT  offense.school as offense,
-                    oc.name as offense_conference,
-                    defense.school as defense,
-                    dc.name as defense_conference,
-                    g.id as game_id,
-                    d.id,
-                    d.drive_number,
-                    d.scoring,
-                    d.start_period,
-                    d.start_yardline,
-                    CASE WHEN offense.id = hgt.team_id THEN (100 - d.start_yardline) ELSE d.start_yardline END AS start_yards_to_goal,
-                    d.start_time,
-                    d.end_period,
-                    d.end_yardline,
-                    CASE WHEN offense.id = hgt.team_id THEN (100 - d.end_yardline) ELSE d.end_yardline END AS end_yards_to_goal,
-                    d.end_time,
-                    d.elapsed,
-                    d.plays,
-                    d.yards,
-                    dr.name as drive_result,
-                    CASE WHEN offense.id = hgt.team_id THEN true ELSE false END AS is_home_offense
-            FROM game g
-                INNER JOIN game_team AS hgt ON g.id = hgt.game_id AND hgt.home_away = 'home'
-                INNER JOIN drive d ON g.id = d.game_id
-                INNER JOIN team offense ON d.offense_id = offense.id
-                LEFT JOIN conference_team oct ON offense.id = oct.team_id AND oct.start_year <= g.season AND (oct.end_year >= g.season OR oct.end_year IS NULL)
-                LEFT JOIN conference oc ON oct.conference_id = oc.id
-                INNER JOIN team defense ON d.defense_id = defense.id
-                LEFT JOIN conference_team dct ON defense.id = dct.team_id AND dct.start_year <= g.season AND (dct.end_year >= g.season OR dct.end_year IS NULL)
-                LEFT JOIN conference dc ON dct.conference_id = dc.id
-                INNER JOIN drive_result dr ON d.result_id = dr.id
-            ${filter}
-            ORDER BY g.id, d.drive_number
-        ), points AS (
-            SELECT d.id, MIN(p.home_score) AS starting_home_score, MIN(p.away_score) AS starting_away_score, MAX(p.home_score) AS ending_home_score, MAX(p.away_score) AS ending_away_score
-            FROM drives AS d
-                INNER JOIN play AS p ON d.id = p.drive_id
-            GROUP BY d.id
+  let query = kdb
+    .with('drives', (eb) => {
+      let cte = eb
+        .selectFrom('game')
+        .innerJoin('gameTeam', (join) =>
+          join
+            .onRef('game.id', '=', 'gameTeam.gameId')
+            .on('gameTeam.homeAway', '=', 'home'),
         )
-        SELECT d.*,
-                CASE WHEN d.is_home_offense THEN p.starting_home_score ELSE p.starting_away_score END AS start_offense_score,
-                CASE WHEN d.is_home_offense THEN p.starting_away_score ELSE p.starting_home_score END AS start_defense_score,
-                CASE WHEN d.is_home_offense THEN p.ending_home_score ELSE p.ending_away_score END AS end_offense_score,
-                CASE WHEN d.is_home_offense THEN p.ending_away_score ELSE p.ending_home_score END AS end_defense_score
-        FROM drives AS d
-            INNER JOIN points AS p ON d.id = p.id
-                        `,
-    params,
-  );
+        .innerJoin('drive', 'game.id', 'drive.gameId')
+        .innerJoin('team as offense', 'drive.offenseId', 'offense.id')
+        .innerJoin('team as defense', 'drive.defenseId', 'defense.id')
+        .innerJoin('driveResult', 'drive.resultId', 'driveResult.id')
+        .leftJoin('conferenceTeam as oct', (join) =>
+          join
+            .onRef('offense.id', '=', 'oct.teamId')
+            .onRef('oct.startYear', '<=', 'game.season')
+            .on((eb) =>
+              eb.or([
+                eb('oct.endYear', 'is', null),
+                eb('oct.endYear', '>=', eb.ref('game.season')),
+              ]),
+            ),
+        )
+        .leftJoin('conference as oc', 'oct.conferenceId', 'oc.id')
+        .leftJoin('conferenceTeam as dct', (join) =>
+          join
+            .onRef('defense.id', '=', 'dct.teamId')
+            .onRef('dct.startYear', '<=', 'game.season')
+            .on((eb) =>
+              eb.or([
+                eb('dct.endYear', 'is', null),
+                eb('dct.endYear', '>=', eb.ref('game.season')),
+              ]),
+            ),
+        )
+        .leftJoin('conference as dc', 'dct.conferenceId', 'dc.id')
+        .where('game.season', '=', year)
+        .orderBy(['game.id'])
+        .orderBy(['drive.driveNumber'])
+        .select([
+          'offense.school as offense',
+          'oc.name as offenseConference',
+          'defense.school as defense',
+          'dc.name as defenseConference',
+          'game.id as gameId',
+          'drive.id',
+          'drive.driveNumber',
+          'drive.scoring',
+          'drive.startPeriod',
+          'drive.startTime',
+          'drive.startYardline',
+          'drive.endPeriod',
+          'drive.endTime',
+          'drive.endYardline',
+          'drive.elapsed',
+          'drive.plays',
+          'drive.yards',
+          'driveResult.name as driveResult',
+        ])
+        .select((eb) =>
+          eb
+            .case()
+            .when('offense.id', '=', eb.ref('gameTeam.teamId'))
+            .then(sql<number>`100 - drive.start_yardline`)
+            .else(sql<number>`drive.start_yardline`)
+            .end()
+            .as('startYardsToGoal'),
+        )
+        .select((eb) =>
+          eb
+            .case()
+            .when('offense.id', '=', eb.ref('gameTeam.teamId'))
+            .then(sql<number>`100 - drive.end_yardline`)
+            .else(sql<number>`drive.end_yardline`)
+            .end()
+            .as('endYardsToGoal'),
+        )
+        .select((eb) =>
+          eb
+            .case()
+            .when('offense.id', '=', eb.ref('gameTeam.teamId'))
+            .then(true)
+            .else(false)
+            .end()
+            .as('isHomeOffense'),
+        );
+
+      if (seasonType && seasonType !== SeasonType.Both) {
+        cte = cte.where('game.seasonType', '=', seasonType);
+      }
+
+      if (week) {
+        cte = cte.where('game.week', '=', week);
+      }
+
+      if (team) {
+        cte = cte.where((eb) =>
+          eb.or([
+            eb(eb.fn('lower', ['offense.school']), '=', team.toLowerCase()),
+            eb(eb.fn('lower', ['defense.school']), '=', team.toLowerCase()),
+          ]),
+        );
+      }
+
+      if (offense) {
+        cte = cte.where((eb) =>
+          eb(eb.fn('lower', ['offense.school']), '=', offense.toLowerCase()),
+        );
+      }
+
+      if (defense) {
+        cte = cte.where((eb) =>
+          eb(eb.fn('lower', ['defense.school']), '=', defense.toLowerCase()),
+        );
+      }
+
+      if (offenseConference) {
+        cte = cte.where(
+          (eb) => eb.fn('lower', ['oc.abbreviation']),
+          '=',
+          offenseConference.toLowerCase(),
+        );
+      }
+
+      if (defenseConference) {
+        cte = cte.where(
+          (eb) => eb.fn('lower', ['dc.abbreviation']),
+          '=',
+          defenseConference.toLowerCase(),
+        );
+      }
+
+      if (conference) {
+        cte = cte.where((eb) =>
+          eb.or([
+            eb(
+              eb.fn('lower', ['oc.abbreviation']),
+              '=',
+              conference.toLowerCase(),
+            ),
+            eb(
+              eb.fn('lower', ['dc.abbreviation']),
+              '=',
+              conference.toLowerCase(),
+            ),
+          ]),
+        );
+      }
+
+      if (classification) {
+        cte = cte.where((eb) =>
+          eb.or([
+            eb('oc.division', '=', classification),
+            eb('dc.division', '=', classification),
+          ]),
+        );
+      }
+
+      return cte;
+    })
+    .with('points', (eb) =>
+      eb
+        .selectFrom('drives')
+        .innerJoin('play', 'drives.id', 'play.driveId')
+        .groupBy('drives.id')
+        .select('drives.id')
+        .select((eb) => eb.fn.min('play.homeScore').as('startingHomeScore'))
+        .select((eb) => eb.fn.max('play.homeScore').as('endingHomeScore'))
+        .select((eb) => eb.fn.min('play.awayScore').as('startingAwayScore'))
+        .select((eb) => eb.fn.max('play.awayScore').as('endingAwayScore')),
+    )
+    .selectFrom('drives')
+    .innerJoin('points', 'drives.id', 'points.id')
+    .selectAll('drives')
+    .select((eb) =>
+      eb
+        .case()
+        .when('drives.isHomeOffense', '=', true)
+        .then(eb.ref('points.startingHomeScore'))
+        .else(eb.ref('points.startingAwayScore'))
+        .end()
+        .as('startingOffenseScore'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when('drives.isHomeOffense', '=', true)
+        .then(eb.ref('points.startingAwayScore'))
+        .else(eb.ref('points.startingHomeScore'))
+        .end()
+        .as('startingDefenseScore'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when('drives.isHomeOffense', '=', true)
+        .then(eb.ref('points.endingHomeScore'))
+        .else(eb.ref('points.endingAwayScore'))
+        .end()
+        .as('endingOffenseScore'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when('drives.isHomeOffense', '=', true)
+        .then(eb.ref('points.endingAwayScore'))
+        .else(eb.ref('points.endingHomeScore'))
+        .end()
+        .as('endingDefenseScore'),
+    );
+
+  let drives = await query.execute();
 
   for (let drive of drives) {
-    if (!drive.start_time.minutes) {
-      drive.start_time.minutes = 0;
+    if (!drive.startTime.minutes) {
+      drive.startTime.minutes = 0;
     }
 
-    if (!drive.start_time.seconds) {
-      drive.start_time.seconds = 0;
+    if (!drive.startTime.seconds) {
+      drive.startTime.seconds = 0;
     }
 
-    if (!drive.end_time.minutes) {
-      drive.end_time.minutes = 0;
+    if (!drive.endTime.minutes) {
+      drive.endTime.minutes = 0;
     }
 
-    if (!drive.end_time.seconds) {
-      drive.end_time.seconds = 0;
+    if (!drive.endTime.seconds) {
+      drive.endTime.seconds = 0;
     }
 
     if (!drive.elapsed.minutes) {
@@ -160,35 +258,35 @@ export const getDrives = async (
   return drives.map(
     (d): Drive => ({
       id: d.id,
-      gameId: d.game_id,
+      gameId: d.gameId,
       offense: d.offense,
-      offenseConference: d.offense_conference,
+      offenseConference: d.offenseConference,
       defense: d.defense,
-      defenseConference: d.defense_conference,
-      driveNumber: d.drive_number,
+      defenseConference: d.defenseConference,
+      driveNumber: d.driveNumber,
       scoring: d.scoring,
-      startPeriod: d.start_period,
-      startYardline: d.start_yardline,
-      startYardsToGoal: d.start_yards_to_goal,
+      startPeriod: d.startPeriod,
+      startYardline: d.startYardline,
+      startYardsToGoal: d.startYardsToGoal,
       startTime: {
-        minutes: d.start_time.minutes,
-        seconds: d.start_time.seconds,
+        minutes: d.startTime?.minutes ?? null,
+        seconds: d.startTime?.seconds ?? null,
       },
-      endPeriod: d.end_period,
-      endYardline: d.end_yardline,
-      endYardsToGoal: d.end_yards_to_goal,
+      endPeriod: d.endPeriod,
+      endYardline: d.endYardline,
+      endYardsToGoal: d.endYardsToGoal,
       endTime: {
-        minutes: d.end_time.minutes,
-        seconds: d.end_time.seconds,
+        minutes: d.endTime?.minutes ?? null,
+        seconds: d.endTime?.seconds ?? null,
       },
       plays: d.plays,
       yards: d.yards,
-      driveResult: d.drive_result,
-      isHomeOffense: d.is_home_offense,
-      startOffenseScore: d.start_offense_score,
-      startDefenseScore: d.start_defense_score,
-      endOffenseScore: d.end_offense_score,
-      endDefenseScore: d.end_defense_score,
+      driveResult: d.driveResult,
+      isHomeOffense: d.isHomeOffense,
+      startOffenseScore: d.startingOffenseScore,
+      startDefenseScore: d.startingDefenseScore,
+      endOffenseScore: d.endingOffenseScore,
+      endDefenseScore: d.endingDefenseScore,
     }),
   );
 };

@@ -1,20 +1,17 @@
 export interface Drive {
   offense: string;
-  offenseConference: string;
+  offenseConference: string | null;
   defense: string;
-  defenseConference: string;
+  defenseConference: string | null;
   /**
    * @isInt
    */
   gameId: number;
+  id: string;
   /**
    * @isInt
    */
-  id: number;
-  /**
-   * @isInt
-   */
-  driveNumber: number;
+  driveNumber: number | null;
   scoring: boolean;
   /**
    * @isInt
@@ -32,11 +29,11 @@ export interface Drive {
     /**
      * @isInt
      */
-    minutes: number;
+    minutes: number | null;
     /**
      * @isInt
      */
-    seconds: number;
+    seconds: number | null;
   };
   /**
    * @isInt
@@ -54,11 +51,11 @@ export interface Drive {
     /**
      * @isInt
      */
-    minutes: number;
+    minutes: number | null;
     /**
      * @isInt
      */
-    seconds: number;
+    seconds: number | null;
   };
   /**
    * @isInt
