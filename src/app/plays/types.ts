@@ -1,12 +1,6 @@
 export interface Play {
-  /**
-   * @isInt
-   */
-  id: number;
-  /**
-   * @isInt
-   */
-  driveId: number;
+  id: string;
+  driveId: string;
   /**
    * @isInt
    */
@@ -14,16 +8,16 @@ export interface Play {
   /**
    * @isInt
    */
-  driveNumber: number;
+  driveNumber: number | null;
   /**
    * @isInt
    */
-  playNumber: number;
+  playNumber: number | null;
   /**
    * @isInt
    */
   offense: string;
-  offenseConference: string;
+  offenseConference: string | null;
   /**
    * @isInt
    */
@@ -31,7 +25,7 @@ export interface Play {
   defense: string;
   home: string;
   away: string;
-  defenseConference: string;
+  defenseConference: string | null;
   /**
    * @isInt
    */
@@ -44,20 +38,20 @@ export interface Play {
     /**
      * @isInt
      */
-    minutes: number;
+    minutes: number | null;
     /**
      * @isInt
      */
-    seconds: number;
+    seconds: number | null;
   };
   /**
    * @isInt
    */
-  offenseTimeouts: number;
+  offenseTimeouts: number | null;
   /**
    * @isInt
    */
-  defenseTimeouts: number;
+  defenseTimeouts: number | null;
   /**
    * @isInt
    */
@@ -80,9 +74,9 @@ export interface Play {
   yardsGained: number;
   scoring: boolean;
   playType: string;
-  playText: string;
-  ppa?: number;
-  wallclock?: string;
+  playText: string | null;
+  ppa: number | null;
+  wallclock: string | null;
 }
 
 export interface PlayType {
@@ -91,7 +85,7 @@ export interface PlayType {
    */
   id: number;
   text: string;
-  abbreviation: string;
+  abbreviation: string | null;
 }
 
 export interface PlayStatType {
@@ -111,17 +105,17 @@ export interface PlayStat {
   opponent: string;
   teamScore: number;
   opponentScore: number;
-  driveId: number;
-  playId: number;
+  driveId: string;
+  playId: string;
   period: number;
   clock: {
-    minutes: number;
-    seconds: number;
+    minutes: number | null;
+    seconds: number | null;
   };
   yardsToGoal: number;
   down: number;
   distance: number;
-  athleteId: number;
+  athleteId: string;
   athleteName: string;
   statType: string;
   stat: number;

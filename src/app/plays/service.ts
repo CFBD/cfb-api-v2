@@ -1,4 +1,5 @@
-import { db } from '../../config/database';
+import { sql } from 'kysely';
+import { kdb } from '../../config/database';
 import { DivisionClassification, SeasonType } from '../enums';
 import { Play, PlayStat, PlayStatType, PlayType } from './types';
 
@@ -15,124 +16,203 @@ export const getPlays = async (
   seasonType?: SeasonType,
   classification?: DivisionClassification,
 ): Promise<Play[]> => {
-  let filters = ['g.season = $1'];
-  let params: any[] = [year];
-
-  let index = 2;
-
-  if (week) {
-    filters.push(`g.week = $${index}`);
-    params.push(week);
-    index++;
-  }
+  let query = kdb
+    .selectFrom('game')
+    .innerJoin('drive', 'game.id', 'drive.gameId')
+    .innerJoin('play', 'drive.id', 'play.driveId')
+    .innerJoin('team as offense', 'play.offenseId', 'offense.id')
+    .leftJoin('conferenceTeam as oct', (join) =>
+      join
+        .onRef('offense.id', '=', 'oct.teamId')
+        .onRef('oct.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('oct.endYear', '>=', eb.ref('game.season')),
+            eb('oct.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as oc', 'oct.conferenceId', 'oc.id')
+    .innerJoin('team as defense', 'play.defenseId', 'defense.id')
+    .leftJoin('conferenceTeam as dct', (join) =>
+      join
+        .onRef('defense.id', '=', 'dct.teamId')
+        .onRef('dct.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('dct.endYear', '>=', eb.ref('game.season')),
+            eb('dct.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as dc', 'dct.conferenceId', 'dc.id')
+    .innerJoin('gameTeam as ogt', (join) =>
+      join
+        .onRef('ogt.gameId', '=', 'game.id')
+        .onRef('ogt.teamId', '=', 'offense.id'),
+    )
+    .innerJoin('gameTeam as dgt', (join) =>
+      join
+        .onRef('dgt.gameId', '=', 'game.id')
+        .onRef('dgt.teamId', '=', 'defense.id'),
+    )
+    .innerJoin('playType', 'play.playTypeId', 'playType.id')
+    .where('game.season', '=', year)
+    .where('game.week', '=', week)
+    .select([
+      'play.id',
+      'offense.school as offense',
+      'oc.name as offenseConference',
+      'defense.school as defense',
+      'dc.name as defenseConference',
+      'game.id as gameId',
+      'drive.id as driveId',
+      'drive.driveNumber',
+      'play.playNumber',
+      'play.period',
+      'play.clock',
+      'play.yardLine',
+      'play.down',
+      'play.distance',
+      'play.scoring',
+      'play.yardsGained',
+      'playType.text as playType',
+      'play.playText',
+      'play.ppa',
+      'play.wallclock',
+    ])
+    .select((eb) =>
+      eb
+        .case()
+        .when('ogt.homeAway', '=', 'home')
+        .then(eb.ref('offense.school'))
+        .else(eb.ref('defense.school'))
+        .end()
+        .as('home'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when('ogt.homeAway', '=', 'away')
+        .then(eb.ref('offense.school'))
+        .else(eb.ref('defense.school'))
+        .end()
+        .as('away'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when('ogt.homeAway', '=', 'home')
+        .then(eb.ref('play.homeScore'))
+        .else(eb.ref('play.awayScore'))
+        .end()
+        .as('offenseScore'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when('ogt.homeAway', '=', 'away')
+        .then(eb.ref('play.homeScore'))
+        .else(eb.ref('play.awayScore'))
+        .end()
+        .as('defenseScore'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when('ogt.homeAway', '=', 'home')
+        .then(eb.ref('play.homeTimeouts'))
+        .else(eb.ref('play.awayTimeouts'))
+        .end()
+        .as('offenseTimeouts'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when('ogt.homeAway', '=', 'away')
+        .then(eb.ref('play.homeTimeouts'))
+        .else(eb.ref('play.awayTimeouts'))
+        .end()
+        .as('defenseTimeouts'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when('ogt.homeAway', '=', 'home')
+        .then(sql<number>`100 - play.yard_line`)
+        .else(eb.ref('play.yardLine'))
+        .end()
+        .as('yardsToGoal'),
+    );
 
   if (team) {
-    filters.push(
-      `(LOWER(offense.school) = LOWER($${index}) OR LOWER(defense.school) = LOWER($${index}))`,
+    query = query.where((eb) =>
+      eb.or([
+        eb(eb.fn('lower', ['offense.school']), '=', team.toLowerCase()),
+        eb(eb.fn('lower', ['defense.school']), '=', team.toLowerCase()),
+      ]),
     );
-    params.push(team);
-    index++;
   }
 
   if (offense) {
-    filters.push(`LOWER(offense.school) = LOWER($${index})`);
-    params.push(offense);
-    index++;
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['offense.school']), '=', offense.toLowerCase()),
+    );
   }
 
   if (defense) {
-    filters.push(`LOWER(defense.school) = LOWER($${index})`);
-    params.push(defense);
-    index++;
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['defense.school']), '=', defense.toLowerCase()),
+    );
   }
 
   if (offenseConference) {
-    filters.push(`LOWER(oc.abbreviation) = LOWER($${index})`);
-    params.push(offenseConference);
-    index++;
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['oc.abbreviation']),
+        '=',
+        offenseConference.toLowerCase(),
+      ),
+    );
   }
 
   if (defenseConference) {
-    filters.push(`LOWER(dc.abbreviation) = LOWER($${index})`);
-    params.push(defenseConference);
-    index++;
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['dc.abbreviation']),
+        '=',
+        defenseConference.toLowerCase(),
+      ),
+    );
   }
 
   if (conference) {
-    filters.push(
-      `(LOWER(oc.abbreviation) = LOWER($${index}) OR LOWER(dc.abbreviation) = LOWER($${index}))`,
+    query = query.where((eb) =>
+      eb.or([
+        eb(eb.fn('lower', ['oc.abbreviation']), '=', conference.toLowerCase()),
+        eb(eb.fn('lower', ['dc.abbreviation']), '=', conference.toLowerCase()),
+      ]),
     );
-    params.push(conference);
-    index++;
   }
 
   if (playType) {
-    filters.push(`pt.id = $${index}`);
-    params.push(playType);
-    index++;
+    query = query.where('playType.abbreviation', '=', playType);
   }
 
-  if (seasonType != SeasonType.Both) {
-    filters.push(`g.season_type = $${index}`);
-    params.push(seasonType || SeasonType.Regular);
-    index++;
+  if (seasonType && seasonType != SeasonType.Both) {
+    query = query.where('game.seasonType', '=', seasonType);
   }
 
   if (classification) {
-    filters.push(`(oc.division = $${index} OR dc.division = $${index})`);
-    params.push(classification.toLowerCase());
-    index++;
+    query = query.where((eb) =>
+      eb.or([
+        eb('oc.division', '=', classification),
+        eb('dc.division', '=', classification),
+      ]),
+    );
   }
 
-  const filter = `WHERE ${filters.join(' AND ')}`;
-
-  const plays = await db.any(
-    `
-                    SELECT  p.id,
-                            offense.school as offense,
-                            oc.name as offense_conference,
-                            defense.school as defense,
-                            dc.name as defense_conference,
-                            CASE WHEN ogt.home_away = 'home' THEN offense.school ELSE defense.school END AS home,
-                            CASE WHEN ogt.home_away = 'away' THEN offense.school ELSE defense.school END AS away,
-                            CASE WHEN ogt.home_away = 'home' THEN p.home_score ELSE p.away_score END AS offense_score,
-                            CASE WHEN dgt.home_away = 'home' THEN p.home_score ELSE p.away_score END AS defense_score,
-                            g.id as game_id,
-                            d.id as drive_id,
-                            g.id as game_id,
-                            d.drive_number,
-                            p.play_number,
-                            p.period,
-                            p.clock,
-                            CASE WHEN ogt.home_away = 'home' THEN p.home_timeouts ELSE p.away_timeouts END AS offense_timeouts,
-                            CASE WHEN dgt.home_away = 'home' THEN p.home_timeouts ELSE p.away_timeouts END AS defense_timeouts,
-                            p.yard_line,
-                            CASE WHEN ogt.home_away = 'home' THEN (100 - p.yard_line) ELSE p.yard_line END AS yards_to_goal,
-                            p.down,
-                            p.distance,
-                            p.scoring,
-                            p.yards_gained,
-                            pt.text as play_type,
-                            p.play_text,
-                            p.ppa,
-                            p.wallclock
-                    FROM game g
-                        INNER JOIN drive d ON g.id = d.game_id
-                        INNER JOIN play p ON d.id = p.drive_id
-                        INNER JOIN team offense ON p.offense_id = offense.id
-                        LEFT JOIN conference_team oct ON offense.id = oct.team_id AND oct.start_year <= g.season AND (oct.end_year >= g.season OR oct.end_year IS NULL)
-                        LEFT JOIN conference oc ON oct.conference_id = oc.id
-                        INNER JOIN team defense ON p.defense_id = defense.id
-                        LEFT JOIN conference_team dct ON defense.id = dct.team_id AND dct.start_year <= g.season AND (dct.end_year >= g.season OR dct.end_year IS NULL)
-                        LEFT JOIN conference dc ON dct.conference_id = dc.id
-                        INNER JOIN game_team ogt ON ogt.game_id = g.id AND ogt.team_id = offense.id
-                        INNER JOIN game_team dgt ON dgt.game_id = g.id AND dgt.team_id = defense.id
-                        INNER JOIN play_type pt ON p.play_type_id = pt.id
-                    ${filter}
-                    ORDER BY g.id, d.drive_number, p.play_number
-            `,
-    params,
-  );
+  let plays = await query.execute();
 
   for (let play of plays) {
     if (!play.clock.minutes) {
@@ -146,46 +226,46 @@ export const getPlays = async (
 
   return plays.map(
     (p): Play => ({
-      gameId: p.game_id,
-      driveId: p.drive_id,
+      gameId: p.gameId,
+      driveId: p.driveId,
       id: p.id,
-      driveNumber: p.drive_number,
-      playNumber: p.play_number,
+      driveNumber: p.driveNumber,
+      playNumber: p.playNumber,
       offense: p.offense,
-      offenseConference: p.offense_conference,
-      offenseScore: p.offense_score,
+      offenseConference: p.offenseConference,
+      offenseScore: p.offenseScore,
       defense: p.defense,
-      defenseConference: p.defense_conference,
-      defenseScore: p.defense_score,
+      defenseConference: p.defenseConference,
+      defenseScore: p.defenseScore,
       home: p.home,
       away: p.away,
       period: p.period,
       clock: {
-        minutes: p.clock.minutes,
-        seconds: p.clock.seconds,
+        minutes: p.clock?.minutes ?? null,
+        seconds: p.clock?.seconds ?? null,
       },
-      offenseTimeouts: p.offense_timeouts,
-      defenseTimeouts: p.defense_timeouts,
-      yardline: p.yard_line,
-      yardsToGoal: p.yards_to_goal,
+      offenseTimeouts: p.offenseTimeouts,
+      defenseTimeouts: p.defenseTimeouts,
+      yardline: p.yardLine,
+      yardsToGoal: p.yardsToGoal,
       down: p.down,
       distance: p.distance,
-      yardsGained: p.yards_gained,
+      yardsGained: p.yardsGained,
       scoring: p.scoring,
-      playType: p.play_type,
-      playText: p.play_text,
-      ppa: p.ppa,
-      wallclock: p.wallclock,
+      playType: p.playType,
+      playText: p.playText,
+      ppa: p.ppa ? parseFloat(p.ppa) : null,
+      wallclock: p.wallclock?.toISOString() ?? null,
     }),
   );
 };
 
 export const getPlayTypes = async (): Promise<PlayType[]> => {
-  const types = await db.any(`
-            SELECT id, text, abbreviation
-            FROM play_type
-            ORDER BY "sequence"
-        `);
+  const types = await kdb
+    .selectFrom('playType')
+    .orderBy('sequence')
+    .select(['id', 'text', 'abbreviation'])
+    .execute();
 
   return types;
 };
@@ -200,108 +280,137 @@ export const getPlayStats = async (
   seasonType?: SeasonType,
   conference?: string,
 ) => {
-  let filters = [];
-  let params = [];
-  let index = 1;
+  let query = kdb
+    .selectFrom('team')
+    .innerJoin('gameTeam as gt', 'team.id', 'gt.teamId')
+    .innerJoin('gameTeam as gt2', (join) =>
+      join.onRef('gt2.gameId', '=', 'gt.gameId').onRef('gt2.id', '<>', 'gt.id'),
+    )
+    .innerJoin('team as opponent', 'gt2.teamId', 'opponent.id')
+    .innerJoin('game', 'gt.gameId', 'game.id')
+    .innerJoin('drive', 'game.id', 'drive.gameId')
+    .innerJoin('play', 'drive.id', 'play.driveId')
+    .innerJoin('playStat', 'play.id', 'playStat.playId')
+    .innerJoin('athlete', 'playStat.athleteId', 'athlete.id')
+    .innerJoin('athleteTeam', (join) =>
+      join
+        .onRef('athleteTeam.athleteId', '=', 'athlete.id')
+        .onRef('athleteTeam.startYear', '<=', 'game.season')
+        .onRef('athleteTeam.endYear', '>=', 'game.season')
+        .onRef('athleteTeam.teamId', '=', 'team.id'),
+    )
+    .innerJoin('playStatType', 'playStat.statTypeId', 'playStatType.id')
+    .innerJoin('conferenceTeam', (join) =>
+      join
+        .onRef('conferenceTeam.teamId', '=', 'team.id')
+        .onRef('conferenceTeam.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', '>=', eb.ref('game.season')),
+            eb('conferenceTeam.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .innerJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .select([
+      'game.id as gameId',
+      'game.season',
+      'game.week',
+      'team.school as team',
+      'conference.name as conference',
+      'opponent.school as opponent',
+      'drive.id as driveId',
+      'play.id as playId',
+      'play.period',
+      'play.clock',
+      'play.down',
+      'play.distance',
+      'athlete.id as athleteId',
+      'athlete.name as athleteName',
+      'playStatType.name as statName',
+      'playStat.stat',
+    ])
+    .select((eb) =>
+      eb
+        .case()
+        .when('gt.homeAway', '=', 'home')
+        .then(eb.ref('play.homeScore'))
+        .else(eb.ref('play.awayScore'))
+        .end()
+        .as('teamScore'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when('gt2.homeAway', '=', 'home')
+        .then(eb.ref('play.homeScore'))
+        .else(eb.ref('play.awayScore'))
+        .end()
+        .as('opponentScore'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when(
+          eb.or([
+            eb.and([
+              eb('gt.homeAway', '=', 'home'),
+              eb('play.offenseId', '=', eb.ref('team.id')),
+            ]),
+            eb.and([
+              eb('gt.homeAway', '=', 'away'),
+              eb('play.defenseId', '=', eb.ref('team.id')),
+            ]),
+          ]),
+        )
+        .then(sql<number>`100 - play.yard_line`)
+        .else(eb.ref('play.yardLine'))
+        .end()
+        .as('yardsToGoal'),
+    )
+    .limit(2000);
 
   if (year) {
-    filters.push(`g.season = $${index}`);
-    params.push(year);
-    index++;
+    query = query.where('game.season', '=', year);
   }
 
   if (week) {
-    filters.push(`g.week = $${index}`);
-    params.push(week);
-    index++;
+    query = query.where('game.week', '=', week);
   }
 
   if (team) {
-    filters.push(`LOWER(t.school) = LOWER($${index})`);
-    params.push(team);
-    index++;
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
   }
 
   if (gameId) {
-    filters.push(`g.id = $${index}`);
-    params.push(gameId);
-    index++;
+    query = query.where('game.id', '=', gameId);
   }
 
   if (athleteId) {
-    filters.push(`a.id = $${index}`);
-    params.push(athleteId);
-    index++;
+    query = query.where('playStat.athleteId', '=', athleteId.toString());
   }
 
   if (statTypeId) {
-    filters.push(`pst.id = $${index}`);
-    params.push(statTypeId);
-    index++;
+    query = query.where('playStat.statTypeId', '=', statTypeId);
   }
 
-  if (seasonType !== SeasonType.Both) {
-    filters.push(`g.season_type = $${index}`);
-    params.push(seasonType || SeasonType.Regular);
-    index++;
+  if (seasonType && seasonType !== SeasonType.Both) {
+    query = query.where('game.seasonType', '=', seasonType);
   }
 
   if (conference) {
-    filters.push(`LOWER(c.abbreviation) = LOWER($${index})`);
-    params.push(conference);
-    index++;
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
+    );
   }
 
-  let filter = `WHERE ${filters.join(' AND ')}`;
-
-  const results = await db.any(
-    `
-            SELECT 	g.id as game_id,
-                    g.season,
-                    g.week,
-                    t.school AS team,
-					          c.name AS conference,
-                    t2.school AS opponent,
-                    CASE
-                        WHEN gt.home_away = 'home' THEN p.home_score
-                        ELSE p.away_score
-                    END AS team_score,
-                    CASE
-                        WHEN gt2.home_away = 'home' THEN p.home_score
-                        ELSE p.away_score
-                    END AS opponent_score,
-                    d.id AS drive_id,
-                    p.id AS play_id,
-                    p.period,
-                    p.clock,
-                    CASE
-                        WHEN (gt.home_away = 'home' AND p.offense_id = t.id) OR (gt.home_away = 'away' AND p.defense_id = t.id) THEN 100 - p.yard_line
-                        ELSE p.yard_line
-                    END AS yards_to_goal,
-                    p.down,
-                    p.distance,
-                    a.id AS athlete_id,
-                    a.name AS athlete_name,
-                    pst.name AS stat_name,
-                    ps.stat
-            FROM team AS t
-                INNER JOIN game_team AS gt ON t.id = gt.team_id
-                INNER JOIN game_team AS gt2 ON gt2.game_id = gt.game_id AND gt.id <> gt2.id
-                INNER JOIN team AS t2 ON gt2.team_id = t2.id
-                INNER JOIN game AS g ON gt.game_id = g.id
-                INNER JOIN drive AS d ON g.id = d.game_id
-                INNER JOIN play AS p ON d.id = p.drive_id
-                INNER JOIN play_stat AS ps ON p.id = ps.play_id
-                INNER JOIN athlete AS a ON a.id = ps.athlete_id
-				        INNER JOIN athlete_team AS att ON a.id = att.athlete_id AND att.start_year <= g.season AND att.end_year >= g.season AND att.team_id = t.id
-                INNER JOIN play_stat_type AS pst ON ps.stat_type_id = pst.id
-                INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year IS NULL OR ct.end_year >= g.season)
-                INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-            ${filter}
-            LIMIT 2000
-        `,
-    params,
-  );
+  const results = await query.execute();
 
   for (let play of results) {
     if (!play.clock.minutes) {
@@ -315,37 +424,37 @@ export const getPlayStats = async (
 
   return results.map(
     (r): PlayStat => ({
-      gameId: r.game_id,
+      gameId: r.gameId,
       season: r.season,
       week: r.week,
       team: r.team,
       conference: r.conference,
       opponent: r.opponent,
-      teamScore: r.team_score,
-      opponentScore: r.opponent_score,
-      driveId: r.drive_id,
-      playId: r.play_id,
+      teamScore: r.teamScore,
+      opponentScore: r.opponentScore,
+      driveId: r.driveId,
+      playId: r.playId,
       period: r.period,
       clock: {
-        minutes: r.minutes,
-        seconds: r.seconds,
+        minutes: r.clock.minutes ?? null,
+        seconds: r.clock.seconds ?? null,
       },
-      yardsToGoal: r.yards_to_goal,
+      yardsToGoal: r.yardsToGoal,
       down: r.down,
       distance: r.distance,
-      athleteId: r.athlete_id,
-      athleteName: r.athlete_name,
-      statType: r.stat_name,
+      athleteId: r.athleteId,
+      athleteName: r.athleteName,
+      statType: r.statName,
       stat: r.stat,
     }),
   );
 };
 
 export const getPlayStatTypes = async (): Promise<PlayStatType[]> => {
-  const types = await db.any(`
-            SELECT id, name
-            FROM play_stat_type
-        `);
+  const types = await kdb
+    .selectFrom('playStatType')
+    .select(['id', 'name'])
+    .execute();
 
   return types;
 };
