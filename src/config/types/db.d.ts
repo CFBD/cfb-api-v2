@@ -569,6 +569,24 @@ export interface WeatherCondition {
   id: number;
 }
 
+export interface ReturningProduction {
+  season: number;
+  school: string;
+  conference: string;
+  ppa: number;
+  returningPpa: number;
+  passPpa: number;
+  returningPassPpa: number;
+  receivingPpa: number;
+  returningReceivingPpa: number;
+  rushPpa: number;
+  returningRushPpa: number;
+  returningUsage: number;
+  returningPassUsage: number;
+  returningReceivingUsage: number;
+  returningRushUsage: number;
+}
+
 export interface DB {
   athlete: Athlete;
   athleteTeam: AthleteTeam;
@@ -612,6 +630,7 @@ export interface DB {
   recruitingTeam: RecruitingTeam;
   recruitPosition: RecruitPosition;
   recruitSchool: RecruitSchool;
+  returningProduction: ReturningProduction;
   srs: Srs;
   stateProvince: StateProvince;
   team: Team;

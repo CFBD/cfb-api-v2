@@ -4,23 +4,23 @@ export interface PlayerSearchResult {
   /**
    * @isInt
    */
-  id: number;
+  id: string;
   team: string;
   name: string;
-  firstName: string;
-  lastName: string;
+  firstName: string | null;
+  lastName: string | null;
   /**
    * @isInt
    */
-  weight: number;
+  weight: number | null;
   /**
    * @isInt
    */
-  height: number;
+  height: number | null;
   /**
    * @isInt
    */
-  jersey: number;
+  jersey: number | null;
   position: string;
   hometown: string;
   teamColor: string;
@@ -40,10 +40,7 @@ export interface PlayerUsage {
    * @isInt
    */
   season: number;
-  /**
-   * @isInt
-   */
-  id: number;
+  id: string;
   name: string;
   position: string;
   team: string;
@@ -90,15 +87,15 @@ export interface PlayerTransfer {
   lastName: string;
   position: string;
   origin: string;
-  destination: string;
+  destination: string | null;
   /**
    * @isDateTime
    */
-  transferDate: Date;
-  rating: number;
+  transferDate: Date | null;
+  rating: number | null;
   /**
    * @isInt
    */
-  stars: number;
-  eligibility: TransferEligibility;
+  stars: number | null;
+  eligibility: TransferEligibility | null;
 }
