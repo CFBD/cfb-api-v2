@@ -1,5 +1,5 @@
 import { ValidateError } from 'tsoa';
-import { db } from '../../config/database';
+import { kdb } from '../../config/database';
 import {
   DivisionClassification,
   GameStatus,
@@ -20,6 +20,7 @@ import {
   ScoreboardGame,
   TeamRecords,
 } from './types';
+import { sql } from 'kysely';
 
 export const getGames = async (
   year?: number,
@@ -41,118 +42,188 @@ export const getGames = async (
     );
   }
 
-  let filter;
-  let params: any[];
+  let query = kdb
+    .selectFrom('game')
+    .innerJoin('gameTeam as hgt', (join) =>
+      join.onRef('game.id', '=', 'hgt.gameId').on('hgt.homeAway', '=', 'home'),
+    )
+    .innerJoin('team as home', 'hgt.teamId', 'home.id')
+    .innerJoin('gameTeam as agt', (join) =>
+      join.onRef('game.id', '=', 'agt.gameId').on('agt.homeAway', '=', 'away'),
+    )
+    .innerJoin('team as away', 'agt.teamId', 'away.id')
+    .leftJoin('conferenceTeam as hct', (join) =>
+      join
+        .onRef('home.id', '=', 'hct.teamId')
+        .onRef('hct.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('hct.endYear', '>=', eb.ref('game.season')),
+            eb('hct.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as hc', 'hct.conferenceId', 'hc.id')
+    .leftJoin('conferenceTeam as act', (join) =>
+      join
+        .onRef('away.id', '=', 'act.teamId')
+        .onRef('act.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('act.endYear', '>=', eb.ref('game.season')),
+            eb('act.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as ac', 'act.conferenceId', 'ac.id')
+    .leftJoin('venue', 'game.venueId', 'venue.id')
+    .orderBy('game.season')
+    .orderBy('game.seasonType')
+    .orderBy('game.week')
+    .orderBy('game.startDate')
+    .select([
+      'game.id',
+      'game.season',
+      'game.week',
+      'game.seasonType',
+      'game.startDate',
+      'game.startTimeTbd',
+      'game.status',
+      'game.neutralSite',
+      'game.conferenceGame',
+      'game.attendance',
+      'venue.id as venueId',
+      'venue.name as venue',
+      'home.id as homeId',
+      'home.school as homeTeam',
+      'hc.name as homeConference',
+      'hc.division as homeDivision',
+      'hgt.points as homePoints',
+      'hgt.lineScores as homeLineScores',
+      'hgt.winProb as homePostWinProb',
+      'hgt.startElo as homePregameElo',
+      'hgt.endElo as homePostgameElo',
+      'away.id as awayId',
+      'away.school as awayTeam',
+      'ac.name as awayConference',
+      'ac.division as awayDivision',
+      'agt.points as awayPoints',
+      'agt.lineScores as awayLineScores',
+      'agt.winProb as awayPostWinProb',
+      'agt.startElo as awayPregameElo',
+      'agt.endElo as awayPostgameElo',
+      'game.excitement',
+      'game.highlights',
+      'game.notes',
+    ]);
 
   if (id) {
-    filter = 'WHERE g.id = $1';
-    params = [id];
-  } else {
-    params = [year];
-    const filters: string[] = ['g.season = $1'];
-    let index = 2;
+    query = query.where('game.id', '=', id);
+  } else if (year) {
+    query = query.where('game.season', '=', year);
 
     if (seasonType && seasonType !== SeasonType.Both) {
-      filters.push(`g.season_type = $${index}`);
-      params.push(seasonType);
-      index++;
+      query = query.where('game.seasonType', '=', seasonType);
     }
 
     if (week) {
-      filters.push(`g.week = $${index}`);
-      params.push(week);
-      index++;
+      query = query.where('game.week', '=', week);
     }
 
     if (team) {
-      filters.push(
-        `(LOWER(away.school) = LOWER($${index}) OR LOWER(home.school) = LOWER($${index}))`,
+      query = query.where((eb) =>
+        eb.or([
+          eb(eb.fn('lower', ['away.school']), '=', team.toLowerCase()),
+          eb(eb.fn('lower', ['home.school']), '=', team.toLowerCase()),
+        ]),
       );
-      params.push(team);
-      index++;
     }
 
     if (home) {
-      filters.push(`LOWER(home.school) = LOWER($${index})`);
-      params.push(home);
-      index++;
+      query = query.where(
+        (eb) => eb.fn('lower', ['home.school']),
+        '=',
+        home.toLowerCase(),
+      );
     }
 
     if (away) {
-      filters.push(`LOWER(away.school) = LOWER($${index})`);
-      params.push(away);
-      index++;
+      query = query.where(
+        (eb) => eb.fn('lower', ['away.school']),
+        '=',
+        away.toLowerCase(),
+      );
     }
 
     if (conference) {
-      filters.push(
-        `(LOWER(hc.abbreviation) = LOWER($${index}) OR LOWER(ac.abbreviation) = LOWER($${index}))`,
+      query = query.where((eb) =>
+        eb.or([
+          eb(
+            eb.fn('lower', ['hc.abbreviation']),
+            '=',
+            conference.toLowerCase(),
+          ),
+          eb(
+            eb.fn('lower', ['ac.abbreviation']),
+            '=',
+            conference.toLowerCase(),
+          ),
+        ]),
       );
-      params.push(conference);
-      index++;
     }
 
     if (classification) {
-      filters.push(`(hc.division = $${index} OR ac.division = $${index})`);
-      params.push(classification);
-      index++;
+      query = query.where((eb) =>
+        eb.or([
+          eb('hc.division', '=', classification),
+          eb('ac.division', '=', classification),
+        ]),
+      );
     }
-
-    filter = `WHERE ${filters.join(' AND ')}`;
   }
 
-  const games = await db.any(
-    `
-          SELECT g.id, g.season, g.week, g.season_type, g.start_date, g.start_time_tbd, (g.status = 'completed') AS completed, g.neutral_site, g.conference_game, g.attendance, v.id as venue_id, v.name as venue, home.id as home_id, home.school as home_team, hc.name as home_conference, hc.division as home_division, gt.points as home_points, gt.line_scores as home_line_scores, gt.win_prob AS home_post_win_prob, gt.start_elo AS home_pregame_elo, gt.end_elo AS home_postgame_elo, away.id AS away_id, away.school as away_team, ac.name as away_conference, ac.division as away_division, gt2.points as away_points, gt2.line_scores as away_line_scores, gt2.win_prob AS away_post_win_prob, gt2.start_elo AS away_pregame_elo, gt2.end_elo AS away_postgame_elo, g.excitement as excitement_index, 'https://www.youtube.com/watch?v=' || g.highlights AS highlights, g.notes
-          FROM game g
-              INNER JOIN game_team gt ON g.id = gt.game_id AND gt.home_away = 'home'
-              INNER JOIN team home ON gt.team_id = home.id
-              LEFT JOIN conference_team hct ON home.id = hct.team_id AND (hct.start_year IS NULL OR hct.start_year <= g.season) AND (hct.end_year >= g.season OR hct.end_year IS NULL)
-              LEFT JOIN conference hc ON hct.conference_id = hc.id
-              INNER JOIN game_team gt2 ON g.id = gt2.game_id AND gt2.home_away = 'away'
-              INNER JOIN team away ON gt2.team_id = away.id
-              LEFT JOIN conference_team act ON away.id = act.team_id AND (act.start_year IS NULL OR act.start_year <= g.season) AND (act.end_year >= g.season OR act.end_year IS NULL)
-              LEFT JOIN conference ac ON act.conference_id = ac.id
-              LEFT JOIN venue v ON g.venue_id = v.id
-          ${filter}
-          ORDER BY g.season, g.week, g.start_date
-  `,
-    params,
-  );
+  const games = await query.execute();
 
   return games.map(
     (g): Game => ({
       id: g.id,
       season: g.season,
       week: g.week,
-      seasonType: g.season_type,
-      startDate: g.start_date,
-      startTimeTBD: g.start_time_tbd,
-      completed: g.completed,
-      neutralSite: g.neutral_site,
-      conferenceGame: g.conference_game,
+      // @ts-ignore
+      seasonType: g.seasonType,
+      startDate: g.startDate,
+      startTimeTBD: g.startTimeTbd ?? false,
+      completed: g.status === 'completed',
+      neutralSite: g.neutralSite,
+      conferenceGame: g.conferenceGame ?? false,
       attendance: g.attendance,
-      venueId: g.venue_id,
+      venueId: g.venueId,
       venue: g.venue,
-      homeId: g.home_id,
-      homeTeam: g.home_team,
-      homeConference: g.home_conference,
-      homeDivision: g.home_division,
-      homePoints: g.home_points,
-      homeLineScores: g.home_line_scores,
-      homePostgameWinProbability: g.home_post_win_prob,
-      homePregameElo: g.home_pregame_elo,
-      homePostgameElo: g.home_postgame_elo,
-      awayId: g.away_id,
-      awayTeam: g.away_team,
-      awayConference: g.away_conference,
-      awayDivision: g.away_division,
-      awayPoints: g.away_points,
-      awayLineScores: g.away_line_scores,
-      awayPostgameWinProbability: g.away_post_win_prob,
-      awayPregameElo: g.away_pregame_elo,
-      awayPostgameElo: g.away_postgame_elo,
-      excitementIndex: g.excitement_index,
+      homeId: g.homeId,
+      homeTeam: g.homeTeam,
+      homeConference: g.homeConference,
+      homeDivision: g.homeDivision,
+      homePoints: g.homePoints,
+      homeLineScores: g.homeLineScores,
+      homePostgameWinProbability: g.homePostWinProb
+        ? parseFloat(g.homePostWinProb)
+        : null,
+      homePregameElo: g.homePregameElo,
+      homePostgameElo: g.homePostgameElo,
+      awayId: g.awayId,
+      awayTeam: g.awayTeam,
+      awayConference: g.awayConference,
+      awayDivision: g.awayDivision,
+      awayPoints: g.awayPoints,
+      awayLineScores: g.awayLineScores,
+      awayPostgameWinProbability: g.awayPostWinProb
+        ? parseFloat(g.awayPostWinProb)
+        : null,
+      awayPregameElo: g.awayPregameElo,
+      awayPostgameElo: g.awayPostgameElo,
+      excitementIndex: g.excitement ? parseFloat(g.excitement) : null,
+      highlights: `https://www.youtube.com/watch?v=${g.highlights}`,
+      notes: g.notes,
     }),
   );
 };
@@ -193,73 +264,97 @@ export const getGameTeamStats = async (
     );
   }
 
-  let filter;
-  let params: any[];
+  let query = kdb
+    .selectFrom('team')
+    .innerJoin('gameTeam as gt', 'team.id', 'gt.teamId')
+    .innerJoin('game', 'gt.gameId', 'game.id')
+    .innerJoin('gameTeam as gt2', (join) =>
+      join.onRef('game.id', '=', 'gt2.gameId').onRef('gt2.id', '<>', 'gt.id'),
+    )
+    .innerJoin('team as t2', 'gt2.teamId', 't2.id')
+    .innerJoin('gameTeamStat', 'gt.id', 'gameTeamStat.gameTeamId')
+    .innerJoin('teamStatType', 'gameTeamStat.typeId', 'teamStatType.id')
+    .leftJoin('conferenceTeam as ct', (join) =>
+      join
+        .onRef('team.id', '=', 'ct.teamId')
+        .onRef('ct.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('ct.endYear', '>=', eb.ref('game.season')),
+            eb('ct.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as c', 'ct.conferenceId', 'c.id')
+    .leftJoin('conferenceTeam as ct2', (join) =>
+      join
+        .onRef('t2.id', '=', 'ct2.teamId')
+        .onRef('ct2.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('ct2.endYear', '>=', eb.ref('game.season')),
+            eb('ct2.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as c2', 'ct2.conferenceId', 'c2.id')
+    .select([
+      'game.id',
+      'gt.homeAway',
+      'team.id as teamId',
+      'team.school',
+      'c.name as conference',
+      'gt.points',
+      'teamStatType.name',
+      'gameTeamStat.stat',
+    ]);
 
   if (id) {
-    filter = 'WHERE g.id = $1';
-    params = [id];
-  } else {
-    params = [year];
-    const filters: string[] = ['g.season = $1'];
-    let index = 2;
+    query = query.where('game.id', '=', id);
+  } else if (year) {
+    query = query.where('game.season', '=', year);
 
     if (seasonType && seasonType !== SeasonType.Both) {
-      filters.push(`g.season_type = $${index}`);
-      params.push(seasonType);
-      index++;
+      query = query.where('game.seasonType', '=', seasonType);
     }
 
     if (week) {
-      filters.push(`g.week = $${index}`);
-      params.push(week);
-      index++;
+      query = query.where('game.week', '=', week);
     }
 
     if (team) {
-      filters.push(
-        `(LOWER(t.school) = LOWER($${index}) OR LOWER(t2.school) = LOWER($${index}))`,
+      query = query.where((eb) =>
+        eb.or([
+          eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+          eb(eb.fn('lower', ['t2.school']), '=', team.toLowerCase()),
+        ]),
       );
-      params.push(team);
-      index++;
     }
 
     if (conference) {
-      filters.push(
-        `(LOWER(c.abbreviation) = LOWER($${index}) OR LOWER(c2.abbreviation) = LOWER($${index}))`,
+      query = query.where((eb) =>
+        eb.or([
+          eb(eb.fn('lower', ['c.abbreviation']), '=', conference.toLowerCase()),
+          eb(
+            eb.fn('lower', ['c2.abbreviation']),
+            '=',
+            conference.toLowerCase(),
+          ),
+        ]),
       );
-      params.push(conference);
-      index++;
     }
 
     if (classification) {
-      filters.push(`(c.division = $${index} OR c2.division = $${index})`);
-      params.push(classification);
-      index++;
+      query = query.where((eb) =>
+        eb.or([
+          eb('c.division', '=', classification),
+          eb('c2.division', '=', classification),
+        ]),
+      );
     }
-
-    filter = `WHERE ${filters.join(' AND ')}`;
   }
 
-  const data = await db.any(
-    `
-                                SELECT g.id, gt.home_away, t.id AS team_id, t.school, c.name as conference, gt.points, tst.name, gts.stat
-                                FROM team t
-                                    INNER JOIN game_team gt ON t.id = gt.team_id
-                                    INNER JOIN game g ON gt.game_id = g.id
-                                    LEFT JOIN conference_team ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
-                                    LEFT JOIN conference c ON ct.conference_id = c.id
-                                    INNER JOIN game_team gt2 ON g.id = gt2.game_id AND gt2.id <> gt.id
-                                    INNER JOIN team t2 ON gt2.team_id = t2.id
-                                    LEFT JOIN conference_team ct2 ON t2.id = ct2.team_id AND ct2.start_year <= g.season AND (ct2.end_year >= g.season OR ct2.end_year IS NULL)
-                                    LEFT JOIN conference c2 ON ct2.conference_id = c2.id
-                                    INNER JOIN game_team_stat gts ON gts.game_team_id = gt.id
-                                    INNER JOIN team_stat_type tst ON gts.type_id = tst.id
-                                ${filter}
-                            `,
-    params,
-  );
-
+  const data = await query.execute();
   let stats = [];
 
   let ids = Array.from(new Set(data.map((d) => d.id)));
@@ -276,10 +371,10 @@ export const getGameTeamStats = async (
       let teamStats = gameStats.filter((gs) => gs.school == team);
 
       game.teams.push({
-        teamId: teamStats[0].team_id,
+        teamId: teamStats[0].teamId,
         team,
         conference: teamStats[0].conference,
-        homeAway: teamStats[0].home_away,
+        homeAway: teamStats[0].homeAway,
         points: teamStats[0].points,
         stats: teamStats.map((ts): GameTeamStatsTeamStat => {
           return {
@@ -333,81 +428,116 @@ export const getGamePlayerStats = async (
     );
   }
 
-  let filter;
-  let params: any[];
+  let query = kdb
+    .selectFrom('team')
+    .innerJoin('gameTeam as gt', 'team.id', 'gt.teamId')
+    .innerJoin('game', 'gt.gameId', 'game.id')
+    .innerJoin('gameTeam as gt2', (join) =>
+      join.onRef('game.id', '=', 'gt2.gameId').onRef('gt2.id', '<>', 'gt.id'),
+    )
+    .innerJoin('team as t2', 'gt2.teamId', 't2.id')
+    .innerJoin('gamePlayerStat', 'gt.id', 'gamePlayerStat.gameTeamId')
+    .innerJoin(
+      'playerStatCategory',
+      'gamePlayerStat.categoryId',
+      'playerStatCategory.id',
+    )
+    .innerJoin('playerStatType', 'gamePlayerStat.typeId', 'playerStatType.id')
+    .innerJoin('athlete', 'gamePlayerStat.athleteId', 'athlete.id')
+    .leftJoin('conferenceTeam as ct', (join) =>
+      join
+        .onRef('team.id', '=', 'ct.teamId')
+        .onRef('ct.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('ct.endYear', '>=', eb.ref('game.season')),
+            eb('ct.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as c', 'ct.conferenceId', 'c.id')
+    .leftJoin('conferenceTeam as ct2', (join) =>
+      join
+        .onRef('t2.id', '=', 'ct2.teamId')
+        .onRef('ct2.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('ct2.endYear', '>=', eb.ref('game.season')),
+            eb('ct2.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as c2', 'ct2.conferenceId', 'c2.id')
+    .select([
+      'game.id',
+      'gt.homeAway',
+      'team.id as teamId',
+      'team.school',
+      'c.name as conference',
+      'gt.points',
+      'playerStatCategory.name as cat',
+      'playerStatType.name as typ',
+      'athlete.id as athleteId',
+      'athlete.name as athlete',
+      'gamePlayerStat.stat',
+    ]);
 
   if (id) {
-    filter = 'WHERE g.id = $1';
-    params = [id];
+    query = query.where('game.id', '=', id);
   } else {
-    params = [year];
-    const filters: string[] = ['g.season = $1'];
-    let index = 2;
+    if (year) {
+      query = query.where('game.season', '=', year);
+    }
 
     if (seasonType && seasonType !== SeasonType.Both) {
-      filters.push(`g.season_type = $${index}`);
-      params.push(seasonType);
-      index++;
+      query = query.where('game.seasonType', '=', seasonType);
     }
 
     if (week) {
-      filters.push(`g.week = $${index}`);
-      params.push(week);
-      index++;
+      query = query.where('game.week', '=', week);
     }
 
     if (team) {
-      filters.push(
-        `(LOWER(t.school) = LOWER($${index}) OR LOWER(t2.school) = LOWER($${index}))`,
+      query = query.where((eb) =>
+        eb.or([
+          eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+          eb(eb.fn('lower', ['t2.school']), '=', team.toLowerCase()),
+        ]),
       );
-      params.push(team);
-      index++;
     }
 
     if (conference) {
-      filters.push(
-        `(LOWER(c.abbreviation) = LOWER($${index}) OR LOWER(c2.abbreviation) = LOWER($${index}))`,
+      query = query.where((eb) =>
+        eb.or([
+          eb(eb.fn('lower', ['c.abbreviation']), '=', conference.toLowerCase()),
+          eb(
+            eb.fn('lower', ['c2.abbreviation']),
+            '=',
+            conference.toLowerCase(),
+          ),
+        ]),
       );
-      params.push(conference);
-      index++;
     }
 
     if (classification) {
-      filters.push(`(c.division = $${index} OR c2.division = $${index})`);
-      params.push(classification);
-      index++;
+      query = query.where((eb) =>
+        eb.or([
+          eb('c.division', '=', classification),
+          eb('c2.division', '=', classification),
+        ]),
+      );
     }
 
     if (category) {
-      filters.push(`LOWER(cat.name) = LOWER($${index})`);
-      params.push(category);
-      index++;
+      query = query.where(
+        (eb) => eb.fn('lower', ['playerStatCategory.name']),
+        '=',
+        category.toLowerCase(),
+      );
     }
-
-    filter = `WHERE ${filters.join(' AND ')}`;
   }
 
-  let data = await db.any(
-    `
-                                SELECT g.id, gt.home_away, t.school, c.name as conference, gt.points, cat.name as cat, typ.name as typ, a.id as athlete_id, a.name as athlete, gps.stat
-                                FROM team t
-                                    INNER JOIN game_team gt ON t.id = gt.team_id
-                                    INNER JOIN game g ON gt.game_id = g.id
-                                    LEFT JOIN conference_team ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
-                                    LEFT JOIN conference c ON ct.conference_id = c.id
-                                    INNER JOIN game_team gt2 ON g.id = gt2.game_id AND gt2.id <> gt.id
-                                    INNER JOIN team t2 ON gt2.team_id = t2.id
-                                    LEFT JOIN conference_team ct2 ON t2.id = ct2.team_id AND ct2.start_year <= g.season AND (ct2.end_year >= g.season OR ct2.end_year IS NULL)
-                                    LEFT JOIN conference c2 ON ct2.conference_id = c2.id
-                                    INNER JOIN game_player_stat gps ON gps.game_team_id = gt.id
-                                    INNER JOIN player_stat_category cat ON gps.category_id = cat.id
-                                    INNER JOIN player_stat_type typ ON gps.type_id = typ.id
-                                    INNER JOIN athlete a ON gps.athlete_id = a.id
-                                    ${filter}
-                            `,
-    params,
-  );
-
+  const data = await query.execute();
   const stats = [];
 
   const ids: number[] = Array.from(new Set(data.map((d) => d.id)));
@@ -425,7 +555,7 @@ export const getGamePlayerStats = async (
       let teamRecord: GamePlayerStatsTeam = {
         team,
         conference: teamStats[0].conference,
-        homeAway: teamStats[0].home_away,
+        homeAway: teamStats[0].homeAway,
         points: teamStats[0].points,
         categories: [],
       };
@@ -446,7 +576,7 @@ export const getGamePlayerStats = async (
             name: typeStats[0].typ,
             athletes: typeStats.map((ts): GamePlayerStatPlayer => {
               return {
-                id: ts.athlete_id,
+                id: ts.athleteId,
                 name: ts.athlete,
                 stat: ts.stat,
               };
@@ -475,89 +605,120 @@ export const getMedia = async (
   mediaType?: MediaType,
   classification?: DivisionClassification,
 ): Promise<GameMedia[]> => {
-  const filters = [];
-  const params = [];
-  let index = 1;
+  let query = kdb
+    .selectFrom('game')
+    .innerJoin('gameMedia', 'game.id', 'gameMedia.gameId')
+    .innerJoin('gameTeam as homeTeam', (join) =>
+      join
+        .onRef('game.id', '=', 'homeTeam.gameId')
+        .on('homeTeam.homeAway', '=', 'home'),
+    )
+    .innerJoin('team as home', 'homeTeam.teamId', 'home.id')
+    .leftJoin('conferenceTeam as homeConference', (join) =>
+      join
+        .onRef('home.id', '=', 'homeConference.teamId')
+        .onRef('homeConference.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('homeConference.endYear', '>=', eb.ref('game.season')),
+            eb('homeConference.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as hc', 'homeConference.conferenceId', 'hc.id')
+    .innerJoin('gameTeam as awayTeam', (join) =>
+      join
+        .onRef('game.id', '=', 'awayTeam.gameId')
+        .on('awayTeam.homeAway', '=', 'away'),
+    )
+    .innerJoin('team as away', 'awayTeam.teamId', 'away.id')
+    .leftJoin('conferenceTeam as awayConference', (join) =>
+      join
+        .onRef('away.id', '=', 'awayConference.teamId')
+        .onRef('awayConference.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('awayConference.endYear', '>=', eb.ref('game.season')),
+            eb('awayConference.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as ac', 'awayConference.conferenceId', 'ac.id')
+    .select([
+      'game.id',
+      'game.season',
+      'game.week',
+      'game.seasonType',
+      'game.startDate',
+      'game.startTimeTbd',
+      'home.school as homeSchool',
+      'hc.name as homeConference',
+      'away.school as awaySchool',
+      'ac.name as awayConference',
+      'gameMedia.mediaType',
+      'gameMedia.name as outlet',
+    ]);
 
   if (year) {
-    filters.push(`g.season = $${index}`);
-    params.push(year);
-    index++;
+    query = query.where('game.season', '=', year);
   }
 
   if (seasonType && seasonType !== SeasonType.Both) {
-    filters.push(`g.season_type = $${index}`);
-    params.push(seasonType);
-    index++;
+    query = query.where('game.seasonType', '=', seasonType);
   }
 
   if (week) {
-    filters.push(`g.week = $${index}`);
-    params.push(week);
-    index++;
+    query = query.where('game.week', '=', week);
   }
 
   if (team) {
-    filters.push(
-      `(LOWER(home.school) = LOWER($${index}) OR LOWER(away.school) = LOWER($${index}))`,
+    query = query.where((eb) =>
+      eb.or([
+        eb(eb.fn('lower', ['home.school']), '=', team.toLowerCase()),
+        eb(eb.fn('lower', ['away.school']), '=', team.toLowerCase()),
+      ]),
     );
-    params.push(team);
-    index++;
   }
 
   if (conference) {
-    filters.push(
-      `(LOWER(hc.abbreviation) = LOWER($${index}) OR LOWER(ac.abbreviation) = LOWER($${index}))`,
+    query = query.where((eb) =>
+      eb.or([
+        eb(eb.fn('lower', ['hc.abbreviation']), '=', conference.toLowerCase()),
+        eb(eb.fn('lower', ['ac.abbreviation']), '=', conference.toLowerCase()),
+      ]),
     );
-    params.push(conference);
-    index++;
   }
 
   if (mediaType) {
-    filters.push(`gm.media_type = $${index}`);
-    params.push(mediaType.toLowerCase());
-    index++;
+    query = query.where('gameMedia.mediaType', '=', mediaType);
   }
 
   if (classification) {
-    filters.push(`(hc.division = $${index} OR ac.division = $${index})`);
-    params.push(classification);
-    index++;
+    query = query.where((eb) =>
+      eb.or([
+        eb('hc.division', '=', classification),
+        eb('ac.division', '=', classification),
+      ]),
+    );
   }
 
-  const filter = `WHERE ${filters.join(' AND ')}`;
-
-  const results = await db.any(
-    `
-            SELECT g.id, g.season, g.week, g.season_type, g.start_date, g.start_time_tbd, home.school AS home_school, hc.name AS home_conference, away.school AS away_school, ac.name AS away_conference, gm.media_type, gm.name AS outlet
-            FROM game AS g
-                INNER JOIN game_media AS gm ON g.id = gm.game_id
-                INNER JOIN game_team AS home_team ON g.id = home_team.game_id AND home_team.home_away = 'home'
-                INNER JOIN team AS home ON home_team.team_id = home.id
-                LEFT JOIN conference_team AS hct ON home.id = hct.team_id AND hct.start_year <= g.season AND (hct.end_year IS NULL OR hct.end_year >= g.season)
-                LEFT JOIN conference AS hc ON hct.conference_id = hc.id
-                INNER JOIN game_team AS away_team ON g.id = away_team.game_id AND away_team.home_away = 'away'
-                INNER JOIN team AS away ON away_team.team_id = away.id
-                LEFT JOIN conference_team AS act ON away.id = act.team_id AND act.start_year <= g.season AND (act.end_year IS NULL OR act.end_year >= g.season)
-                LEFT JOIN conference AS ac ON act.conference_id = ac.id
-            ${filter}
-        `,
-    params,
-  );
+  const results = await query.execute();
 
   return results.map(
     (r): GameMedia => ({
       id: r.id,
       season: r.season,
       week: r.week,
-      seasonType: r.season_type,
-      startTime: r.start_date,
-      isStartTimeTBD: r.start_time_tbd,
-      homeTeam: r.home_school,
-      homeConference: r.home_conference,
-      awayTeam: r.away_school,
-      awayConference: r.away_conference,
-      mediaType: r.media_type,
+      // @ts-ignore
+      seasonType: r.seasonType,
+      startTime: r.startDate,
+      isStartTimeTBD: r.startTimeTbd ?? false,
+      homeTeam: r.homeSchool,
+      homeConference: r.homeConference,
+      awayTeam: r.awaySchool,
+      awayConference: r.awayConference,
+      // @ts-ignore
+      mediaType: r.mediaType,
       outlet: r.outlet,
     }),
   );
@@ -581,103 +742,155 @@ export const getWeather = async (
     );
   }
 
-  const filters = [];
-  const params = [];
-  let index = 1;
+  let query = kdb
+    .selectFrom('game')
+    .innerJoin('venue', 'game.venueId', 'venue.id')
+    .innerJoin('gameWeather', 'game.id', 'gameWeather.gameId')
+    .innerJoin('gameTeam as homeTeam', (join) =>
+      join
+        .onRef('game.id', '=', 'homeTeam.gameId')
+        .on('homeTeam.homeAway', '=', 'home'),
+    )
+    .innerJoin('team as home', 'homeTeam.teamId', 'home.id')
+    .innerJoin('gameTeam as awayTeam', (join) =>
+      join
+        .onRef('game.id', '=', 'awayTeam.gameId')
+        .on('awayTeam.homeAway', '=', 'away'),
+    )
+    .innerJoin('team as away', 'awayTeam.teamId', 'away.id')
+    .leftJoin('conferenceTeam as homeConference', (join) =>
+      join
+        .onRef('home.id', '=', 'homeConference.teamId')
+        .onRef('homeConference.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('homeConference.endYear', '>=', eb.ref('game.season')),
+            eb('homeConference.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as hc', 'homeConference.conferenceId', 'hc.id')
+    .leftJoin('conferenceTeam as awayConference', (join) =>
+      join
+        .onRef('away.id', '=', 'awayConference.teamId')
+        .onRef('awayConference.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('awayConference.endYear', '>=', eb.ref('game.season')),
+            eb('awayConference.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as ac', 'awayConference.conferenceId', 'ac.id')
+    .leftJoin(
+      'weatherCondition',
+      'gameWeather.weatherConditionCode',
+      'weatherCondition.id',
+    )
+    .select([
+      'game.id',
+      'game.season',
+      'game.week',
+      'game.seasonType',
+      'game.startDate',
+      'game.startTimeTbd',
+      'venue.id as venueId',
+      'venue.name as venue',
+      'venue.dome',
+      'home.school as homeSchool',
+      'hc.name as homeConference',
+      'away.school as awaySchool',
+      'ac.name as awayConference',
+      'gameWeather.temperature',
+      'gameWeather.dewpoint',
+      'gameWeather.humidity',
+      'gameWeather.precipitation',
+      'gameWeather.snowfall',
+      'gameWeather.windSpeed',
+      'gameWeather.windDirection',
+      'gameWeather.pressure',
+      'gameWeather.weatherConditionCode',
+      'weatherCondition.description as weatherCondition',
+    ]);
 
   if (gameId) {
-    filters.push(`g.id = $${index}`);
-    params.push(gameId);
+    query = query.where('game.id', '=', gameId);
   } else {
     if (year) {
-      filters.push(`g.season = $${index}`);
-      params.push(year);
-      index++;
+      query = query.where('game.season', '=', year);
     }
 
     if (seasonType && seasonType !== SeasonType.Both) {
-      filters.push(`g.season_type = $${index}`);
-      params.push(seasonType);
-      index++;
+      query = query.where('game.seasonType', '=', seasonType);
     }
 
     if (week) {
-      filters.push(`g.week = $${index}`);
-      params.push(week);
-      index++;
+      query = query.where('game.week', '=', week);
     }
 
     if (team) {
-      filters.push(
-        `(LOWER(home.school) = LOWER($${index}) OR LOWER(away.school) = LOWER($${index}))`,
+      query = query.where((eb) =>
+        eb.or([
+          eb(eb.fn('lower', ['home.school']), '=', team.toLowerCase()),
+          eb(eb.fn('lower', ['away.school']), '=', team.toLowerCase()),
+        ]),
       );
-      params.push(team);
-      index++;
     }
 
     if (conference) {
-      filters.push(
-        `(LOWER(hc.abbreviation) = LOWER($${index}) OR LOWER(ac.abbreviation) = LOWER($${index}))`,
+      query = query.where((eb) =>
+        eb.or([
+          eb(
+            eb.fn('lower', ['hc.abbreviation']),
+            '=',
+            conference.toLowerCase(),
+          ),
+          eb(
+            eb.fn('lower', ['ac.abbreviation']),
+            '=',
+            conference.toLowerCase(),
+          ),
+        ]),
       );
-      params.push(conference);
-      index++;
     }
 
     if (classification) {
-      filters.push(`(hc.division = $${index} OR ac.division = $${index})`);
-      params.push(classification.toLowerCase());
-      index++;
+      query = query.where((eb) =>
+        eb.or([
+          eb('hc.division', '=', classification),
+          eb('ac.division', '=', classification),
+        ]),
+      );
     }
   }
 
-  const filter = `WHERE ${filters.join(' AND ')}`;
-
-  const results = await db.any(
-    `
-            SELECT g.id, g.season, g.week, g.season_type, g.start_date, v.dome, home.school AS home_school, hc.name AS home_conference, away.school AS away_school, ac.name AS away_conference, v.id AS venue_id, v.name AS venue, w.temperature, w.dewpoint, w.humidity, w.precipitation, w.snowfall, w.wind_direction, w.wind_speed, w.pressure, w.weather_condition_code, wc.description AS weather_condition
-            FROM game AS g
-                INNER JOIN venue AS v ON g.venue_id = v.id
-                INNER JOIN game_weather AS w ON g.id = w.game_id
-                INNER JOIN game_team AS home_team ON g.id = home_team.game_id AND home_team.home_away = 'home'
-                INNER JOIN team AS home ON home_team.team_id = home.id
-                LEFT JOIN conference_team AS hct ON home.id = hct.team_id AND hct.start_year <= g.season AND (hct.end_year IS NULL OR hct.end_year >= g.season)
-                LEFT JOIN conference AS hc ON hct.conference_id = hc.id
-                INNER JOIN game_team AS away_team ON g.id = away_team.game_id AND away_team.home_away = 'away'
-                INNER JOIN team AS away ON away_team.team_id = away.id
-                LEFT JOIN conference_team AS act ON away.id = act.team_id AND act.start_year <= g.season AND (act.end_year IS NULL OR act.end_year >= g.season)
-                LEFT JOIN conference AS ac ON act.conference_id = ac.id
-                LEFT JOIN weather_condition AS wc ON w.weather_condition_code = wc.id
-            ${filter}
-        `,
-    params,
-  );
+  const results = await query.execute();
 
   return results.map(
     (r): GameWeather => ({
-      id: parseInt(r.id),
-      season: parseInt(r.season),
-      week: parseInt(r.week),
-      seasonType: r.season_type,
-      startTime: r.start_date,
-      gameIndoors: r.dome,
-      homeTeam: r.home_school,
-      homeConference: r.home_conference,
-      awayTeam: r.away_school,
-      awayConference: r.away_conference,
-      venueId: parseInt(r.venue_id),
+      id: r.id,
+      season: r.season,
+      week: r.week,
+      // @ts-ignore
+      seasonType: r.seasonType,
+      startTime: r.startDate,
+      gameIndoors: r.dome ?? false,
+      homeTeam: r.homeSchool,
+      homeConference: r.homeConference,
+      awayTeam: r.awaySchool,
+      awayConference: r.awayConference,
+      venueId: r.venueId,
       venue: r.venue,
       temperature: r.temperature ? parseFloat(r.temperature) : null,
-      dewPoint: r.dew_point ? parseFloat(r.dew_point) : null,
+      dewPoint: r.dewpoint ? parseFloat(r.dewpoint) : null,
       humidity: r.humidity ? parseFloat(r.humidity) : null,
-      precipitation: parseFloat(r.precipitation),
-      snowfall: parseFloat(r.snowfall),
-      windDirection: r.wind_direction ? parseFloat(r.wind_direction) : null,
-      windSpeed: r.wind_speed ? parseFloat(r.wind_speed) : null,
+      precipitation: r.precipitation ? parseFloat(r.precipitation) : null,
+      snowfall: r.snowfall ? parseFloat(r.snowfall) : null,
+      windDirection: r.windDirection ? parseFloat(r.windDirection) : null,
+      windSpeed: r.windSpeed ? parseFloat(r.windSpeed) : null,
       pressure: r.pressure ? parseFloat(r.pressure) : null,
-      weatherConditionCode: r.weather_condition_code
-        ? parseInt(r.weather_condition_code)
-        : null,
-      weatherCondition: r.weather_condition,
+      weatherConditionCode: r.weatherConditionCode,
+      weatherCondition: r.weatherCondition,
     }),
   );
 };
@@ -703,133 +916,324 @@ export const getRecords = async (
     );
   }
 
-  const filters: string[] = ['g.status = $1'];
-  const params: any[] = [GameStatus.Completed];
-  let index = 2;
+  let query = kdb
+    .selectFrom('game')
+    .innerJoin('gameTeam as gt', 'game.id', 'gt.gameId')
+    .innerJoin('team as t', 'gt.teamId', 't.id')
+    .innerJoin('gameTeam as gt2', (join) =>
+      join.onRef('game.id', '=', 'gt2.gameId').onRef('gt2.id', '<>', 'gt.id'),
+    )
+    .innerJoin('conferenceTeam as ct', (join) =>
+      join
+        .onRef('t.id', '=', 'ct.teamId')
+        .onRef('ct.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('ct.endYear', '>=', eb.ref('game.season')),
+            eb('ct.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .innerJoin('conference as c', 'ct.conferenceId', 'c.id')
+    .where('game.status', '=', GameStatus.Completed)
+    .groupBy([
+      'game.season',
+      't.id',
+      't.school',
+      'c.division',
+      'c.name',
+      'ct.division',
+    ])
+    .select([
+      'game.season',
+      't.id as team_id',
+      't.school as team',
+      'c.division as classification',
+      'c.name as conference',
+      'ct.division',
+    ])
+    .select((eb) => eb.fn.countAll().as('games'))
+    .select((eb) =>
+      eb.fn.countAll().filterWhere('gt.winner', '=', true).as('wins'),
+    )
+    .select((eb) =>
+      eb.fn.countAll().filterWhere('gt2.winner', '=', true).as('losses'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([eb('gt.winner', '<>', true), eb('gt2.winner', '<>', true)]),
+        )
+        .as('ties'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere('game.conferenceGame', '=', true)
+        .as('conferenceGames'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.winner', '=', true),
+            eb('game.conferenceGame', '=', true),
+          ]),
+        )
+        .as('conferenceWins'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt2.winner', '=', true),
+            eb('game.conferenceGame', '=', true),
+          ]),
+        )
+        .as('conferenceLosses'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.winner', '<>', true),
+            eb('gt2.winner', '<>', true),
+            eb('game.conferenceGame', '=', true),
+          ]),
+        )
+        .as('conferenceTies'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.homeAway', '=', 'home'),
+            eb('game.neutralSite', '<>', true),
+          ]),
+        )
+        .as('homeGames'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.winner', '=', true),
+            eb('gt.homeAway', '=', 'home'),
+            eb('game.neutralSite', '<>', true),
+          ]),
+        )
+        .as('homeWins'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt2.winner', '=', true),
+            eb('gt.homeAway', '=', 'home'),
+            eb('game.neutralSite', '<>', true),
+          ]),
+        )
+        .as('homeLosses'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.winner', '<>', true),
+            eb('gt2.winner', '<>', true),
+            eb('gt.homeAway', '=', 'home'),
+            eb('game.neutralSite', '<>', true),
+          ]),
+        )
+        .as('homeTies'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.homeAway', '=', 'away'),
+            eb('game.neutralSite', '<>', true),
+          ]),
+        )
+        .as('awayGames'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.winner', '=', true),
+            eb('gt.homeAway', '=', 'away'),
+            eb('game.neutralSite', '<>', true),
+          ]),
+        )
+        .as('awayWins'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt2.winner', '=', true),
+            eb('gt.homeAway', '=', 'away'),
+            eb('game.neutralSite', '<>', true),
+          ]),
+        )
+        .as('awayLosses'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.winner', '<>', true),
+            eb('gt2.winner', '<>', true),
+            eb('gt.homeAway', '=', 'away'),
+            eb('game.neutralSite', '<>', true),
+          ]),
+        )
+        .as('awayTies'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere('game.neutralSite', '=', true)
+        .as('neutralGames'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.winner', '=', true),
+            eb('game.neutralSite', '=', true),
+          ]),
+        )
+        .as('neutralWins'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt2.winner', '=', true),
+            eb('game.neutralSite', '=', true),
+          ]),
+        )
+        .as('neutralLosses'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.winner', '<>', true),
+            eb('gt2.winner', '<>', true),
+            eb('game.neutralSite', '=', true),
+          ]),
+        )
+        .as('neutralTies'),
+    )
+    .select((eb) => eb.fn.sum('gt.winProb').as('expectedWins'));
 
   if (year) {
-    filters.push(`g.season = $${index}`);
-    params.push(year);
-    index++;
+    query = query.where('game.season', '=', year);
   }
 
   if (team) {
-    filters.push(`LOWER(t.school) = LOWER($${index})`);
-    params.push(team);
-    index++;
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['t.school']), '=', team.toLowerCase()),
+    );
   }
 
   if (conference) {
-    filters.push(`LOWER(c.abbreviation) = LOWER($${index})`);
-    params.push(conference);
-    index++;
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['c.abbreviation']), '=', conference.toLowerCase()),
+    );
   }
 
-  const filter = `WHERE ${filters.join(' AND ')}`;
+  const results = await query.execute();
 
-  const results = await db.any(
-    `
-                SELECT 	g.season,
-                        t.id AS team_id,
-                        t.school AS team,
-                        c.division as classification,
-                        c.name AS conference,
-                        ct.division,
-                        COUNT(*) AS games,
-                        COUNT(*) FILTER(WHERE gt.winner = true) AS wins,
-                        COUNT(*) FILTER(WHERE gt2.winner = true) AS losses,
-                        COUNT(*) FILTER(WHERE gt.winner <> true AND gt2.winner <> true) AS "ties",
-                        COUNT(*) FILTER(WHERE g.conference_game = true) AS conference_games,
-                        COUNT(*) FILTER(WHERE gt.winner = true AND g.conference_game = true) AS conference_wins,
-                        COUNT(*) FILTER(WHERE gt2.winner = true AND g.conference_game = true) AS conference_losses,
-                        COUNT(*) FILTER(WHERE gt.winner <> true AND gt2.winner <> true AND g.conference_game = true) AS conference_ties,
-                        COUNT(*) FILTER(WHERE gt.home_away = 'home' AND g.neutral_site <> true) AS home_games,
-                        COUNT(*) FILTER(WHERE gt.winner = true AND gt.home_away = 'home' AND g.neutral_site <> true) AS home_wins,
-                        COUNT(*) FILTER(WHERE gt2.winner = true AND gt.home_away = 'home' AND g.neutral_site <> true) AS home_losses,
-                        COUNT(*) FILTER(WHERE gt.winner <> true AND gt2.winner <> true AND gt.home_away = 'home' AND g.neutral_site <> true) AS home_ties,
-                        COUNT(*) FILTER(WHERE gt.home_away = 'away' AND g.neutral_site <> true) AS away_games,
-                        COUNT(*) FILTER(WHERE gt.winner = true AND gt.home_away = 'away' AND g.neutral_site <> true) AS away_wins,
-                        COUNT(*) FILTER(WHERE gt2.winner = true AND gt.home_away = 'away' AND g.neutral_site <> true) AS away_losses,
-                        COUNT(*) FILTER(WHERE gt.winner <> true AND gt2.winner <> true AND gt.home_away = 'away' AND g.neutral_site <> true) AS away_ties,
-                        COUNT(*) FILTER(WHERE g.neutral_site = true) AS neutral_games,
-                        COUNT(*) FILTER(WHERE gt.winner = true AND g.neutral_site = true) AS neutral_wins,
-                        COUNT(*) FILTER(WHERE gt2.winner = true AND g.neutral_site = true) AS neutral_losses,
-                        COUNT(*) FILTER(WHERE gt.winner <> true AND gt2.winner <> true AND g.neutral_site = true) AS neutral_ties,
-                        SUM(gt.win_prob) AS expected_wins
-                FROM game AS g
-                    INNER JOIN game_team AS gt ON g.id = gt.game_id
-                    INNER JOIN game_team AS gt2 ON g.id = gt2.game_id AND gt2.id <> gt.id
-                    INNER JOIN team AS t ON gt.team_id = t.id
-                    INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
-                    INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-                ${filter}
-                GROUP BY g.season, t.id, t.school, c.division, c.name, ct.division
-                `,
-    params,
-  );
+  const intParseOrConvert = (n: string | number | bigint): number =>
+    typeof n === 'number' || typeof n === 'bigint'
+      ? (n as number)
+      : parseInt(n);
 
   return results.map(
     (r): TeamRecords => ({
       year: r.season,
       teamId: r.team_id,
       team: r.team,
+      // @ts-ignore
       classification: r.classification,
       conference: r.conference,
       division: r.division || '',
-      expectedWins: Math.round(parseFloat(r.expected_wins) * 10) / 10,
+      expectedWins:
+        typeof r.expectedWins === 'number' || typeof r.expectedWins === 'bigint'
+          ? (r.expectedWins as number)
+          : parseFloat(r.expectedWins),
       total: {
-        games: parseInt(r.games),
-        wins: parseInt(r.wins),
-        losses: parseInt(r.losses),
-        ties: parseInt(r.ties),
+        games: intParseOrConvert(r.games),
+        wins: intParseOrConvert(r.wins),
+        losses: intParseOrConvert(r.losses),
+        ties: intParseOrConvert(r.ties),
       },
       conferenceGames: {
-        games: parseInt(r.conference_games),
-        wins: parseInt(r.conference_wins),
-        losses: parseInt(r.conference_losses),
-        ties: parseInt(r.conference_ties),
+        games: intParseOrConvert(r.conferenceGames),
+        wins: intParseOrConvert(r.conferenceWins),
+        losses: intParseOrConvert(r.conferenceLosses),
+        ties: intParseOrConvert(r.conferenceTies),
       },
       homeGames: {
-        games: parseInt(r.home_games),
-        wins: parseInt(r.home_wins),
-        losses: parseInt(r.home_losses),
-        ties: parseInt(r.home_ties),
+        games: intParseOrConvert(r.homeGames),
+        wins: intParseOrConvert(r.homeWins),
+        losses: intParseOrConvert(r.homeLosses),
+        ties: intParseOrConvert(r.homeTies),
       },
       awayGames: {
-        games: parseInt(r.away_games),
-        wins: parseInt(r.away_wins),
-        losses: parseInt(r.away_losses),
-        ties: parseInt(r.away_ties),
+        games: intParseOrConvert(r.awayGames),
+        wins: intParseOrConvert(r.awayWins),
+        losses: intParseOrConvert(r.awayLosses),
+        ties: intParseOrConvert(r.awayTies),
       },
       neutralSiteGames: {
-        games: parseInt(r.neutral_games),
-        wins: parseInt(r.neutral_wins),
-        losses: parseInt(r.neutral_losses),
-        ties: parseInt(r.neutral_ties),
+        games: intParseOrConvert(r.neutralGames),
+        wins: intParseOrConvert(r.neutralWins),
+        losses: intParseOrConvert(r.neutralLosses),
+        ties: intParseOrConvert(r.neutralTies),
       },
     }),
   );
 };
 
 export const getCalendar = async (year: number): Promise<CalendarWeek[]> => {
-  const weeks = await db.any(
-    `
-            SELECT g.week, g.season_type, MIN(g.start_date) AS first_game_start, MAX(g.start_date) AS last_game_start
-            FROM game AS g
-            WHERE g.season = $1
-            GROUP BY g.week, g.season_type
-            ORDER BY g.season_type, g.week
-        `,
-    [year],
-  );
+  const weeks = await kdb
+    .selectFrom('game')
+    .where('season', '=', year)
+    .groupBy(['week', 'seasonType'])
+    .select(['week', 'seasonType'])
+    .select((eb) => eb.fn.min('startDate').as('firstGameStart'))
+    .select((eb) => eb.fn.max('startDate').as('lastGameStart'))
+    .orderBy(['seasonType', 'week'])
+    .execute();
 
   return weeks.map(
     (w): CalendarWeek => ({
       season: year,
       week: w.week,
-      seasonType: w.season_type,
-      firstGameStart: w.first_game_start,
-      lastGameStart: w.last_game_start,
+      // @ts-ignore
+      seasonType: w.seasonType,
+      firstGameStart: w.firstGameStart,
+      lastGameStart: w.lastGameStart,
     }),
   );
 };
@@ -838,135 +1242,200 @@ export const getScoreboard = async (
   classification: DivisionClassification = DivisionClassification.FBS,
   conference?: string,
 ): Promise<ScoreboardGame[]> => {
-  let filters = [];
-  let filterParams = [];
-  let filterIndex = 1;
-
-  filterParams.push(classification.toLowerCase());
-  filters.push(
-    `(c.division = $${filterIndex} OR c2.division = $${filterIndex})`,
-  );
-  filterIndex++;
+  let query = kdb
+    .with('thisWeek', (cte) =>
+      cte
+        .selectFrom('game')
+        .innerJoin('gameTeam as gt', 'game.id', 'gt.gameId')
+        .innerJoin('currentConferences as cc', (join) =>
+          join
+            .onRef('gt.teamId', '=', 'cc.teamId')
+            .on('cc.classification', '=', classification),
+        )
+        // @ts-ignore
+        .where('game.startDate', '>', sql`now() - interval '2d'`)
+        .orderBy('game.season')
+        .orderBy('game.seasonType')
+        .orderBy('game.week')
+        .select(['game.id', 'game.season', 'game.seasonType', 'game.week'])
+        .distinct()
+        .limit(1),
+    )
+    .selectFrom('game')
+    .innerJoin('thisWeek', (join) =>
+      join
+        .onRef('game.season', '=', 'thisWeek.season')
+        .onRef('game.week', '=', 'thisWeek.week')
+        .onRef('game.seasonType', '=', 'thisWeek.seasonType'),
+    )
+    .innerJoin('gameTeam as gt', (join) =>
+      join.onRef('game.id', '=', 'gt.gameId').on('gt.homeAway', '=', 'home'),
+    )
+    .innerJoin('team as t', 'gt.teamId', 't.id')
+    .innerJoin('gameTeam as gt2', (join) =>
+      join.onRef('game.id', '=', 'gt2.gameId').onRef('gt.id', '<>', 'gt2.id'),
+    )
+    .innerJoin('team as t2', 'gt2.teamId', 't2.id')
+    .innerJoin('venue', 'game.venueId', 'venue.id')
+    .leftJoin('conferenceTeam as ct', (join) =>
+      join
+        .onRef('t.id', '=', 'ct.teamId')
+        .onRef('ct.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('ct.endYear', '>=', eb.ref('game.season')),
+            eb('ct.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as c', 'ct.conferenceId', 'c.id')
+    .leftJoin('conferenceTeam as ct2', (join) =>
+      join
+        .onRef('t2.id', '=', 'ct2.teamId')
+        .onRef('ct2.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('ct2.endYear', '>=', eb.ref('game.season')),
+            eb('ct2.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference as c2', 'ct2.conferenceId', 'c2.id')
+    .leftJoin('gameMedia as gm', (join) =>
+      join.onRef('game.id', '=', 'gm.gameId').on('gm.mediaType', '=', 'tv'),
+    )
+    .leftJoin('gameMedia as gm2', (join) =>
+      join
+        .onRef('game.id', '=', 'gm2.gameId')
+        .onRef('gm.id', '<>', 'gm2.id')
+        .on('gm2.mediaType', '=', 'web'),
+    )
+    .leftJoin('gameWeather as gw', 'game.id', 'gw.gameId')
+    .leftJoin('weatherCondition as wc', 'gw.weatherConditionCode', 'wc.id')
+    .leftJoin('gameLines as gl', (join) =>
+      join
+        .onRef('game.id', '=', 'gl.gameId')
+        .on('gl.linesProviderId', '=', 999999),
+    )
+    .where((eb) =>
+      eb.or([
+        eb('c.division', '=', classification),
+        eb('c2.division', '=', classification),
+      ]),
+    )
+    .orderBy('game.startDate')
+    .select([
+      'game.id',
+      'game.startTimeTbd',
+      'game.status',
+      'game.neutralSite',
+      'game.conferenceGame',
+      'venue.name',
+      'venue.city',
+      'venue.state',
+      't.id as homeId',
+      't.school as homeTeam',
+      'c.division as homeClassification',
+      'c.name as homeConference',
+      't2.id as awayId',
+      't2.school as awayTeam',
+      'c2.name as awayConference',
+      'c2.division as awayClassification',
+      'game.currentPeriod',
+      'game.currentClock',
+      'game.currentSituation',
+      'game.currentPossession',
+      'venue.name as venueName',
+      'venue.city as venueCity',
+      'venue.state as venueState',
+      'gw.temperature',
+      'gw.windSpeed',
+      'gw.windDirection',
+      'wc.description as weatherDescription',
+      'gl.spread',
+      'gl.overUnder',
+      'gl.moneylineHome',
+      'gl.moneylineAway',
+    ])
+    .select(sql<Date>`game.start_date AT TIME ZONE 'UTC'`.as('startDate'))
+    .select((eb) =>
+      eb
+        .case()
+        .when('game.status', '=', 'completed')
+        .then('gt.points')
+        .else('game.currentHomeScore')
+        .end()
+        .as('homePoints'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when('game.status', '=', 'completed')
+        .then('gt2.points')
+        .else('game.currentAwayScore')
+        .end()
+        .as('awayPoints'),
+    )
+    .select((eb) => eb.cast('game.currentClock', 'varchar').as('currentClock'))
+    .select((eb) => eb.fn.coalesce('gm.name', 'gm2.name').as('tv'));
 
   if (conference) {
-    filterParams.push(conference.toLowerCase());
-    filters.push(
-      `(LOWER(c.abbreviation) = $${filterIndex} OR LOWER(c2.abbreviation) = $${filterIndex})`,
+    query = query.where((eb) =>
+      eb.or([
+        eb(eb.fn('lower', ['c.abbreviation']), '=', conference.toLowerCase()),
+        eb(eb.fn('lower', ['c2.abbreviation']), '=', conference.toLowerCase()),
+      ]),
     );
-    filterIndex++;
   }
 
-  let filterClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
-
-  let scoreboard = await db.any(
-    `
-        WITH this_week AS (
-            SELECT DISTINCT g.id, g.season, g.season_type, g.week
-            FROM game AS g
-                INNER JOIN game_team AS gt ON g.id = gt.game_id
-                INNER JOIN current_conferences AS cc ON gt.team_id = cc.team_id AND cc.classification = $1
-            WHERE g.start_date > (now() - interval '2d')
-            ORDER BY g.season, g.season_type, g.week
-            LIMIT 1
-
-        )
-        SELECT g.id,
-            g.start_date AT TIME ZONE 'UTC' AS start_date,
-            g.start_time_tbd,
-            g.status,
-            g.neutral_site,
-            g.conference_game,
-            v.name AS venue,
-            v.city,
-            v.state,
-            t.id AS home_id,
-            t.display_name AS home_team,
-            c.division AS home_classification,
-            c.name AS home_conference,
-            CASE WHEN g.status = 'completed' THEN gt.points ELSE g.current_home_score END AS home_points,
-            t2.id AS away_id,
-            t2.display_name AS away_team,
-            c2.name AS away_conference,
-            c2.division AS away_classification,
-            CASE WHEN g.status = 'completed' THEN gt2.points ELSE g.current_away_score END AS away_points,
-            g.current_period,
-            CAST(g.current_clock AS CHARACTER VARYING) AS current_clock,
-            g.current_situation,
-            g.current_possession,
-            COALESCE(gm.name, gm2.name) AS tv,
-            gw.temperature,
-            gw.wind_speed,
-            gw.wind_direction,
-            wc.description AS weather_description,
-            gl.spread,
-            gl.over_under,
-            gl.moneyline_home,
-            gl.moneyline_away
-        FROM game AS g
-            INNER JOIN this_week AS tw ON g.season = tw.season AND g.week = tw.week AND g.season_type = tw.season_type
-            INNER JOIN game_team AS gt ON g.id = gt.game_id AND gt.home_away = 'home'
-            INNER JOIN team AS t ON gt.team_id = t.id
-            INNER JOIN game_team AS gt2 ON g.id = gt2.game_id AND gt.id <> gt2.id
-            INNER JOIN team AS t2 ON gt2.team_id = t2.id
-            INNER JOIN venue AS v ON g.venue_id = v.id
-            LEFT JOIN conference_team AS ct ON t.id = ct.team_id AND ct.end_year IS NULL
-            LEFT JOIN conference AS c ON ct.conference_id = c.id
-            LEFT JOIN conference_team AS ct2 ON t2.id = ct2.team_id AND ct2.end_year IS NULL
-            LEFT JOIN conference AS c2 ON ct2.conference_id = c2.id
-            LEFT JOIN game_media AS gm ON g.id = gm.game_id AND gm.media_type = 'tv'
-            LEFT JOIN game_media AS gm2 ON g.id = gm2.game_id AND gm.id <> gm2.id AND gm2.media_type = 'web'
-            LEFT JOIN game_weather AS gw ON g.id = gw.game_id
-            LEFT JOIN weather_condition AS wc ON gw.weather_condition_code = wc.id
-            LEFT JOIN game_lines AS gl ON g.id = gl.game_id AND gl.lines_provider_id = 999999
-        ${filterClause}
-        ORDER BY g.start_date
-        `,
-    filterParams,
-  );
+  const scoreboard = await query.execute();
 
   return scoreboard.map(
     (s): ScoreboardGame => ({
-      id: parseInt(s.id),
-      startDate: s.start_date,
-      startTimeTBD: s.start_time_tbd,
+      id: s.id,
+      startDate: s.startDate,
+      startTimeTBD: s.startTimeTbd ?? false,
       tv: s.tv,
-      neutralSite: s.neutral_site,
-      conferenceGame: s.conference_game,
+      neutralSite: s.neutralSite,
+      conferenceGame: s.conferenceGame ?? false,
+      // @ts-ignore
       status: s.status,
-      period: parseInt(s.current_period),
-      clock: s.current_clock,
-      situation: s.current_situation,
-      possession: s.current_possession,
+      period: s.currentPeriod,
+      clock: s.currentClock?.toISOString() ?? null,
+      situation: s.currentSituation,
+      possession: s.currentPossession,
       venue: {
-        name: s.venue,
-        city: s.city,
-        state: s.state,
+        name: s.venueName,
+        city: s.venueCity,
+        state: s.venueState,
       },
       homeTeam: {
-        id: s.home_id,
-        name: s.home_team,
-        conference: s.home_conference,
-        classification: s.home_classification,
-        points: s.home_points,
+        id: s.homeId,
+        name: s.homeTeam,
+        conference: s.homeConference,
+        // @ts-ignore
+        classification: s.homeClassification,
+        points: parseInt(s.homePoints),
       },
       awayTeam: {
-        id: s.away_id,
-        name: s.away_team,
-        conference: s.away_conference,
-        classification: s.away_classification,
-        points: s.away_points,
+        id: s.awayId,
+        name: s.awayTeam,
+        conference: s.awayConference,
+        // @ts-ignore
+        classification: s.awayClassification,
+        points: parseInt(s.awayPoints),
       },
       weather: {
-        temperature: s.temperature,
-        description: s.weather_description,
-        windSpeed: s.wind_speed,
-        windDirection: s.wind_direction,
+        temperature: s.temperature ? parseFloat(s.temperature) : null,
+        description: s.weatherDescription,
+        windSpeed: s.windSpeed ? parseFloat(s.windSpeed) : null,
+        windDirection: s.windDirection ? parseFloat(s.windDirection) : null,
       },
       betting: {
-        spread: s.spread,
-        overUnder: s.over_under,
-        homeMoneyline: s.moneyline_home,
-        awayMoneyline: s.moneyline_away,
+        spread: s.spread ? parseFloat(s.spread) : null,
+        overUnder: s.overUnder ? parseFloat(s.overUnder) : null,
+        homeMoneyline: s.moneylineHome,
+        awayMoneyline: s.moneylineAway,
       },
     }),
   );

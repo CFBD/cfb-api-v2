@@ -34,15 +34,15 @@ export interface Game {
   /**
    * @isInt
    */
-  venueId: number;
-  venue: string;
+  venueId: number | null;
+  venue: string | null;
   /**
    * @isInt
    */
   homeId: number;
   homeTeam: string;
-  homeConference: string;
-  homeDivision: string;
+  homeConference: string | null;
+  homeDivision: string | null;
   /**
    * @isInt
    */
@@ -65,8 +65,8 @@ export interface Game {
    */
   awayId: number;
   awayTeam: string;
-  awayConference: string;
-  awayDivision: string;
+  awayConference: string | null;
+  awayDivision: string | null;
   /**
    * @isInt
    */
@@ -85,6 +85,8 @@ export interface Game {
    */
   awayPostgameElo: number | null;
   excitementIndex: number | null;
+  highlights: string | null;
+  notes: string | null;
 }
 
 export interface GameTeamStats {
@@ -101,12 +103,12 @@ export interface GameTeamStatsTeam {
    */
   teamId: number;
   team: string;
-  conference: string;
+  conference: string | null;
   homeAway: 'home' | 'away';
   /**
    * @isInt
    */
-  points: number;
+  points: number | null;
   stats: GameTeamStatsTeamStat[];
 }
 
@@ -125,12 +127,12 @@ export interface GamePlayerStats {
 
 export interface GamePlayerStatsTeam {
   team: string;
-  conference: string;
+  conference: string | null;
   homeAway: 'home' | 'away';
   /**
    * @isInt
    */
-  points: number;
+  points: number | null;
   categories: GamePlayerStatCategories[];
 }
 
@@ -145,10 +147,7 @@ export interface GamePlayerStatTypes {
 }
 
 export interface GamePlayerStatPlayer {
-  /**
-   * @isInt
-   */
-  id: number;
+  id: string;
   name: string;
   stat: string;
 }
@@ -173,9 +172,9 @@ export interface GameMedia {
   startTime: Date;
   isStartTimeTBD: boolean;
   homeTeam: string;
-  homeConference: string;
+  homeConference: string | null;
   awayTeam: string;
-  awayConference: string;
+  awayConference: string | null;
   mediaType: MediaType;
   outlet: string;
 }
@@ -200,9 +199,9 @@ export interface GameWeather {
   startTime: Date;
   gameIndoors: boolean;
   homeTeam: string;
-  homeConference: string;
+  homeConference: string | null;
   awayTeam: string;
-  awayConference: string;
+  awayConference: string | null;
   /**
    * @isInt
    */
@@ -217,7 +216,7 @@ export interface GameWeather {
   windSpeed: number | null;
   pressure: number | null;
   weatherConditionCode: number | null;
-  weatherCondition: string;
+  weatherCondition: string | null;
 }
 
 export interface TeamRecord {
@@ -249,7 +248,7 @@ export interface TeamRecords {
    */
   teamId: number;
   team: string;
-  classification: DivisionClassification;
+  classification: DivisionClassification | null;
   conference: string;
   division: string;
   expectedWins: number;
@@ -290,7 +289,7 @@ export interface ScoreboardGame {
    */
   startDate: Date;
   startTimeTBD: boolean;
-  tv: string;
+  tv: string | null;
   neutralSite: boolean;
   conferenceGame: boolean;
   status: GameStatus;
@@ -303,8 +302,8 @@ export interface ScoreboardGame {
   possession: string | null;
   venue: {
     name: string;
-    city: string;
-    state: string;
+    city: string | null;
+    state: string | null;
   };
   homeTeam: {
     /**
@@ -312,8 +311,8 @@ export interface ScoreboardGame {
      */
     id: number;
     name: string;
-    conference: string;
-    classification: DivisionClassification;
+    conference: string | null;
+    classification: DivisionClassification | null;
     /**
      * @isInt
      */
@@ -325,8 +324,8 @@ export interface ScoreboardGame {
      */
     id: number;
     name: string;
-    conference: string;
-    classification: DivisionClassification;
+    conference: string | null;
+    classification: DivisionClassification | null;
     /**
      * @isInt
      */
