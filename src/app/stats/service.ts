@@ -1,5 +1,5 @@
 import { ValidateError } from 'tsoa';
-import { db } from '../../config/database';
+import { db, kdb } from '../../config/database';
 import { SeasonType } from '../enums';
 import {
   AdvancedGameStat,
@@ -7,6 +7,7 @@ import {
   PlayerStat,
   TeamStat,
 } from './types';
+import { sql } from 'kysely';
 
 export const getPlayerSeasonStats = async (
   year: number,
@@ -17,210 +18,435 @@ export const getPlayerSeasonStats = async (
   seasonType?: SeasonType,
   category?: string,
 ): Promise<PlayerStat[]> => {
-  let filter = 'g.season = $1';
-  let params: any[] = [year];
-  let index = 2;
+  let baseQuery = kdb
+    .selectFrom('game')
+    .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
+    .innerJoin('gamePlayerStat', 'gameTeam.id', 'gamePlayerStat.gameTeamId')
+    .innerJoin('athlete', 'gamePlayerStat.athleteId', 'athlete.id')
+    .innerJoin('team', 'gameTeam.teamId', 'team.id')
+    .innerJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .onRef('conferenceTeam.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', 'is', null),
+            eb('conferenceTeam.endYear', '>=', eb.ref('game.season')),
+          ]),
+        ),
+    )
+    .innerJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .innerJoin(
+      'playerStatCategory',
+      'gamePlayerStat.categoryId',
+      'playerStatCategory.id',
+    )
+    .innerJoin('playerStatType', 'gamePlayerStat.typeId', 'playerStatType.id')
+    .select([
+      'game.season',
+      'athlete.id as playerId',
+      'athlete.name as player',
+      'team.school as team',
+      'conference.name as conference',
+      'playerStatCategory.name as category',
+    ])
+    .where('game.season', '=', year)
+    .groupBy([
+      'game.season',
+      'athlete.id',
+      'athlete.name',
+      'team.school',
+      'conference.name',
+      'playerStatCategory.name',
+      'playerStatType.name',
+    ]);
 
   if (conference) {
-    filter += ` AND LOWER(c.abbreviation) = LOWER($${index})`;
-    params.push(conference);
-    index++;
+    baseQuery = baseQuery.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
+    );
   }
 
   if (team) {
-    filter += ` AND LOWER(t.school) = LOWER($${index})`;
-    params.push(team);
-    index++;
+    baseQuery = baseQuery.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
   }
 
   if (startWeek) {
-    filter += ` AND g.week >= $${index}`;
-    params.push(startWeek);
-    index++;
+    baseQuery = baseQuery.where('game.week', '>=', startWeek);
   }
 
   if (endWeek) {
-    filter += ` AND g.week <= $${index}`;
-    params.push(endWeek);
-    index++;
+    baseQuery = baseQuery.where('game.week', '<=', endWeek);
   }
 
   if (seasonType && seasonType !== SeasonType.Both) {
-    filter += ` AND g.season_type = $${index}`;
-    params.push(seasonType);
-    index++;
+    baseQuery = baseQuery.where('game.seasonType', '=', seasonType);
   }
 
   if (category) {
-    filter += ` AND LOWER(cat.name) = LOWER($${index})`;
-    params.push(category);
-    index++;
+    baseQuery = baseQuery.where((eb) =>
+      eb(
+        eb.fn('lower', ['playerStatCategory.name']),
+        '=',
+        category.toLowerCase(),
+      ),
+    );
   }
 
-  let results = await db.any(
-    `
-        SELECT 	g.season,
-                a.id AS player_id,
-                a.name AS player,
-                t.school AS team,
-                c.name AS conference,
-                cat.name AS category,
-                typ.name AS stat_type,
-                SUM(CAST(gps.stat AS NUMERIC)) as stat
-        FROM game AS g
-            INNER JOIN game_team AS gt ON g.id = gt.game_id
-            INNER JOIN game_player_stat AS gps ON gt.id = gps.game_team_id
-            INNER JOIN athlete AS a ON gps.athlete_id = a.id
-            INNER JOIN team AS t ON gt.team_id = t.id
-            INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
-            INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-            INNER JOIN player_stat_category AS cat ON gps.category_id = cat.id
-            INNER JOIN player_stat_type AS typ ON gps.type_id = typ.id
-        WHERE ${filter} AND (typ.id IN (8,14,22) OR (cat.id = 1 AND typ.id = 11) OR (cat.id = 2 AND typ.id = 5) OR (cat.id = 3 AND typ.id IN (6,21)) OR (cat.id = 6 AND typ.id = 18) OR (cat.id = 7) OR (cat.id = 8 AND typ.id = 9) OR (cat.id = 9 AND typ.id = 18) OR cat.id = 10) AND gps.stat <> '--' AND gps.stat NOT LIKE '--/--'
-        GROUP BY g.season, a.id, a.name, t.school, c.name, cat.name, typ.name
-        UNION
-        SELECT 	g.season,
-                a.id AS player_id,
-                a.name AS player,
-                t.school AS team,
-                c.name AS conference,
-                cat.name AS category,
-                typ.name AS stat_type,
-                MAX(CAST(gps.stat AS INT)) as stat
-        FROM game AS g
-            INNER JOIN game_team AS gt ON g.id = gt.game_id
-            INNER JOIN game_player_stat AS gps ON gt.id = gps.game_team_id
-            INNER JOIN athlete AS a ON gps.athlete_id = a.id
-            INNER JOIN team AS t ON gt.team_id = t.id
-            INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
-            INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-            INNER JOIN player_stat_category AS cat ON gps.category_id = cat.id
-            INNER JOIN player_stat_type AS typ ON gps.type_id = typ.id
-        WHERE ${filter} AND (typ.id = 15) AND gps.stat <> '--' AND gps.stat NOT LIKE '--/--'
-        GROUP BY g.season, a.id, a.name, t.school, c.name, cat.name, typ.name
-        UNION
-        SELECT 	g.season,
-                a.id AS player_id,
-                a.name AS player,
-                t.school AS team,
-                c.name AS conference,
-                cat.name AS category,
-                CASE
-                    WHEN cat.name = 'kicking' AND typ.name = 'FG' THEN 'FGM'
-                    WHEN cat.name = 'kicking' AND typ.name = 'XP' THEN 'XPM'
-                    WHEN cat.name = 'passing' AND typ.name = 'C/ATT' THEN 'COMPLETIONS'
-                END AS stat_type,
-                SUM(CAST(split_part(gps.stat, '/', 1) AS INT)) as stat
-        FROM game AS g
-            INNER JOIN game_team AS gt ON g.id = gt.game_id
-            INNER JOIN game_player_stat AS gps ON gt.id = gps.game_team_id
-            INNER JOIN athlete AS a ON gps.athlete_id = a.id
-            INNER JOIN team AS t ON gt.team_id = t.id
-            INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
-            INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-            INNER JOIN player_stat_category AS cat ON gps.category_id = cat.id
-            INNER JOIN player_stat_type AS typ ON gps.type_id = typ.id
-        WHERE ${filter} AND ((cat.id = 2 AND typ.id IN (2, 10)) OR (cat.id = 9 AND typ.id = 3)) AND gps.stat <> '--' AND gps.stat NOT LIKE '--/--'
-        GROUP BY g.season, a.id, a.name, t.school, c.name, cat.name, typ.name
-        UNION
-        SELECT 	g.season,
-                a.id AS player_id,
-                a.name AS player,
-                t.school AS team,
-                c.name AS conference,
-                cat.name AS category,
-                CASE
-                    WHEN cat.name = 'kicking' AND typ.name = 'FG' THEN 'FGA'
-                    WHEN cat.name = 'kicking' AND typ.name = 'XP' THEN 'XPA'
-                    WHEN cat.name = 'passing' AND typ.name = 'C/ATT' THEN 'ATT'
-                END AS stat_type,
-                SUM(CAST(split_part(gps.stat, '/', 2) AS INT)) as stat
-        FROM game AS g
-            INNER JOIN game_team AS gt ON g.id = gt.game_id
-            INNER JOIN game_player_stat AS gps ON gt.id = gps.game_team_id
-            INNER JOIN athlete AS a ON gps.athlete_id = a.id
-            INNER JOIN team AS t ON gt.team_id = t.id
-            INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
-            INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-            INNER JOIN player_stat_category AS cat ON gps.category_id = cat.id
-            INNER JOIN player_stat_type AS typ ON gps.type_id = typ.id
-        WHERE ${filter} AND ((cat.id = 2 AND typ.id IN (2, 10)) OR (cat.id = 9 AND typ.id = 3)) AND gps.stat <> '--' AND gps.stat NOT LIKE '--/--'
-        GROUP BY g.season, a.id, a.name, t.school, c.name, cat.name, typ.name
-        UNION
-        SELECT 	g.season,
-                a.id AS player_id,
-                a.name AS player,
-                t.school AS team,
-                c.name AS conference,
-                cat.name AS category,
-                CASE
-                    WHEN cat.name = 'rushing' THEN 'YPC'
-                    WHEN cat.name = 'receiving' THEN 'YPR'
-                    WHEN cat.name = 'punting' THEN 'YPP'
-                    WHEN cat.name = 'passing' THEN 'YPA'
-                    WHEN cat.name IN ('kickReturns','puntReturns','interceptions') THEN 'AVG'
-                END AS stat_type,
-                CASE
-                    WHEN cat.name IN ('rushing', 'punting', 'kickReturns', 'puntReturns','interceptions','receiving') AND SUM(CAST(gps.stat AS INT)) FILTER(WHERE typ.name IN ('CAR', 'NO', 'INT', 'REC')) = 0 THEN 0
-                    WHEN cat.name IN ('rushing', 'punting', 'kickReturns', 'puntReturns','interceptions','receiving') THEN ROUND(COALESCE(SUM(CAST(gps.stat AS INT)) FILTER(WHERE typ.name = 'YDS'), 0) / SUM(CAST(gps.stat AS NUMERIC)) FILTER(WHERE typ.name IN ('CAR', 'NO', 'INT', 'REC')), 1)
-                    WHEN cat.name = 'passing' AND SUM(CAST(split_part(gps.stat, '/', 2) AS INT)) FILTER(WHERE typ.id = 3) = 0 THEN 0
-                    WHEN cat.name = 'passing' THEN ROUND(SUM(CAST(gps.stat AS INT)) FILTER(WHERE typ.id = 8) / SUM(CAST(split_part(gps.stat, '/', 2) AS NUMERIC)) FILTER(WHERE typ.id = 3), 1)
-                END AS stat
-        FROM game AS g
-            INNER JOIN game_team AS gt ON g.id = gt.game_id
-            INNER JOIN game_player_stat AS gps ON gt.id = gps.game_team_id
-            INNER JOIN athlete AS a ON gps.athlete_id = a.id
-            INNER JOIN team AS t ON gt.team_id = t.id
-            INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
-            INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-            INNER JOIN player_stat_category AS cat ON gps.category_id = cat.id
-            INNER JOIN player_stat_type AS typ ON gps.type_id = typ.id
-        WHERE ${filter} AND (cat.id IN (1,3,4,5,6,8,9)) AND gps.stat <> '--/--' AND gps.stat <> '--'
-        GROUP BY g.season, a.id, a.name, t.school, c.name, cat.name
-        UNION
-        SELECT 	g.season,
-                a.id AS player_id,
-                a.name AS player,
-                t.school AS team,
-                c.name AS conference,
-                cat.name AS category,
-                CASE
-                    WHEN cat.name = 'kicking' THEN 'PCT'
-                    WHEN cat.name = 'passing' THEN 'PCT'
-                END AS stat_type,
-                CASE
-                    WHEN cat.name = 'passing' AND SUM(CAST(split_part(gps.stat, '/', 2) AS INT)) FILTER(WHERE typ.id = 3) = 0 THEN 0
-                    WHEN cat.name = 'passing' THEN ROUND(SUM(CAST(split_part(gps.stat, '/', 1) AS INT)) FILTER(WHERE typ.id = 3) / SUM(CAST(split_part(gps.stat, '/', 2) AS NUMERIC)) FILTER(WHERE typ.id = 3), 3)
-                    WHEN cat.name = 'kicking' AND SUM(CAST(split_part(gps.stat, '/', 2) AS INT)) FILTER(WHERE typ.id = 2) = 0 THEN 0
-                    WHEN cat.name = 'kicking' THEN ROUND(SUM(CAST(split_part(gps.stat, '/', 1) AS INT)) FILTER(WHERE typ.id = 2) / SUM(CAST(split_part(gps.stat, '/', 2) AS NUMERIC)) FILTER(WHERE typ.id = 2), 3)
-                END AS stat
-        FROM game AS g
-            INNER JOIN game_team AS gt ON g.id = gt.game_id
-            INNER JOIN game_player_stat AS gps ON gt.id = gps.game_team_id
-            INNER JOIN athlete AS a ON gps.athlete_id = a.id
-            INNER JOIN team AS t ON gt.team_id = t.id
-            INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
-            INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-            INNER JOIN player_stat_category AS cat ON gps.category_id = cat.id
-            INNER JOIN player_stat_type AS typ ON gps.type_id = typ.id
-        WHERE ${filter} AND (cat.id IN (2,9)) AND gps.stat <> '--' AND gps.stat <> '--/--'
-        GROUP BY g.season, a.id, a.name, t.school, c.name, cat.name
-        `,
-    params,
-  );
+  let query = baseQuery
+    .where('gamePlayerStat.stat', '<>', '--')
+    .where('gamePlayerStat.stat', 'not like', '--/--')
+    .where((eb) =>
+      eb.or([
+        eb('playerStatType.id', 'in', [8, 14, 22]),
+        eb.and([
+          eb('playerStatCategory.id', '=', 1),
+          eb('playerStatType.id', '=', 11),
+        ]),
+        eb.and([
+          eb('playerStatCategory.id', '=', 2),
+          eb('playerStatType.id', '=', 5),
+        ]),
+        eb.and([
+          eb('playerStatCategory.id', '=', 3),
+          eb('playerStatType.id', 'in', [6, 21]),
+        ]),
+        eb.and([
+          eb('playerStatCategory.id', '=', 6),
+          eb('playerStatType.id', '=', 18),
+        ]),
+        eb('playerStatCategory.id', '=', 7),
+        eb.and([
+          eb('playerStatCategory.id', '=', 8),
+          eb('playerStatType.id', '=', 9),
+        ]),
+        eb.and([
+          eb('playerStatCategory.id', '=', 9),
+          eb('playerStatType.id', '=', 18),
+        ]),
+        eb('playerStatCategory.id', '=', 10),
+      ]),
+    )
+    .select('playerStatType.name as statType')
+    .select((eb) =>
+      eb.fn.sum<number>(eb.cast('gamePlayerStat.stat', 'numeric')).as('stat'),
+    );
 
-  return results.map(
-    (r): PlayerStat => ({
-      season: r.year,
-      playerId: r.player_id,
-      player: r.player,
-      team: r.team,
-      conference: r.conference,
-      category: r.category,
-      statType: r.stat_type,
-      stat: r.stat,
-    }),
-  );
+  query = query
+    .union(
+      baseQuery
+        .where('playerStatType.id', '=', 15)
+        .where('gamePlayerStat.stat', '<>', '--')
+        .where('gamePlayerStat.stat', 'not like', '--/--')
+        .select('playerStatType.name as statType')
+        .select((eb) =>
+          eb.fn
+            .max<number>(eb.cast('gamePlayerStat.stat', 'integer'))
+            .as('stat'),
+        ),
+    )
+    .union(
+      baseQuery
+        .where((eb) =>
+          eb.or([
+            eb.and([
+              eb('playerStatCategory.id', '=', 2),
+              eb('playerStatType.id', 'in', [2, 10]),
+            ]),
+            eb.and([
+              eb('playerStatCategory.id', '=', 9),
+              eb('playerStatType.id', '=', 3),
+            ]),
+          ]),
+        )
+        .where('gamePlayerStat.stat', '<>', '--')
+        .where('gamePlayerStat.stat', 'not like', '--/--')
+        .select((eb) =>
+          eb
+            .case()
+            .when(
+              eb.and([
+                eb('playerStatCategory.name', '=', 'kicking'),
+                eb('playerStatType.name', '=', 'FG'),
+              ]),
+            )
+            .then('FGM')
+            .when(
+              eb.and([
+                eb('playerStatCategory.name', '=', 'kicking'),
+                eb('playerStatType.name', '=', 'XP'),
+              ]),
+            )
+            .then('XPM')
+            .when(
+              eb.and([
+                eb('playerStatCategory.name', '=', 'passing'),
+                eb('playerStatType.name', '=', 'C/ATT'),
+              ]),
+            )
+            .then('COMPLETIONS')
+            .else('')
+            .end()
+            .as('statType'),
+        )
+        .select((eb) =>
+          eb.fn
+            .sum<number>(
+              eb.cast(
+                sql<string>`split_part(game_player_stat.stat, '/', 1)`,
+                'integer',
+              ),
+            )
+            .as('stat'),
+        ),
+    )
+    .union(
+      baseQuery
+        .where((eb) =>
+          eb.or([
+            eb.and([
+              eb('playerStatCategory.id', '=', 2),
+              eb('playerStatType.id', 'in', [2, 10]),
+            ]),
+            eb.and([
+              eb('playerStatCategory.id', '=', 9),
+              eb('playerStatType.id', '=', 3),
+            ]),
+          ]),
+        )
+        .where('gamePlayerStat.stat', '<>', '--')
+        .where('gamePlayerStat.stat', 'not like', '--/--')
+        .select((eb) =>
+          eb
+            .case()
+            .when(
+              eb.and([
+                eb('playerStatCategory.name', '=', 'kicking'),
+                eb('playerStatType.name', '=', 'FG'),
+              ]),
+            )
+            .then('FGA')
+            .when(
+              eb.and([
+                eb('playerStatCategory.name', '=', 'kicking'),
+                eb('playerStatType.name', '=', 'XP'),
+              ]),
+            )
+            .then('XPA')
+            .when(
+              eb.and([
+                eb('playerStatCategory.name', '=', 'passing'),
+                eb('playerStatType.name', '=', 'C/ATT'),
+              ]),
+            )
+            .then('ATT')
+            .else('')
+            .end()
+            .as('statType'),
+        )
+        .select((eb) =>
+          eb.fn
+            .sum<number>(
+              eb.cast(
+                sql<string>`split_part(game_player_stat.stat, '/', 2)`,
+                'integer',
+              ),
+            )
+            .as('stat'),
+        ),
+    )
+    .union(
+      baseQuery
+        .where('playerStatCategory.id', 'in', [1, 3, 4, 5, 6, 8, 9])
+        .where('gamePlayerStat.stat', '<>', '--')
+        .where('gamePlayerStat.stat', 'not like', '--/--')
+        .select((eb) =>
+          eb
+            .case()
+            .when(eb('playerStatCategory.name', '=', 'rushing'))
+            .then('YPC')
+            .when(eb('playerStatCategory.name', '=', 'receiving'))
+            .then('YPR')
+            .when(eb('playerStatCategory.name', '=', 'punting'))
+            .then('YPP')
+            .when(eb('playerStatCategory.name', '=', 'passing'))
+            .then('YPA')
+            .when(
+              eb('playerStatCategory.name', 'in', [
+                'kickReturns',
+                'puntReturns',
+                'interceptions',
+              ]),
+            )
+            .then('AVG')
+            .else('')
+            .end()
+            .as('statType'),
+        )
+        .select((eb) =>
+          eb
+            .case()
+            .when(
+              eb.and([
+                eb('playerStatCategory.name', 'in', [
+                  'rushing',
+                  'punting',
+                  'kickReturns',
+                  'puntReturns',
+                  'interceptions',
+                  'receiving',
+                ]),
+                eb(
+                  eb.fn
+                    .sum<number>(eb.cast('gamePlayerStat.stat', 'integer'))
+                    .filterWhere(
+                      eb('playerStatType.name', 'in', [
+                        'CAR',
+                        'NO',
+                        'INT',
+                        'REC',
+                      ]),
+                    ),
+                  '=',
+                  0,
+                ),
+              ]),
+            )
+            .then(0)
+            .when(
+              eb('playerStatCategory.name', 'in', [
+                'rushing',
+                'punting',
+                'kickReturns',
+                'puntReturns',
+                'interceptions',
+                'receiving',
+              ]),
+            )
+            .then(
+              sql<number>`ROUND(COALESCE(SUM(CAST(game_player_stat.stat AS INT)) FILTER(WHERE player_stat_type.name = 'YDS'), 0) / SUM(CAST(game_player_stat.stat AS NUMERIC)) FILTER(WHERE player_stat_type.name IN('CAR', 'NO', 'INT', 'REC')), 1)`,
+            )
+            .when(
+              eb.and([
+                eb('playerStatCategory.name', '=', 'passing'),
+                eb(
+                  eb.fn
+                    .sum<number>(
+                      eb.cast(
+                        sql<string>`split_part(game_player_stat.stat, '/', 2)`,
+                        'integer',
+                      ),
+                    )
+                    .filterWhere('playerStatType.id', '=', 3),
+                  '=',
+                  0,
+                ),
+              ]),
+            )
+            .then(0)
+            .when(eb('playerStatCategory.name', '=', 'passing'))
+            .then(
+              sql<number>`ROUND(SUM(CAST(game_player_stat.stat AS INT)) FILTER(WHERE player_stat_type.id = 8) / SUM(CAST(split_part(game_player_stat.stat, '/', 2) AS NUMERIC)) FILTER(WHERE player_stat_type.id = 3), 1)`,
+            )
+            .else(0)
+            .end()
+            .as('stat'),
+        ),
+    )
+    .union(
+      baseQuery
+        .where('playerStatCategory.id', 'in', [2, 9])
+        .where('gamePlayerStat.stat', '<>', '--')
+        .where('gamePlayerStat.stat', '<>', '--/--')
+        .select((eb) =>
+          eb
+            .case()
+            .when(eb('playerStatCategory.name', '=', 'kicking'))
+            .then('PCT')
+            .when(eb('playerStatCategory.name', '=', 'passing'))
+            .then('PCT')
+            .else('')
+            .end()
+            .as('statType'),
+        )
+        .select((eb) =>
+          eb
+            .case()
+            .when(
+              eb.and([
+                eb('playerStatCategory.name', '=', 'passing'),
+                eb(
+                  eb.fn
+                    .sum<number>(
+                      eb.cast(
+                        sql<string>`split_part(game_player_stat.stat, '/', 2)`,
+                        'integer',
+                      ),
+                    )
+                    .filterWhere('playerStatType.id', '=', 3),
+                  '=',
+                  0,
+                ),
+              ]),
+            )
+            .then(0)
+            .when(eb('playerStatCategory.name', '=', 'passing'))
+            .then(
+              sql<number>`ROUND(SUM(CAST(split_part(game_player_stat.stat, '/', 1) AS INT)) FILTER(WHERE player_stat_type.id = 3) / SUM(CAST(split_part(game_player_stat.stat, '/', 2) AS NUMERIC)) FILTER(WHERE player_stat_type.id = 3), 3)`,
+            )
+            .when(
+              eb.and([
+                eb('playerStatCategory.name', '=', 'kicking'),
+                eb(
+                  eb.fn
+                    .sum<number>(
+                      eb.cast(
+                        sql<string>`split_part(game_player_stat.stat, '/', 2)`,
+                        'integer',
+                      ),
+                    )
+                    .filterWhere('playerStatType.id', '=', 2),
+                  '=',
+                  0,
+                ),
+              ]),
+            )
+            .then(0)
+            .when(eb('playerStatCategory.name', '=', 'kicking'))
+            .then(
+              sql<number>`ROUND(SUM(CAST(split_part(game_player_stat.stat, '/', 1) AS INT)) FILTER(WHERE player_stat_type.id = 2) / SUM(CAST(split_part(game_player_stat.stat, '/', 2) AS NUMERIC)) FILTER(WHERE player_stat_type.id = 2), 3)`,
+            )
+            .else(0)
+            .end()
+            .as('stat'),
+        ),
+    );
+
+  const results = await query.execute();
+
+  return results
+    .filter(
+      (r) =>
+        r.stat !== null && r.stat !== 0 && r.stat !== 0.0 && !isNaN(r.stat),
+    )
+    .map(
+      (r): PlayerStat => ({
+        season: r.season,
+        playerId: r.playerId,
+        player: r.player,
+        team: r.team,
+        conference: r.conference,
+        category: r.category,
+        statType: r.statType,
+        stat: r.stat,
+      }),
+    );
 };
 
 export const getTeamStats = async (
@@ -239,147 +465,215 @@ export const getTeamStats = async (
       'Validation error',
     );
   }
+  let baseQuery = kdb
+    .selectFrom('game')
+    .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
+    .innerJoin('team', 'gameTeam.teamId', 'team.id')
+    .innerJoin('gameTeamStat', 'gameTeam.id', 'gameTeamStat.gameTeamId')
+    .innerJoin('teamStatType', 'gameTeamStat.typeId', 'teamStatType.id')
+    .innerJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .onRef('conferenceTeam.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', 'is', null),
+            eb('conferenceTeam.endYear', '>=', eb.ref('game.season')),
+          ]),
+        ),
+    )
+    .innerJoin('conference', (join) =>
+      join
+        .onRef('conferenceTeam.conferenceId', '=', 'conference.id')
+        .on('conference.division', '=', 'fbs'),
+    )
+    .select(['game.season', 'team.school', 'conference.name as conference'])
+    .groupBy([
+      'game.season',
+      'team.school',
+      'conference.name',
+      'teamStatType.id',
+      'teamStatType.name',
+    ]);
 
-  let filter = '';
-  let params = [];
-  let index = 1;
+  let gamesQuery = kdb
+    .selectFrom('game')
+    .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
+    .innerJoin('team', 'gameTeam.teamId', 'team.id')
+    .innerJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .onRef('conferenceTeam.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', 'is', null),
+            eb('conferenceTeam.endYear', '>=', eb.ref('game.season')),
+          ]),
+        ),
+    )
+    .innerJoin('conference', (join) =>
+      join
+        .onRef('conferenceTeam.conferenceId', '=', 'conference.id')
+        .on('conference.division', '=', 'fbs'),
+    )
+    .select(['game.season', 'team.school', 'conference.name as conference'])
+    .select(sql.lit('games').as('statType'))
+    .select((eb) => eb.fn.countAll().as('stat'))
+    .groupBy(['game.season', 'team.school', 'conference.name']);
 
   if (year) {
-    filter += ` AND g.season = $${index}`;
-    params.push(year);
-    index++;
+    baseQuery = baseQuery.where('game.season', '=', year);
+    gamesQuery = gamesQuery.where('game.season', '=', year);
   }
 
   if (team) {
-    filter += ` AND LOWER(t.school) = LOWER($${index})`;
-    params.push(team);
-    index++;
+    baseQuery = baseQuery.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
+    gamesQuery = gamesQuery.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
   }
 
   if (conference) {
-    filter += ` AND LOWER(c.abbreviation) = LOWER($${index})`;
-    params.push(conference);
-    index++;
+    baseQuery = baseQuery.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
+    );
+    gamesQuery = gamesQuery.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
+    );
   }
 
   if (startWeek) {
-    filter += ` AND (g.week >= $${index} OR g.season_type = 'postseason')`;
-    params.push(startWeek);
-    index++;
+    baseQuery = baseQuery.where((eb) =>
+      eb.or([
+        eb('game.week', '>=', startWeek),
+        eb('game.seasonType', '=', 'postseason'),
+      ]),
+    );
+
+    gamesQuery = gamesQuery.where((eb) =>
+      eb.or([
+        eb('game.week', '>=', startWeek),
+        eb('game.seasonType', '=', 'postseason'),
+      ]),
+    );
   }
 
   if (endWeek) {
-    filter += ` AND g.week <= $${index} AND g.season_type <> 'postseason'`;
-    params.push(endWeek);
-    index++;
+    baseQuery = baseQuery
+      .where('game.week', '<=', endWeek)
+      .where('game.seasonType', '<>', 'postseason');
+    gamesQuery = gamesQuery
+      .where('game.week', '<=', endWeek)
+      .where('game.seasonType', '<>', 'postseason');
   }
 
-  filter = filter.substring(4);
+  let query = gamesQuery
+    .union(
+      baseQuery
+        .where(
+          'teamStatType.id',
+          'in',
+          [
+            2, 3, 4, 7, 10, 11, 12, 13, 18, 21, 23, 24, 25, 26, 31, 32, 33, 34,
+            35, 36, 37, 38,
+          ],
+        )
+        .select('teamStatType.name as statType')
+        .select(
+          sql<number>`FLOOR(SUM(CAST(game_team_stat.stat AS NUMERIC)))`.as(
+            'stat',
+          ),
+        ),
+    )
+    .union(
+      baseQuery
+        .where('teamStatType.id', 'in', [5, 6, 14, 15])
+        .select((eb) =>
+          eb
+            .case()
+            .when(eb('teamStatType.id', '=', 5))
+            .then('passCompletions')
+            .when(eb('teamStatType.id', '=', 6))
+            .then('penalties')
+            .when(eb('teamStatType.id', '=', 14))
+            .then('thirdDownConversions')
+            .when(eb('teamStatType.id', '=', 15))
+            .then('fourthDownConversions')
+            .else('')
+            .end()
+            .as('statType'),
+        )
+        .select(
+          sql<number>`FLOOR(SUM(CAST(split_part(game_team_stat.stat, '-', 1) AS NUMERIC)))`.as(
+            'stat',
+          ),
+        ),
+    )
+    .union(
+      baseQuery
+        .where('teamStatType.id', 'in', [5, 6, 14, 15])
+        .select((eb) =>
+          eb
+            .case()
+            .when(eb('teamStatType.id', '=', 5))
+            .then('passAttempts')
+            .when(eb('teamStatType.id', '=', 6))
+            .then('penaltyYards')
+            .when(eb('teamStatType.id', '=', 14))
+            .then('thirdDowns')
+            .when(eb('teamStatType.id', '=', 15))
+            .then('fourthDowns')
+            .else('')
+            .end()
+            .as('statType'),
+        )
+        .select(
+          sql<number>`FLOOR(SUM(CAST(CASE WHEN split_part(game_team_stat.stat, '-', 2) = '' THEN '0' ELSE split_part(game_team_stat.stat, '-', 2) END AS INT)))`.as(
+            'stat',
+          ),
+        ),
+    )
+    .union(
+      baseQuery
+        .where('teamStatType.id', '=', 8)
+        .select('teamStatType.name as statType')
+        .select(
+          sql<number>`SUM(EXTRACT(epoch FROM CAST('00:' || game_team_stat.stat AS INTERVAL)))`.as(
+            'stat',
+          ),
+        ),
+    );
 
-  let results = await db.any(
-    `
-        SELECT 	g.season,
-                t.school,
-                c.name AS conference,
-                typ.name as stat_type,
-                FLOOR(SUM(CAST(stat.stat AS NUMERIC))) as stat
-        FROM game AS g
-            INNER JOIN game_team AS gt ON g.id = gt.game_id
-            INNER JOIN team AS t ON gt.team_id = t.id
-            INNER JOIN game_team_stat AS stat ON gt.id = stat.game_team_id
-            INNER JOIN team_stat_type AS typ ON stat.type_id = typ.id
-            INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year IS NULL OR ct.end_year >= g.season)
-            INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-        WHERE typ.id IN (2,3,4,7,10,11,12,13,18,21,23,24,25,26,31,32,33,34,35,36,37,38) AND ${filter}
-        GROUP BY g.season, t.school, typ.name, typ.id, c.name
-        UNION
-        SELECT 	g.season,
-                t.school,
-                c.name AS conference,
-                CASE
-                    WHEN typ.id = 5 THEN 'passCompletions'
-                    WHEN typ.id = 6 THEN 'penalties'
-                    WHEN typ.id = 14 THEN 'thirdDownConversions'
-                    WHEN typ.id = 15 THEN 'fourthDownConversions'
-                END as stat_type, SUM(CAST(split_part(stat.stat, '-', 1) AS INT)) as stat
-        FROM game AS g
-            INNER JOIN game_team AS gt ON g.id = gt.game_id
-            INNER JOIN team AS t ON gt.team_id = t.id
-            INNER JOIN game_team_stat AS stat ON gt.id = stat.game_team_id
-            INNER JOIN team_stat_type AS typ ON stat.type_id = typ.id
-            INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year IS NULL OR ct.end_year >= g.season)
-            INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-        WHERE typ.id IN (5,6,14,15) AND ${filter}
-        GROUP BY g.season, t.school, typ.name, typ.id, c.name
-        UNION
-        SELECT 	g.season,
-                t.school,
-                c.name AS conference,
-                CASE
-                    WHEN typ.id = 5 THEN 'passAttempts'
-                    WHEN typ.id = 6 THEN 'penaltyYards'
-                    WHEN typ.id = 14 THEN 'thirdDowns'
-                    WHEN typ.id = 15 THEN 'fourthDowns'
-                END as stat_type, SUM(CAST(CASE WHEN split_part(stat.stat, '-', 2) = '' THEN '0' ELSE split_part(stat.stat, '-', 2) END AS INT)) as stat
-        FROM game AS g
-            INNER JOIN game_team AS gt ON g.id = gt.game_id
-            INNER JOIN team AS t ON gt.team_id = t.id
-            INNER JOIN game_team_stat AS stat ON gt.id = stat.game_team_id
-            INNER JOIN team_stat_type AS typ ON stat.type_id = typ.id
-            INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year IS NULL OR ct.end_year >= g.season)
-            INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-        WHERE typ.id IN (5,6,14,15) AND ${filter}
-        GROUP BY g.season, t.school, typ.name, typ.id, c.name
-        UNION
-        SELECT 	g.season,
-                t.school,
-                c.name AS conference,
-                typ.name AS stat_type,
-                SUM(EXTRACT(epoch FROM CAST('00:' || stat.stat AS INTERVAL))) AS stat
-        FROM game AS g
-            INNER JOIN game_team AS gt ON g.id = gt.game_id
-            INNER JOIN team AS t ON gt.team_id = t.id
-            INNER JOIN game_team_stat AS stat ON gt.id = stat.game_team_id
-            INNER JOIN team_stat_type AS typ ON stat.type_id = typ.id
-            INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year IS NULL OR ct.end_year >= g.season)
-            INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-        WHERE typ.id = 8 AND ${filter}
-        GROUP BY g.season, t.school, typ.name, typ.id, c.name
-        UNION
-        SELECT 	g.season,
-                t.school,
-                c.name AS conference,
-                'games' as stat_type,
-                COUNT(*) as stat
-        FROM game AS g
-            INNER JOIN game_team AS gt ON g.id = gt.game_id
-            INNER JOIN team AS t ON gt.team_id = t.id
-            INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year IS NULL OR ct.end_year >= g.season)
-            INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
-        WHERE ${filter}
-        GROUP BY g.season, t.school, c.name
-        `,
-    params,
-  );
+  const results = await query.execute();
 
   return results.map(
     (r): TeamStat => ({
       season: r.season,
       team: r.school,
       conference: r.conference,
-      statName: r.stat_type,
+      statName: r.statType,
+      // @ts-ignore
       statValue: r.stat,
     }),
   );
 };
 
 export const getCategories = async (): Promise<string[]> => {
-  let results = await db.any(`
-            SELECT name
-            FROM team_stat_type
-            ORDER BY name
-        `);
-
+  const results = await kdb
+    .selectFrom('teamStatType')
+    .select('name')
+    .orderBy('name')
+    .execute();
   return results.map((r) => r.name);
 };
 
@@ -908,135 +1202,345 @@ export const getAdvancedGameStats = async (
     );
   }
 
-  let filters: string[] = [];
-  let params: any[] = [];
-  let index = 1;
-
-  if (year) {
-    filters.push(`g.season = $${index}`);
-    params.push(year);
-    index++;
-  }
-
-  if (team) {
-    filters.push(`LOWER(t.school) = LOWER($${index})`);
-    params.push(team);
-    index++;
-  }
-
-  if (opponent) {
-    filters.push(`LOWER(t2.school) = LOWER($${index})`);
-    params.push(opponent);
-    index++;
-  }
-
-  if (week) {
-    filters.push(`g.week = $${index}`);
-    params.push(week);
-    index++;
-  }
-
-  if (seasonType && seasonType !== SeasonType.Both) {
-    filters.push(`g.season_type = $${index}`);
-    params.push(seasonType);
-    index++;
-  }
-
-  const filter = `WHERE ${filters.join(' AND ')}`;
-
-  const results = await db.any(
-    `
-        WITH plays AS (
-            SELECT  g.id,
-                    g.season,
-                    g.week,
-                    t.school,
-                    t2.school AS opponent,
-                    p.drive_id,
-                    p.down,
-                    p.distance,
-                    p.yards_gained,
-                    CASE
-                        WHEN p.offense_id = t.id THEN 'offense'
-                        ELSE 'defense'
-                    END AS o_d,
-                    CASE
-                        WHEN p.down = 2 AND p.distance >= 8 THEN 'passing'
-                        WHEN p.down IN (3,4) AND p.distance >= 5 THEN 'passing'
-                        ELSE 'standard'
-                    END AS down_type,
-                    CASE
-                        WHEN p.play_type_id IN (20,26,34,36,37,38,39,63) THEN false
-                        WHEN p.scoring = true THEN true
-                        WHEN p.down = 1 AND (CAST(p.yards_gained AS NUMERIC) / p.distance) >= 0.5 THEN true
-                        WHEN p.down = 2 AND (CAST(p.yards_gained AS NUMERIC) / p.distance) >= 0.7 THEN true
-                        WHEN p.down IN (3,4) AND (p.yards_gained >= p.distance) THEN true
-                        ELSE false
-                    END AS success,
-                    CASE
-                        WHEN p.play_type_id IN (3,4,6,7,24,26,36,51,67) THEN 'Pass'
-                        WHEN p.play_type_id IN (5,9,29,39,68) THEN 'Rush'
-                        ELSE 'Other'
-                    END AS play_type,
-                    CASE
-                        WHEN p.period = 2 AND p.scoring = false AND ABS(p.home_score - p.away_score) > 38 THEN true
-                        WHEN p.period = 3 AND p.scoring = false AND ABS(p.home_score - p.away_score) > 28 THEN true
-                        WHEN p.period = 4 AND p.scoring = false AND ABS(p.home_score - p.away_score) > 22 THEN true
-                        WHEN p.period = 2 AND p.scoring = true AND ABS(p.home_score - p.away_score) > 45 THEN true
-                        WHEN p.period = 3 AND p.scoring = true AND ABS(p.home_score - p.away_score) > 35 THEN true
-                        WHEN p.period = 4 AND p.scoring = true AND ABS(p.home_score - p.away_score) > 29 THEN true
-                        ELSE false
-                    END AS garbage_time,
-                    p.ppa AS ppa
-            FROM game AS g
-                INNER JOIN game_team AS gt ON g.id = gt.game_id
-                INNER JOIN team AS t ON gt.team_id = t.id
-                INNER JOIN game_team AS gt2 ON g.id = gt2.game_id AND gt.id <> gt2.id
-                INNER JOIN team AS t2 ON gt2.team_id = t2.id
-                INNER JOIN drive AS d ON g.id = d.game_id
-                INNER JOIN play AS p ON d.id = p.drive_id AND p.ppa IS NOT NULL
-            ${filter}
+  let query = kdb
+    .with('plays', (eb) => {
+      let withClause = eb
+        .selectFrom('game')
+        .innerJoin('gameTeam as gt', 'game.id', 'gt.gameId')
+        .innerJoin('team as t', 'gt.teamId', 't.id')
+        .innerJoin('gameTeam as gt2', (join) =>
+          join
+            .onRef('game.id', '=', 'gt2.gameId')
+            .onRef('gt.id', '<>', 'gt2.id'),
         )
-        SELECT 	id,
-                season,
-                week,
-                school AS team,
-                opponent,
-                o_d AS unit,
-                COUNT(ppa) AS plays,
-                COUNT(DISTINCT(drive_id)) AS drives,
-                AVG(ppa) AS ppa,
-                SUM(ppa) AS total_ppa,
-                AVG(ppa) FILTER(WHERE down_type = 'standard') AS standard_down_ppa,
-                AVG(ppa) FILTER(WHERE down_type = 'passing') AS passing_down_ppa,
-                AVG(ppa) FILTER(WHERE play_type = 'Pass') AS passing_ppa,
-                AVG(ppa) FILTER(WHERE play_type = 'Rush') AS rushing_ppa,
-                SUM(ppa) FILTER(WHERE play_type = 'Pass') AS total_passing_ppa,
-                SUM(ppa) FILTER(WHERE play_type = 'Rush') AS total_rushing_ppa,
-                CAST((COUNT(*) FILTER(WHERE success = true)) AS NUMERIC) / COUNT(*) AS success_rate,
-                AVG(ppa) FILTER(WHERE success = true) AS explosiveness,
-                CAST((COUNT(*) FILTER(WHERE success = true AND down_type = 'standard')) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE down_type = 'standard'), 0), 1) AS standard_down_success_rate,
-                AVG(ppa) FILTER(WHERE success = true AND down_type = 'standard') AS standard_down_explosiveness,
-                CAST((COUNT(*) FILTER(WHERE success = true AND down_type = 'passing')) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE down_type = 'passing'), 0), 1) AS passing_down_success_rate,
-                AVG(ppa) FILTER(WHERE success = true AND down_type = 'passing') AS passing_down_explosiveness,
-                CAST((COUNT(*) FILTER(WHERE success = true AND play_type = 'Rush')) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1) AS rush_success_rate,
-                AVG(ppa) FILTER(WHERE success = true AND play_type = 'Rush') AS rush_explosiveness,
-                CAST((COUNT(*) FILTER(WHERE success = true AND play_type = 'Pass')) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Pass'), 0), 1) AS pass_success_rate,
-                AVG(ppa) FILTER(WHERE success = true AND play_type = 'Pass') AS pass_explosiveness,
-                CAST(COUNT(*) FILTER(WHERE distance <= 2 AND play_type = 'Rush' AND success = true) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE distance <= 2 AND play_type = 'Rush'), 0), 1) AS power_success,
-                CAST(COUNT(*) FILTER(WHERE play_type = 'Rush' AND yards_gained <= 0) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1) AS stuff_rate,
-                COALESCE(CAST(SUM(CASE WHEN yards_gained <= 0 THEN yards_gained * 1.2 WHEN yards_gained < 5 THEN yards_gained WHEN yards_gained < 11 THEN 4 + (yards_gained - 4) * .5 ELSE 7 END) FILTER (WHERE play_type = 'Rush') AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1), 0) AS line_yards,
-                ROUND(COALESCE(CAST(SUM(CASE WHEN yards_gained <= 0 THEN yards_gained * 1.2 WHEN yards_gained < 5 THEN yards_gained WHEN yards_gained < 11 THEN 4 + (yards_gained - 4) * .5 ELSE 7 END) FILTER (WHERE play_type = 'Rush') AS NUMERIC), 0), 0) AS line_yards_sum,
-                CAST(SUM(CASE WHEN yards_gained >= 10 THEN 5 ELSE (yards_gained - 5) END) FILTER(WHERE yards_gained >= 5 AND play_type = 'Rush') AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1) AS second_level_yards,
-                CAST(SUM(CASE WHEN yards_gained >= 10 THEN 5 ELSE (yards_gained - 5) END) FILTER(WHERE yards_gained >= 5 AND play_type = 'Rush') AS NUMERIC) AS second_level_yards_sum,
-                CAST(SUM(yards_gained - 10) FILTER(WHERE play_type = 'Rush' AND yards_gained >= 10) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1) AS open_field_yards,
-                CAST(SUM(yards_gained - 10) FILTER(WHERE play_type = 'Rush' AND yards_gained >= 10) AS NUMERIC) AS open_field_yards_sum
-        FROM plays
-        ${excludeGarbageTime ? 'WHERE garbage_time = false' : ''}
-        GROUP BY id, season, week, school, opponent, o_d
-        `,
-    params,
-  );
+        .innerJoin('team as t2', 'gt2.teamId', 't2.id')
+        .innerJoin('drive', 'game.id', 'drive.gameId')
+        .innerJoin('play', (join) => (
+          join.onRef('drive.id', '=', 'play.driveId')
+            .on('play.ppa', 'is not', null)
+        ))
+        .select([
+          'game.id',
+          'game.season',
+          'game.week',
+          't.school',
+          't2.school as opponent',
+          'play.driveId',
+          'play.down',
+          'play.distance',
+          'play.yardsGained',
+          'play.ppa',
+        ])
+        .select((eb) =>
+          eb
+            .case()
+            .when(eb('play.offenseId', '=', eb.ref('t.id')))
+            .then('offense')
+            .else('defense')
+            .end()
+            .as('oD'),
+        )
+        .select((eb) =>
+          eb
+            .case()
+            .when(
+              eb.and([eb('play.down', '=', 2), eb('play.distance', '>=', 8)]),
+            )
+            .then('passing')
+            .when(
+              eb.and([
+                eb('play.down', 'in', [3, 4]),
+                eb('play.distance', '>=', 5),
+              ]),
+            )
+            .then('passing')
+            .else('standard')
+            .end()
+            .as('downType'),
+        )
+        .select((eb) =>
+          eb
+            .case()
+            .when(eb('play.playTypeId', 'in', [20, 26, 34, 36, 37, 38, 39, 63]))
+            .then(false)
+            .when(eb('play.scoring', '=', true))
+            .then(true)
+            .when(
+              eb.and([
+                eb('play.down', '=', 1),
+                eb(
+                  sql<number>`(CAST(play.yards_gained AS NUMERIC) / play.distance)`,
+                  '>=',
+                  0.5,
+                ),
+              ]),
+            )
+            .then(true)
+            .when(
+              eb.and([
+                eb('play.down', '=', 2),
+                eb(
+                  sql<number>`(CAST(play.yards_gained AS NUMERIC) / play.distance)`,
+                  '>=',
+                  0.7,
+                ),
+              ]),
+            )
+            .then(true)
+            .when(
+              eb.and([
+                eb('play.down', 'in', [3, 4]),
+                eb('play.yardsGained', '>=', eb.ref('play.distance')),
+              ]),
+            )
+            .then(true)
+            .else(false)
+            .end()
+            .as('success'),
+        )
+        .select((eb) =>
+          eb
+            .case()
+            .when(eb('play.playTypeId', 'in', [3, 4, 6, 7, 24, 26, 36, 51, 67]))
+            .then('Pass')
+            .when(eb('play.playTypeId', 'in', [5, 9, 29, 39, 68]))
+            .then('Rush')
+            .else('Other')
+            .end()
+            .as('playType'),
+        )
+        .select((eb) =>
+          eb
+            .case()
+            .when(
+              eb.and([
+                eb('play.period', '=', 2),
+                eb('play.scoring', '=', false),
+                eb(sql<number>`ABS(play.home_score - play.away_score)`, '>', 38),
+              ]),
+            )
+            .then(true)
+            .when(
+              eb.and([
+                eb('play.period', '=', 3),
+                eb('play.scoring', '=', false),
+                eb(sql<number>`ABS(play.home_score - play.away_score)`, '>', 28),
+              ]),
+            )
+            .then(true)
+            .when(
+              eb.and([
+                eb('play.period', '=', 4),
+                eb('play.scoring', '=', false),
+                eb(sql<number>`ABS(play.home_score - play.away_score)`, '>', 22),
+              ]),
+            )
+            .then(true)
+            .when(
+              eb.and([
+                eb('play.period', '=', 2),
+                eb('play.scoring', '=', true),
+                eb(sql<number>`ABS(play.home_score - play.away_score)`, '>', 45),
+              ]),
+            )
+            .then(true)
+            .when(
+              eb.and([
+                eb('play.period', '=', 3),
+                eb('play.scoring', '=', true),
+                eb(sql<number>`ABS(play.home_score - play.away_score)`, '>', 35),
+              ]),
+            )
+            .then(true)
+            .when(
+              eb.and([
+                eb('play.period', '=', 4),
+                eb('play.scoring', '=', true),
+                eb(sql<number>`ABS(play.home_score - play.away_score)`, '>', 29),
+              ]),
+            )
+            .then(true)
+            .else(false)
+            .end()
+            .as('garbageTime'),
+        );
+
+      if (year) {
+        withClause = withClause.where('game.season', '=', year);
+      }
+
+      if (team) {
+        withClause = withClause.where(
+          (eb) => eb.fn('LOWER', ['t.school']),
+          '=',
+          team.toLowerCase(),
+        );
+      }
+
+      if (opponent) {
+        withClause = withClause.where(
+          (eb) => eb.fn('LOWER', ['t2.school']),
+          '=',
+          opponent.toLowerCase(),
+        );
+      }
+
+      if (week) {
+        withClause = withClause.where('game.week', '=', week);
+      }
+
+      if (seasonType && seasonType !== SeasonType.Both) {
+        withClause = withClause.where('game.seasonType', '=', seasonType);
+      }
+
+      return withClause;
+    })
+    .selectFrom('plays')
+    .groupBy(['id', 'season', 'week', 'school', 'opponent', 'oD'])
+    .select([
+      'id',
+      'season as year',
+      'week',
+      'school as team',
+      'opponent',
+      'oD as unit',
+    ])
+    .select((eb) => eb.fn.count('ppa').as('plays'))
+    .select((eb) => eb.fn.count('driveId').distinct().as('drives'))
+    .select((eb) => eb.fn.avg('ppa').as('ppa'))
+    .select((eb) => eb.fn.sum('ppa').as('totalPpa'))
+    .select((eb) =>
+      eb.fn
+        .avg('ppa')
+        .filterWhere('downType', '=', 'standard')
+        .as('standardDownPpa'),
+    )
+    .select((eb) =>
+      eb.fn
+        .avg('ppa')
+        .filterWhere('downType', '=', 'passing')
+        .as('passingDownPpa'),
+    )
+    .select((eb) =>
+      eb.fn.avg('ppa').filterWhere('playType', '=', 'Pass').as('passingPpa'),
+    )
+    .select((eb) =>
+      eb.fn.avg('ppa').filterWhere('playType', '=', 'Rush').as('rushingPpa'),
+    )
+    .select((eb) =>
+      eb.fn
+        .sum('ppa')
+        .filterWhere('playType', '=', 'Pass')
+        .as('totalPassingPpa'),
+    )
+    .select((eb) =>
+      eb.fn
+        .sum('ppa')
+        .filterWhere('playType', '=', 'Rush')
+        .as('totalRushingPpa'),
+    )
+    .select(
+      sql<number>`CAST((COUNT(*) FILTER(WHERE success = true)) AS NUMERIC) / COUNT(*)`.as(
+        'successRate',
+      ),
+    )
+    .select((eb) =>
+      eb.fn.avg('ppa').filterWhere('success', '=', true).as('explosiveness'),
+    )
+    .select(
+      sql<number>`CAST((COUNT(*) FILTER(WHERE success = true AND down_type = 'standard')) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE down_type = 'standard'), 0), 1)`.as(
+        'standardDownSuccessRate',
+      ),
+    )
+    .select((eb) =>
+      eb.fn
+        .avg('ppa')
+        .filterWhere('success', '=', true)
+        .filterWhere('downType', '=', 'standard')
+        .as('standardDownExplosiveness'),
+    )
+    .select(
+      sql<number>`CAST((COUNT(*) FILTER(WHERE success = true AND down_type = 'passing')) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE down_type = 'passing'), 0), 1)`.as(
+        'passingDownSuccessRate',
+      ),
+    )
+    .select((eb) =>
+      eb.fn
+        .avg('ppa')
+        .filterWhere('success', '=', true)
+        .filterWhere('downType', '=', 'passing')
+        .as('passingDownExplosiveness'),
+    )
+    .select(
+      sql<number>`CAST((COUNT(*) FILTER(WHERE success = true AND play_type = 'Rush')) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1)`.as(
+        'rushSuccessRate',
+      ),
+    )
+    .select((eb) =>
+      eb.fn
+        .avg('ppa')
+        .filterWhere('success', '=', true)
+        .filterWhere('playType', '=', 'Rush')
+        .as('rushExplosiveness'),
+    )
+    .select(
+      sql<number>`CAST((COUNT(*) FILTER(WHERE success = true AND play_type = 'Pass')) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Pass'), 0), 1)`.as(
+        'passSuccessRate',
+      ),
+    )
+    .select((eb) =>
+      eb.fn
+        .avg('ppa')
+        .filterWhere('success', '=', true)
+        .filterWhere('playType', '=', 'Pass')
+        .as('passExplosiveness'),
+    )
+    .select(
+      sql<number>`CAST(COUNT(*) FILTER(WHERE distance <= 2 AND play_type = 'Rush' AND success = true) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE distance <= 2 AND play_type = 'Rush'), 0), 1)`.as(
+        'powerSuccess',
+      ),
+    )
+    .select(
+      sql<number>`CAST(COUNT(*) FILTER(WHERE play_type = 'Rush' AND yards_gained <= 0) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1)`.as(
+        'stuffRate',
+      ),
+    )
+    .select(
+      sql<number>`COALESCE(CAST(SUM(CASE WHEN yards_gained <= 0 THEN yards_gained * 1.2 WHEN yards_gained < 5 THEN yards_gained WHEN yards_gained < 11 THEN 4 + (yards_gained - 4) * .5 ELSE 7 END) FILTER (WHERE play_type = 'Rush') AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1), 0)`.as(
+        'lineYards',
+      ),
+    )
+    .select(
+      sql<number>`ROUND(COALESCE(CAST(SUM(CASE WHEN yards_gained <= 0 THEN yards_gained * 1.2 WHEN yards_gained < 5 THEN yards_gained WHEN yards_gained < 11 THEN 4 + (yards_gained - 4) * .5 ELSE 7 END) FILTER (WHERE play_type = 'Rush') AS NUMERIC), 0), 0)`.as(
+        'lineYardsSum',
+      ),
+    )
+    .select(
+      sql<number>`CAST(SUM(CASE WHEN yards_gained >= 10 THEN 5 ELSE (yards_gained - 5) END) FILTER(WHERE yards_gained >= 5 AND play_type = 'Rush') AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1)`.as(
+        'secondLevelYards',
+      ),
+    )
+    .select(
+      sql<number>`CAST(SUM(CASE WHEN yards_gained >= 10 THEN 5 ELSE (yards_gained - 5) END) FILTER(WHERE yards_gained >= 5 AND play_type = 'Rush') AS NUMERIC)`.as(
+        'secondLevelYardsSum',
+      ),
+    )
+    .select(
+      sql<number>`CAST(SUM(yards_gained - 10) FILTER(WHERE play_type = 'Rush' AND yards_gained >= 10) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1)`.as(
+        'openFieldYards',
+      ),
+    )
+    .select(
+      sql<number>`CAST(SUM(yards_gained - 10) FILTER(WHERE play_type = 'Rush' AND yards_gained >= 10) AS NUMERIC)`.as(
+        'openFieldYardsSum',
+      ),
+    );
+
+  if (excludeGarbageTime) {
+    query = query.where('garbageTime', '=', false);
+  }
+
+  const results = await query.execute();
 
   let stats: AdvancedGameStat[] = [];
   let ids = Array.from(new Set(results.map((r) => r.id)));
@@ -1067,79 +1571,79 @@ export const getAdvancedGameStats = async (
           team: t,
           opponent: offense.opponent,
           offense: {
-            plays: parseInt(offense.plays),
-            drives: parseInt(offense.drives),
-            ppa: parseFloat(offense.ppa),
-            totalPPA: parseFloat(offense.total_ppa),
-            successRate: parseFloat(offense.success_rate),
-            explosiveness: parseFloat(offense.explosiveness),
-            powerSuccess: parseFloat(offense.power_success),
-            stuffRate: parseFloat(offense.stuff_rate),
-            lineYards: parseFloat(offense.line_yards),
-            lineYardsTotal: parseInt(offense.line_yards_sum),
-            secondLevelYards: parseFloat(offense.second_level_yards),
-            secondLevelYardsTotal: parseInt(offense.second_level_yards_sum),
-            openFieldYards: parseFloat(offense.open_field_yards),
-            openFieldYardsTotal: parseInt(offense.open_field_yards_sum),
+            plays: Number(offense.plays),
+            drives: Number(offense.drives),
+            ppa: Number(offense.ppa),
+            totalPPA: Number(offense.totalPpa),
+            successRate: offense.successRate,
+            explosiveness: Number(offense.explosiveness),
+            powerSuccess: offense.powerSuccess,
+            stuffRate: offense.stuffRate,
+            lineYards: offense.lineYards,
+            lineYardsTotal: offense.lineYardsSum,
+            secondLevelYards: offense.secondLevelYards,
+            secondLevelYardsTotal: offense.secondLevelYardsSum,
+            openFieldYards: offense.openFieldYards,
+            openFieldYardsTotal: offense.openFieldYardsSum,
             standardDowns: {
-              ppa: parseFloat(offense.standard_down_ppa),
-              successRate: parseFloat(offense.standard_down_success_rate),
-              explosiveness: parseFloat(offense.standard_down_explosiveness),
+              ppa: Number(offense.standardDownPpa),
+              successRate: Number(offense.standardDownSuccessRate),
+              explosiveness: Number(offense.standardDownExplosiveness),
             },
             passingDowns: {
-              ppa: parseFloat(offense.passing_down_ppa),
-              successRate: parseFloat(offense.passing_down_success_rate),
-              explosiveness: parseFloat(offense.passing_down_explosiveness),
+              ppa: Number(offense.passingDownPpa),
+              successRate: Number(offense.passingDownSuccessRate),
+              explosiveness: Number(offense.passingDownExplosiveness),
             },
             rushingPlays: {
-              ppa: parseFloat(offense.rushing_ppa),
-              totalPPA: parseFloat(offense.total_rushing_ppa),
-              successRate: parseFloat(offense.rush_success_rate),
-              explosiveness: parseFloat(offense.rush_explosiveness),
+              ppa: Number(offense.rushingPpa),
+              totalPPA: Number(offense.totalRushingPpa),
+              successRate: Number(offense.rushSuccessRate),
+              explosiveness: Number(offense.rushExplosiveness),
             },
             passingPlays: {
-              ppa: parseFloat(offense.passing_ppa),
-              totalPPA: parseFloat(offense.total_passing_ppa),
-              successRate: parseFloat(offense.pass_success_rate),
-              explosiveness: parseFloat(offense.pass_explosiveness),
+              ppa: Number(offense.passingPpa),
+              totalPPA: Number(offense.totalPassingPpa),
+              successRate: Number(offense.passSuccessRate),
+              explosiveness: Number(offense.passExplosiveness),
             },
           },
           defense: {
-            plays: parseInt(defense.plays),
-            drives: parseInt(defense.drives),
-            ppa: parseFloat(defense.ppa),
-            totalPPA: parseFloat(defense.total_ppa),
-            successRate: parseFloat(defense.success_rate),
-            explosiveness: parseFloat(defense.explosiveness),
-            powerSuccess: parseFloat(defense.power_success),
-            stuffRate: parseFloat(defense.stuff_rate),
-            lineYards: parseFloat(defense.line_yards),
-            lineYardsTotal: parseInt(defense.line_yards_sum),
-            secondLevelYards: parseFloat(defense.second_level_yards),
-            secondLevelYardsTotal: parseInt(defense.second_level_yards_sum),
-            openFieldYards: parseFloat(defense.open_field_yards),
-            openFieldYardsTotal: parseInt(defense.open_field_yards_sum),
+            plays: Number(defense.plays),
+            drives: Number(defense.drives),
+            ppa: Number(defense.ppa),
+            totalPPA: Number(defense.totalPpa),
+            successRate: Number(defense.successRate),
+            explosiveness: Number(defense.explosiveness),
+            powerSuccess: Number(defense.powerSuccess),
+            stuffRate: Number(defense.stuffRate),
+            lineYards: Number(defense.lineYards),
+            lineYardsTotal: Number(defense.lineYardsSum),
+            secondLevelYards: Number(defense.secondLevelYards),
+            secondLevelYardsTotal: Number(defense.secondLevelYardsSum),
+            openFieldYards: Number(defense.openFieldYards),
+            openFieldYardsTotal: Number(defense.openFieldYardsSum),
             standardDowns: {
-              ppa: parseFloat(defense.standard_down_ppa),
-              successRate: parseFloat(defense.standard_down_success_rate),
-              explosiveness: parseFloat(defense.standard_down_explosiveness),
+              ppa: Number(defense.standardDownPpa),
+              successRate: Number(defense.standardDownSuccessRate),
+              explosiveness: Number(defense.standardDownExplosiveness),
             },
             passingDowns: {
-              ppa: parseFloat(defense.passing_down_ppa),
-              successRate: parseFloat(defense.passing_down_success_rate),
-              explosiveness: parseFloat(defense.passing_down_explosiveness),
+              ppa: Number(defense.passingDownPpa),
+              successRate: Number(defense.passingDownSuccessRate),
+              explosiveness: Number(defense.passingDownExplosiveness),
             },
             rushingPlays: {
-              ppa: parseFloat(defense.rushing_ppa),
-              totalPPA: parseFloat(defense.total_rushing_ppa),
-              successRate: parseFloat(defense.rush_success_rate),
-              explosiveness: parseFloat(defense.rush_explosiveness),
+              ppa: Number(defense.rushingPpa),
+              totalPPA: Number(defense.totalRushingPpa),
+              successRate: Number(defense.rushSuccessRate),
+              explosiveness: Number(defense.rushExplosiveness),
             },
             passingPlays: {
-              ppa: parseFloat(defense.passing_ppa),
-              totalPPA: parseFloat(defense.total_passing_ppa),
-              successRate: parseFloat(defense.pass_success_rate),
-              explosiveness: parseFloat(defense.pass_explosiveness),
+              ppa: Number(defense.passingPpa),
+              totalPPA: Number(defense.totalPassingPpa),
+              successRate: Number(defense.passSuccessRate),
+              explosiveness: Number(defense.passExplosiveness),
             },
           },
         };

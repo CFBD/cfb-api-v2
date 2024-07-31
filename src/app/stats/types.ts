@@ -6,13 +6,13 @@ export interface PlayerStat {
   /**
    * @isInt
    */
-  playerId: number;
+  playerId: string;
   player: string;
   team: string;
   conference: string;
   category: string;
   statType: string;
-  stat: string;
+  stat: number;
 }
 
 export interface TeamStat {
@@ -23,7 +23,7 @@ export interface TeamStat {
   team: string;
   conference: string;
   statName: string;
-  statValue: string;
+  statValue: string | number;
 }
 
 export interface AdvancedSeasonStat {
