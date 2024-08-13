@@ -8,6 +8,7 @@ import {
   TeamStat,
 } from './types';
 import { sql } from 'kysely';
+import { PASS_PLAY_TYPES, RUSH_PLAY_TYPES } from '../../globals';
 
 export const getPlayerSeasonStats = async (
   year: number,
@@ -1215,10 +1216,11 @@ export const getAdvancedGameStats = async (
         )
         .innerJoin('team as t2', 'gt2.teamId', 't2.id')
         .innerJoin('drive', 'game.id', 'drive.gameId')
-        .innerJoin('play', (join) => (
-          join.onRef('drive.id', '=', 'play.driveId')
-            .on('play.ppa', 'is not', null)
-        ))
+        .innerJoin('play', (join) =>
+          join
+            .onRef('drive.id', '=', 'play.driveId')
+            .on('play.ppa', 'is not', null),
+        )
         .select([
           'game.id',
           'game.season',
@@ -1301,9 +1303,9 @@ export const getAdvancedGameStats = async (
         .select((eb) =>
           eb
             .case()
-            .when(eb('play.playTypeId', 'in', [3, 4, 6, 7, 24, 26, 36, 51, 67]))
+            .when(eb('play.playTypeId', 'in', PASS_PLAY_TYPES))
             .then('Pass')
-            .when(eb('play.playTypeId', 'in', [5, 9, 29, 39, 68]))
+            .when(eb('play.playTypeId', 'in', RUSH_PLAY_TYPES))
             .then('Rush')
             .else('Other')
             .end()
@@ -1316,7 +1318,11 @@ export const getAdvancedGameStats = async (
               eb.and([
                 eb('play.period', '=', 2),
                 eb('play.scoring', '=', false),
-                eb(sql<number>`ABS(play.home_score - play.away_score)`, '>', 38),
+                eb(
+                  sql<number>`ABS(play.home_score - play.away_score)`,
+                  '>',
+                  38,
+                ),
               ]),
             )
             .then(true)
@@ -1324,7 +1330,11 @@ export const getAdvancedGameStats = async (
               eb.and([
                 eb('play.period', '=', 3),
                 eb('play.scoring', '=', false),
-                eb(sql<number>`ABS(play.home_score - play.away_score)`, '>', 28),
+                eb(
+                  sql<number>`ABS(play.home_score - play.away_score)`,
+                  '>',
+                  28,
+                ),
               ]),
             )
             .then(true)
@@ -1332,7 +1342,11 @@ export const getAdvancedGameStats = async (
               eb.and([
                 eb('play.period', '=', 4),
                 eb('play.scoring', '=', false),
-                eb(sql<number>`ABS(play.home_score - play.away_score)`, '>', 22),
+                eb(
+                  sql<number>`ABS(play.home_score - play.away_score)`,
+                  '>',
+                  22,
+                ),
               ]),
             )
             .then(true)
@@ -1340,7 +1354,11 @@ export const getAdvancedGameStats = async (
               eb.and([
                 eb('play.period', '=', 2),
                 eb('play.scoring', '=', true),
-                eb(sql<number>`ABS(play.home_score - play.away_score)`, '>', 45),
+                eb(
+                  sql<number>`ABS(play.home_score - play.away_score)`,
+                  '>',
+                  45,
+                ),
               ]),
             )
             .then(true)
@@ -1348,7 +1366,11 @@ export const getAdvancedGameStats = async (
               eb.and([
                 eb('play.period', '=', 3),
                 eb('play.scoring', '=', true),
-                eb(sql<number>`ABS(play.home_score - play.away_score)`, '>', 35),
+                eb(
+                  sql<number>`ABS(play.home_score - play.away_score)`,
+                  '>',
+                  35,
+                ),
               ]),
             )
             .then(true)
@@ -1356,7 +1378,11 @@ export const getAdvancedGameStats = async (
               eb.and([
                 eb('play.period', '=', 4),
                 eb('play.scoring', '=', true),
-                eb(sql<number>`ABS(play.home_score - play.away_score)`, '>', 29),
+                eb(
+                  sql<number>`ABS(play.home_score - play.away_score)`,
+                  '>',
+                  29,
+                ),
               ]),
             )
             .then(true)

@@ -179,6 +179,9 @@ export interface AdvancedSeasonStat {
 }
 
 export interface AdvancedGameStat {
+  /**
+   * @isInt
+   */
   gameId: number;
   /**
    * @isInt

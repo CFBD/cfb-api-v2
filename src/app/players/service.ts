@@ -8,6 +8,7 @@ import {
   ReturningProduction,
 } from './types';
 import { sql } from 'kysely';
+import { PASS_PLAY_TYPES, RUSH_PLAY_TYPES } from '../../globals';
 
 export const searchPlayers = async (
   searchTerm: string,
@@ -104,7 +105,7 @@ export const generateMeanPassingChart = async (
           join
             .onRef('drive.id', '=', 'play.driveId')
             .on('play.ppa', 'is not', null)
-            .on('play.playTypeId', 'in', [3, 4, 6, 7, 24, 26, 36, 51, 67]),
+            .on('play.playTypeId', 'in', PASS_PLAY_TYPES),
         )
         .innerJoin('playStat', 'play.id', 'playStat.playId')
         .innerJoin('athlete', 'playStat.athleteId', 'athlete.id')
@@ -242,17 +243,13 @@ export const getPlayerUsage = async (
         .select((eb) =>
           eb.fn
             .count('play.id')
-            .filterWhere(
-              'play.playTypeId',
-              'in',
-              [3, 4, 6, 7, 24, 26, 36, 51, 67],
-            )
+            .filterWhere('play.playTypeId', 'in', PASS_PLAY_TYPES)
             .as('passPlays'),
         )
         .select((eb) =>
           eb.fn
             .count('play.id')
-            .filterWhere('play.playTypeId', 'in', [5, 9, 29, 39, 68])
+            .filterWhere('play.playTypeId', 'in', RUSH_PLAY_TYPES)
             .as('rushPlays'),
         )
         .select((eb) =>
@@ -372,17 +369,13 @@ export const getPlayerUsage = async (
         .select((eb) =>
           eb.fn
             .countAll()
-            .filterWhere(
-              'play.playTypeId',
-              'in',
-              [3, 4, 6, 7, 24, 26, 36, 51, 67],
-            )
+            .filterWhere('play.playTypeId', 'in', PASS_PLAY_TYPES)
             .as('passPlays'),
         )
         .select((eb) =>
           eb.fn
             .countAll()
-            .filterWhere('play.playTypeId', 'in', [5, 9, 29, 39, 68])
+            .filterWhere('play.playTypeId', 'in', RUSH_PLAY_TYPES)
             .as('rushPlays'),
         )
         .select((eb) =>
