@@ -222,7 +222,9 @@ export const getGames = async (
       awayPregameElo: g.awayPregameElo,
       awayPostgameElo: g.awayPostgameElo,
       excitementIndex: g.excitement ? parseFloat(g.excitement) : null,
-      highlights: `https://www.youtube.com/watch?v=${g.highlights}`,
+      highlights: g.highlights
+        ? `https://www.youtube.com/watch?v=${g.highlights}`
+        : '',
       notes: g.notes,
     }),
   );

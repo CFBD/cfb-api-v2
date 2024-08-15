@@ -1,4 +1,5 @@
 import { ValidateError } from 'tsoa';
+import gaussian from 'gaussian';
 import { kdb } from '../../config/database';
 import {
   PlayerSeasonPredictedPointsAdded,
@@ -6,9 +7,13 @@ import {
   PredictedPointsValue,
   TeamGamePredictedPointsAdded,
   TeamSeasonPredictedPointsAdded,
+  PregameWinProbability,
+  FieldGoalEP,
+  PlayWinProbability,
 } from './types';
 import { PASS_PLAY_TYPES, RUSH_PLAY_TYPES } from '../../globals';
 import { SeasonType } from '../enums';
+import { sql } from 'kysely';
 
 export const getPredictedPoints = async (
   down: number,
@@ -1137,4 +1142,283 @@ export const getPredictedPointsAddedByPlayerSeason = async (
       },
     }),
   );
+};
+
+export const getPregameWinProbabilities = async (
+  season?: number,
+  week?: number,
+  seasonType?: SeasonType,
+  team?: string,
+): Promise<PregameWinProbability[]> => {
+  const gaussianDistro = gaussian(0, Math.pow(14.5, 2));
+
+  let query = kdb
+    .selectFrom('game')
+    .innerJoin('gameTeam as gt', (join) =>
+      join.onRef('game.id', '=', 'gt.gameId').on('gt.homeAway', '=', 'home'),
+    )
+    .innerJoin('team as homeTeam', 'gt.teamId', 'homeTeam.id')
+    .innerJoin('gameTeam as gt2', (join) =>
+      join.onRef('game.id', '=', 'gt2.gameId').on('gt2.homeAway', '=', 'away'),
+    )
+    .innerJoin('team as awayTeam', 'gt2.teamId', 'awayTeam.id')
+    .leftJoin('gameLines as gl', (join) =>
+      join
+        .onRef('game.id', '=', 'gl.gameId')
+        .on('gl.linesProviderId', '=', 1004),
+    )
+    .leftJoin('gameLines as gl2', (join) =>
+      join
+        .onRef('game.id', '=', 'gl2.gameId')
+        .on('gl2.linesProviderId', '=', 999999),
+    )
+    .leftJoin('gameLines as gl3', (join) =>
+      join
+        .onRef('game.id', '=', 'gl3.gameId')
+        .on('gl3.linesProviderId', '=', 888888),
+    )
+    .where((eb) =>
+      eb.or([
+        eb('gl.spread', 'is not', null),
+        eb('gl2.spread', 'is not', null),
+        eb('gl3.spread', 'is not', null),
+      ]),
+    )
+    .select([
+      'game.id',
+      'game.season',
+      'game.seasonType',
+      'game.week',
+      'homeTeam.school as homeTeam',
+      'awayTeam.school as awayTeam',
+    ])
+    .select((eb) =>
+      eb.fn.coalesce('gl.spread', 'gl2.spread', 'gl3.spread').as('spread'),
+    )
+    .orderBy('game.season')
+    .orderBy('game.seasonType')
+    .orderBy('game.week')
+    .orderBy('homeTeam.school')
+    .limit(1000);
+
+  if (season) {
+    query = query.where('game.season', '=', season);
+  }
+
+  if (week) {
+    query = query.where('game.week', '=', week);
+  }
+
+  if (seasonType && seasonType !== SeasonType.Both) {
+    query = query.where('game.seasonType', '=', seasonType);
+  }
+
+  if (team) {
+    query = query.where((eb) =>
+      eb.or([
+        eb(eb.fn('lower', ['homeTeam.school']), '=', team.toLowerCase()),
+        eb(eb.fn('lower', ['awayTeam.school']), '=', team.toLowerCase()),
+      ]),
+    );
+  }
+
+  const results = await query.execute();
+
+  return results.map(
+    (r): PregameWinProbability => ({
+      season: r.season,
+      week: r.week,
+      seasonType: r.seasonType as SeasonType,
+      gameId: r.id,
+      homeTeam: r.homeTeam,
+      awayTeam: r.awayTeam,
+      spread: Number(r.spread),
+      homeWinProbability:
+        Math.round(gaussianDistro.cdf(Number(r.spread) * -1) * 1000) / 1000,
+    }),
+  );
+};
+
+export const getFieldGoalEP = async (): Promise<FieldGoalEP[]> => {
+  const results = await kdb
+    .selectFrom('fgEp')
+    .select(['yardsToGoal', 'expectedPoints'])
+    .orderBy('yardsToGoal')
+    .execute();
+
+  return results.map(
+    (r): FieldGoalEP => ({
+      yardsToGoal: r.yardsToGoal,
+      distance: r.yardsToGoal + 17,
+      expectedPoints: Number(r.expectedPoints),
+    }),
+  );
+};
+
+export const getWinProbabilities = async (
+  gameId: number,
+): Promise<PlayWinProbability[]> => {
+  const results = await kdb
+    .selectFrom('game')
+    .innerJoin('gameTeam as gt', (join) =>
+      join.onRef('game.id', '=', 'gt.gameId').on('gt.homeAway', '=', 'home'),
+    )
+    .innerJoin('team as homeTeam', 'gt.teamId', 'homeTeam.id')
+    .innerJoin('gameTeam as gt2', (join) =>
+      join.onRef('game.id', '=', 'gt2.gameId').on('gt2.homeAway', '=', 'away'),
+    )
+    .innerJoin('team as awayTeam', 'gt2.teamId', 'awayTeam.id')
+    .innerJoin('drive', 'game.id', 'drive.gameId')
+    .innerJoin('play', (join) =>
+      join
+        .onRef('drive.id', '=', 'play.driveId')
+        .on('play.homeWinProb', 'is not', null)
+        .on(
+          'play.playTypeId',
+          'not in',
+          [12, 13, 15, 16, 21, 43, 53, 56, 57, 61, 62, 65, 66, 999, 78],
+        )
+        .on('play.yardLine', '<=', 99)
+        .on('play.yardLine', '>=', 1)
+        .on('play.down', '<=', 4)
+        .on('play.down', '>=', 1)
+        .on('play.distance', '>=', 1)
+        .on((eb) =>
+          eb(
+            'play.distance',
+            '<=',
+            eb
+              .case()
+              .when(
+                eb.or([
+                  eb('homeTeam.id', '=', eb.ref('play.offenseId')),
+                  eb('awayTeam.id', '=', eb.ref('play.defenseId')),
+                ]),
+              )
+              .then(sql<number>`100 - play.yard_line`)
+              .else(eb.ref('play.yardLine'))
+              .end(),
+          ),
+        ),
+    )
+    .leftJoin('gameLines', (join) =>
+      join
+        .onRef('game.id', '=', 'gameLines.gameId')
+        .on('gameLines.linesProviderId', '=', 1004),
+    )
+    .where('game.id', '=', gameId)
+    .select([
+      'game.id',
+      'homeTeam.id as homeTeamId',
+      'homeTeam.school as homeTeam',
+      'awayTeam.id as awayTeamId',
+      'awayTeam.school as awayTeam',
+      'play.id as playId',
+      'play.playText',
+      'play.homeScore',
+      'play.awayScore',
+      'play.period',
+      'play.clock',
+      'play.down',
+      'play.distance',
+      'play.homeWinProb',
+      'gt.winner as homeWinner',
+    ])
+    .select((eb) => eb.fn.coalesce('gameLines.spread', eb.lit(0)).as('spread'))
+    .select((eb) =>
+      eb
+        .case()
+        .when(
+          eb.and([
+            eb('homeTeam.id', '=', eb.ref('play.offenseId')),
+            eb('play.scoring', '=', false),
+          ]),
+        )
+        .then(true)
+        .when(
+          eb.and([
+            eb('homeTeam.id', '=', eb.ref('play.defenseId')),
+            eb('play.scoring', '=', true),
+          ]),
+        )
+        .then(false)
+        .else(false)
+        .end()
+        .as('homeBall'),
+    )
+    .select((eb) =>
+      eb(
+        eb.fn
+          .agg<number>('row_number')
+          .over((ob) =>
+            ob.orderBy('drive.driveNumber').orderBy('play.playNumber'),
+          ),
+        '-',
+        1,
+      ).as('playNumber'),
+    )
+    .select((eb) =>
+      eb
+        .case()
+        .when(
+          eb.or([
+            eb('homeTeam.id', '=', eb.ref('play.offenseId')),
+            eb('awayTeam.id', '=', eb.ref('play.defenseId')),
+          ]),
+        )
+        .then(sql<number>`100 - play.yard_line`)
+        .else(eb.ref('play.yardLine'))
+        .end()
+        .as('yardsToGoal'),
+    )
+    .orderBy('drive.driveNumber')
+    .orderBy('play.playNumber desc')
+    .execute();
+
+  const plays = results
+    .map(
+      (r): PlayWinProbability => ({
+        gameId: r.id,
+        homeId: r.homeTeamId,
+        home: r.homeTeam,
+        awayId: r.awayTeamId,
+        away: r.awayTeam,
+        playId: r.playId,
+        playText: r.playText ?? '',
+        homeScore: r.homeScore,
+        awayScore: r.awayScore,
+        down: r.down,
+        distance: r.distance,
+        homeWinProbability: Number(r.homeWinProb),
+        spread: Number(r.spread),
+        yardLine: r.yardsToGoal,
+        homeBall: r.homeBall,
+        playNumber: Number(r.playNumber),
+      }),
+    )
+    .sort((a, b) => (a.playNumber < b.playNumber ? -1 : 1));
+
+  if (plays.length > 0) {
+    const last = plays[plays.length - 1];
+    plays.push({
+      gameId: last.gameId,
+      homeId: last.homeId,
+      home: last.home,
+      awayId: last.awayId,
+      away: last.away,
+      playId: '0',
+      playText: 'Game ended',
+      homeScore: last.homeScore,
+      awayScore: last.awayScore,
+      down: 0,
+      distance: 0,
+      homeWinProbability: results[0].homeWinner ? 1 : 0,
+      spread: last.spread,
+      yardLine: 65,
+      homeBall: last.homeBall,
+      playNumber: last.playNumber + 1,
+    });
+  }
+
+  return plays;
 };

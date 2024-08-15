@@ -2,16 +2,22 @@ import { Controller, Get, Middlewares, Query, Route, Tags } from 'tsoa';
 
 import middlewares from '../../config/middleware';
 import {
+  getFieldGoalEP,
   getPredictedPoints,
   getPredictedPointsAddedByGame,
   getPredictedPointsAddedByPlayerGame,
   getPredictedPointsAddedByPlayerSeason,
   getPredictedPointsAddedByTeam,
+  getPregameWinProbabilities,
+  getWinProbabilities,
 } from './service';
 import {
+  FieldGoalEP,
   PlayerGamePredictedPointsAdded,
   PlayerSeasonPredictedPointsAdded,
+  PlayWinProbability,
   PredictedPointsValue,
+  PregameWinProbability,
   TeamGamePredictedPointsAdded,
   TeamSeasonPredictedPointsAdded,
 } from './types';
@@ -158,9 +164,46 @@ export class PpaController extends Controller {
   }
 }
 
-// @Route('metrics')
-// @Middlewares(middlewares.standard)
-// @Tags('metrics')
-// export class MetricsController extends Controller {
+@Route('metrics')
+@Middlewares(middlewares.standard)
+@Tags('metrics')
+export class MetricsController extends Controller {
+  /**
+   * Query play win probabilities by game
+   * @param gameId Required game ID filter
+   * @isInt gameId
+   */
+  @Get('wp')
+  public async getWinProbability(
+    @Query() gameId: number,
+  ): Promise<PlayWinProbability[]> {
+    return await getWinProbabilities(gameId);
+  }
 
-// }
+  /**
+   * Queries pregame win probabilities
+   * @param year Optional year filter
+   * @param week Optional week filter
+   * @param seasonType Optional season type filter
+   * @param team Optional team filter
+   * @isInt year
+   * @isInt week
+   */
+  @Get('wp/pregame')
+  public async getPregameWinProbabilities(
+    @Query() year?: number,
+    @Query() week?: number,
+    @Query() seasonType?: SeasonType,
+    @Query() team?: string,
+  ): Promise<PregameWinProbability[]> {
+    return await getPregameWinProbabilities(year, week, seasonType, team);
+  }
+
+  /**
+   * Queries field goal expected points values
+   */
+  @Get('fg/ep')
+  public async getFieldGoalExpectedPoints(): Promise<FieldGoalEP[]> {
+    return await getFieldGoalEP();
+  }
+}
