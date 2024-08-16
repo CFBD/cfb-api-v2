@@ -4,7 +4,7 @@
     "incremental": true,
     "target": "ES2022",
     "module": "commonjs",
-    "outDir": "build",
+    "outDir": "./build",
 
     /* Strict Type-Checking Options */
     "strict": true,

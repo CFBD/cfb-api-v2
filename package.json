@@ -3,7 +3,7 @@
   "version": "3.0.0",
   "main": "src/app.ts",
   "scripts": {
-    "build": "tsoa spec-and-routes && tsc",
+    "build": "tsoa spec-and-routes && tsc --skipLibCheck",
     "build:db": "yarn kysely-codegen --camel-case --out-file=db.d.ts",
     "dev": "concurrently \"nodemon\" \"nodemon -x tsoa spec-and-routes\"",
     "start": "node ./build/app.js",
