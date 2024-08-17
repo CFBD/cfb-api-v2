@@ -10,13 +10,24 @@ const patreonLocked: Record<string, number> = {
   '/scoreboard': 1,
 };
 
-export class AuthorizationError extends Error {}
+const corsOrigin: string = process.env.CORS_ORIGIN || 'https://collegefootballdata.com';
+const nodeEnv: string = process.env.NODE_ENV || 'production';
+
+export class AuthorizationError extends Error { }
 
 export const expressAuthentication = async (
   request: Request,
   securityName: string,
 ) => {
   if (securityName === 'apiKey') {
+    if (!request.headers.authorization && !Object.keys(patreonLocked).includes(request.path)) {
+      const origin = request.get('origin');
+      const host = request.get('host');
+      if (nodeEnv === 'development' || corsOrigin === origin || corsOrigin === host) {
+        return Promise.resolve({});
+      }
+    }
+
     if (
       !request.headers.authorization ||
       !keyPattern.test(request.headers.authorization)
@@ -58,6 +69,7 @@ export const expressAuthentication = async (
           patronLevel: user.patron_level,
           blacklisted: user.blacklisted,
           throttled: user.throttled,
+          remainingCalls: user.remaining_calls,
         });
       } else if (user?.blacklisted) {
         return Promise.reject(

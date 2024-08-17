@@ -15,7 +15,7 @@
       "name": "the developer"
     },
     "securityDefinitions": {
-      "bearerAuth": {
+      "apiKey": {
         "type": "http",
         "scheme": "bearer"
       }

@@ -8,6 +8,7 @@ import * as Sentry from '@sentry/node';
 
 import { RegisterRoutes } from '../../build/routes';
 import errorHandler from './errors';
+import { updateQuotas } from './middleware/quotas';
 
 export const configureServer = async (
   app: Application,
@@ -31,6 +32,8 @@ export const configureServer = async (
   );
 
   app.use(Sentry.Handlers.errorHandler());
+
+  app.use(updateQuotas);
 
   RegisterRoutes(app);
 
