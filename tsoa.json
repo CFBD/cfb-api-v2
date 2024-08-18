@@ -5,7 +5,7 @@
   "spec": {
     "outputDirectory": "build",
     "specVersion": 3,
-    "host": "api.collegefootballdata.com",
+    "host": "apinext.collegefootballdata.com",
     "name": "College Football Data API",
     "description": "This is an API for accessing all sorts of college football data. Please note that API keys should be supplied with \"Bearer \" prepended (e.g. \"Bearer your_key\"). API keys can be acquired from the CollegeFootballData.com website.",
     "version": "5.0.0",
