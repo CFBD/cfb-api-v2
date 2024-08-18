@@ -39,10 +39,16 @@ export const configureServer = async (
 
   app.use(errorHandler);
 
+  const spec = await import('../../build/swagger.json');
+
+  // @ts-ignore
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(spec);
+  });
+
   app.use('/', swaggerUi.serve, async (_req: Request, res: Response) => {
-    return res.send(
-      swaggerUi.generateHTML(await import('../../build/swagger.json')),
-    );
+    return res.send(swaggerUi.generateHTML(spec));
   });
 
   return app;
