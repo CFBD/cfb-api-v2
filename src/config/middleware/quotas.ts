@@ -15,10 +15,10 @@ export const checkCallQuotas = async (
   res: Response,
   next: NextFunction,
 ) => {
-  // @ts-ignore
   if (
     req.user &&
     !ignoredPaths.includes(req.path) &&
+    // @ts-ignore
     req.user.remainingCalls <= 0
   ) {
     res.status(429).send({
