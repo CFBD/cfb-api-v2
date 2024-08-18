@@ -23,9 +23,9 @@ export default function errorHandler(
   }
 
   if (err instanceof Error) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error(`${err.stack}`);
-    }
+    // if (process.env.NODE_ENV !== 'production') {
+    console.error(`${err.stack}`);
+    // }
 
     return res.status(500).json({
       message:
