@@ -56,6 +56,8 @@ export const getLines = async (
         ),
     )
     .leftJoin('conference as ac', 'act.conferenceId', 'ac.id')
+    .leftJoin('gameLines', 'game.id', 'gameLines.gameId')
+    .leftJoin('linesProvider', 'gameLines.linesProviderId', 'linesProvider.id')
     .select([
       'game.id',
       'game.season',
@@ -68,11 +70,20 @@ export const getLines = async (
       'awt.school as awaySchool',
       'ac.name as awayConference',
       'agt.points as awayScore',
+      'linesProvider.name',
+      'gameLines.spread',
+      'gameLines.spreadOpen',
+      'gameLines.overUnder',
+      'gameLines.overUnderOpen',
+      'gameLines.moneylineHome',
+      'gameLines.moneylineAway',
     ]);
 
   if (gameId) {
     gamesQuery = gamesQuery.where('game.id', '=', gameId);
-  } else {
+  } else if (year) {
+    gamesQuery = gamesQuery.where('game.season', '=', year);
+
     if (seasonType && seasonType != SeasonType.Both) {
       gamesQuery = gamesQuery.where('game.seasonType', '=', seasonType);
     }
@@ -122,40 +133,25 @@ export const getLines = async (
 
   const games = await gamesQuery.execute();
 
-  const gameIds = games.map((g) => g.id);
+  const gameIds = Array.from(new Set(games.map((g) => g.id)));
   if (!gameIds.length) {
     return [];
   }
 
-  const lines = await kdb
-    .selectFrom('game')
-    .innerJoin('gameLines', 'game.id', 'gameLines.gameId')
-    .innerJoin('linesProvider', 'gameLines.linesProviderId', 'linesProvider.id')
-    .where('game.id', 'in', gameIds)
-    .select([
-      'game.id',
-      'linesProvider.name',
-      'gameLines.spread',
-      'gameLines.spreadOpen',
-      'gameLines.overUnder',
-      'gameLines.overUnderOpen',
-      'gameLines.moneylineHome',
-      'gameLines.moneylineAway',
-    ])
-    .execute();
+  const results = gameIds.map((id): BettingGame => {
+    const records = games.filter((l) => l.id == id);
 
-  const results = games.map((g): BettingGame => {
-    const gameLines = lines
-      .filter((l) => l.id == g.id)
+    const gameLines = records
+      .filter((l) => l.name)
       .map(
         (l): GameLine => ({
-          provider: l.name,
+          provider: l.name || '',
           spread: l.spread ? parseFloat(l.spread) : null,
           formattedSpread: !l.spread
             ? ''
             : parseFloat(l.spread) < 0
-              ? `${g.homeSchool} ${l.spread}`
-              : `${g.awaySchool} -${l.spread}`,
+              ? `${l.homeSchool} ${l.spread}`
+              : `${l.awaySchool} -${l.spread}`,
           spreadOpen: l.spreadOpen ? parseFloat(l.spreadOpen) : null,
           overUnder: l.overUnder ? parseFloat(l.overUnder) : null,
           overUnderOpen: l.overUnderOpen ? parseFloat(l.overUnderOpen) : null,
@@ -163,6 +159,8 @@ export const getLines = async (
           awayMoneyline: l.moneylineAway,
         }),
       );
+
+    const g = records[0];
 
     return {
       id: g.id,

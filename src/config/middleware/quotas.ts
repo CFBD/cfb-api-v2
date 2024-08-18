@@ -10,9 +10,17 @@ interface ApiUser {
   remainingCalls: number;
 }
 
-export const checkCallQuotas = async (req: Request, res: Response, next: NextFunction) => {
+export const checkCallQuotas = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   // @ts-ignore
-  if (req.user && !ignoredPaths.includes(req.path) && req.user.remainingCalls <= 0) {
+  if (
+    req.user &&
+    !ignoredPaths.includes(req.path) &&
+    req.user.remainingCalls <= 0
+  ) {
     res.status(429).send({
       message: 'Monthly call quota exceeded.',
     });
@@ -22,12 +30,20 @@ export const checkCallQuotas = async (req: Request, res: Response, next: NextFun
   next();
 };
 
-export const updateQuotas = async (req: Request, res: Response, next: NextFunction) => {
+export const updateQuotas = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   const temp = res.send;
 
   // @ts-ignore
   res.send = async (body) => {
-    if (res.statusCode === 200 && req.user && !ignoredPaths.includes(req.path)) {
+    if (
+      res.statusCode === 200 &&
+      req.user &&
+      !ignoredPaths.includes(req.path)
+    ) {
       const user = req.user as ApiUser;
 
       if (res.statusCode === 200) {
