@@ -1,4 +1,4 @@
-import { Application, Request, Response } from 'express';
+import { Application, NextFunction, Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
 
 import bodyParser from 'body-parser';
@@ -47,9 +47,19 @@ export const configureServer = async (
     res.send(spec);
   });
 
-  app.use('/', swaggerUi.serve, async (_req: Request, res: Response) => {
-    return res.send(swaggerUi.generateHTML(spec));
-  });
+  app.use(
+    '/',
+    // @ts-ignore
+    function (req: Request, res: Response, next: NextFunction) {
+      // @ts-ignore
+      spec.host = req.get('host');
+      // @ts-ignore
+      req.swaggerDoc = spec;
+      next();
+    },
+    swaggerUi.serveFiles(spec),
+    swaggerUi.setup(),
+  );
 
   return app;
 };
