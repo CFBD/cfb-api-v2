@@ -8,7 +8,6 @@
     "host": "apinext.collegefootballdata.com",
     "name": "College Football Data API",
     "description": "This API is in limited Beta for Patreon subscribers. It may have bugs and is subject to changes. API keys can be acquired from the CollegeFootballData.com website.",
-    "version": "5.0.0",
     "license": "",
     "contact": {
       "email": "admin@collegefootballdata.com",
