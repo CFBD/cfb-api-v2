@@ -117,8 +117,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: publish
     steps:
-      - id: toLowerCase
-        run: INPUT=${{ env.IMAGE_NAME }} echo "::set-output name=imageNameLowercase::${INPUT,,}"
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -128,6 +126,6 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd ${{ secrets.DEPLOY_PATH}}
-            docker pull ${{ env.REGISTRY }}/${{ steps.toLowerCase.outputs.imageNameLowercase }}:main
+            docker pull ${{ env.REGISTRY }}/cfbd/cfb-api-v2:main
             docker compose up -d
             docker image prune -f
