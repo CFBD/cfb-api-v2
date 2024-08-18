@@ -126,6 +126,7 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd ${{ secrets.DEPLOY_PATH}}
+            echo $GHP_PAT | docker login ghcr.io -u ${{ secrets.GH_USER }} --password-stdin
             docker pull ${{ env.REGISTRY }}/cfbd/cfb-api-v2:main
             docker compose up -d
             docker image prune -f
