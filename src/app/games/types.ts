@@ -42,7 +42,7 @@ export interface Game {
   homeId: number;
   homeTeam: string;
   homeConference: string | null;
-  homeDivision: string | null;
+  homeClassification: DivisionClassification | null;
   /**
    * @isInt
    */
@@ -66,7 +66,7 @@ export interface Game {
   awayId: number;
   awayTeam: string;
   awayConference: string | null;
-  awayDivision: string | null;
+  awayClassification: DivisionClassification | null;
   /**
    * @isInt
    */

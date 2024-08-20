@@ -97,7 +97,7 @@ export const getGames = async (
       'home.id as homeId',
       'home.school as homeTeam',
       'hc.name as homeConference',
-      'hc.division as homeDivision',
+      'hc.division as homeClassification',
       'hgt.points as homePoints',
       'hgt.lineScores as homeLineScores',
       'hgt.winProb as homePostWinProb',
@@ -106,7 +106,7 @@ export const getGames = async (
       'away.id as awayId',
       'away.school as awayTeam',
       'ac.name as awayConference',
-      'ac.division as awayDivision',
+      'ac.division as awayClassification',
       'agt.points as awayPoints',
       'agt.lineScores as awayLineScores',
       'agt.winProb as awayPostWinProb',
@@ -201,8 +201,9 @@ export const getGames = async (
       venue: g.venue,
       homeId: g.homeId,
       homeTeam: g.homeTeam,
+      // @ts-ignore
+      homeClassification: g.homeClassification,
       homeConference: g.homeConference,
-      homeDivision: g.homeDivision,
       homePoints: g.homePoints,
       homeLineScores: g.homeLineScores,
       homePostgameWinProbability: g.homePostWinProb
@@ -212,8 +213,9 @@ export const getGames = async (
       homePostgameElo: g.homePostgameElo,
       awayId: g.awayId,
       awayTeam: g.awayTeam,
+      // @ts-ignore
+      awayClassification: g.awayClassification,
       awayConference: g.awayConference,
-      awayDivision: g.awayDivision,
       awayPoints: g.awayPoints,
       awayLineScores: g.awayLineScores,
       awayPostgameWinProbability: g.awayPostWinProb
