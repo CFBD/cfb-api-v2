@@ -10,15 +10,27 @@ import {
   Venue,
 } from './types';
 
-export const getTeams = async (conference?: string): Promise<Team[]> => {
+export const getTeams = async (conference?: string, year?: number): Promise<Team[]> => {
   let query = kdb
     .selectFrom('team')
     .leftJoin('venue', 'team.venueId', 'venue.id')
-    .leftJoin('conferenceTeam', (join) =>
-      join
-        .onRef('team.id', '=', 'conferenceTeam.teamId')
-        .on('conferenceTeam.endYear', 'is', null),
-    )
+    .leftJoin('conferenceTeam', (join) => {
+      if (year) {
+        return join
+          .onRef('team.id', '=', 'conferenceTeam.teamId')
+          .on('conferenceTeam.startYear', '<=', year)
+          .on((eb) =>
+            eb.or([
+              eb('conferenceTeam.endYear', 'is', null),
+              eb('conferenceTeam.endYear', '>=', year),
+            ]),
+          );
+      } else {
+        return join
+          .onRef('team.id', '=', 'conferenceTeam.teamId')
+          .on('conferenceTeam.endYear', 'is', null);
+      }
+    })
     .leftJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
     .select([
       'team.id',
@@ -58,6 +70,10 @@ export const getTeams = async (conference?: string): Promise<Team[]> => {
         conference.toLowerCase(),
       ),
     );
+  }
+
+  if (year) {
+    query = query.where('conferenceTeam.id', 'is not', null);
   }
 
   const teams = await query.execute();

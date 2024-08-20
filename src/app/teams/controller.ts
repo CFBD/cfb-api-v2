@@ -26,11 +26,16 @@ import {
 export class TeamsController extends Controller {
   /**
    * Retrieves team information
-   * @param conference conference abbreviation filter
+   * @param conference Optional conference abbreviation filter
+   * @param year Optional year filter to get historical conference affiliations
+   * @isInt year
    */
   @Get()
-  public async getTeams(@Query() conference?: string): Promise<Team[]> {
-    return await getTeams(conference);
+  public async getTeams(
+    @Query() conference?: string,
+    @Query() year?: number,
+  ): Promise<Team[]> {
+    return await getTeams(conference, year);
   }
 
   /**
