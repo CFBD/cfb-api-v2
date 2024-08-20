@@ -1,4 +1,4 @@
-import { SeasonType } from '../enums';
+import { DivisionClassification, SeasonType } from '../enums';
 
 export interface BettingGame {
   /**
@@ -20,12 +20,14 @@ export interface BettingGame {
   startDate: Date;
   homeTeam: string;
   homeConference: string | null;
+  homeClassification: DivisionClassification | null;
   /**
    * @isInt
    */
   homeScore: number | null;
   awayTeam: string;
   awayConference: string | null;
+  awayClassification: DivisionClassification | null;
   /**
    * @isInt
    */

@@ -1,6 +1,6 @@
 import { ValidateError } from 'tsoa';
 import { kdb } from '../../config/database';
-import { SeasonType } from '../enums';
+import { DivisionClassification, SeasonType } from '../enums';
 import { BettingGame, GameLine } from './types';
 
 export const getLines = async (
@@ -12,6 +12,7 @@ export const getLines = async (
   home?: string,
   away?: string,
   conference?: string,
+  provider?: string,
 ): Promise<BettingGame[]> => {
   if (!year && !gameId) {
     throw new ValidateError(
@@ -66,9 +67,11 @@ export const getLines = async (
       'game.startDate',
       'ht.school as homeSchool',
       'hc.name as homeConference',
+      'hc.division as homeClassification',
       'hgt.points as homeScore',
       'awt.school as awaySchool',
       'ac.name as awayConference',
+      'ac.division as awayClassification',
       'agt.points as awayScore',
       'linesProvider.name',
       'gameLines.spread',
@@ -131,6 +134,10 @@ export const getLines = async (
     }
   }
 
+  if (provider) {
+    gamesQuery = gamesQuery.where((eb) => eb(eb.fn('lower', ['linesProvider.name']), '=', provider.toLowerCase()));
+  }
+
   const games = await gamesQuery.execute();
 
   const gameIds = Array.from(new Set(games.map((g) => g.id)));
@@ -171,13 +178,17 @@ export const getLines = async (
       startDate: g.startDate,
       homeTeam: g.homeSchool,
       homeConference: g.homeConference,
+      // @ts-ignore
+      homeClassification: g.homeClassification,
       homeScore: g.homeScore,
       awayTeam: g.awaySchool,
       awayConference: g.awayConference,
+      // @ts-ignore
+      awayClassification: g.awayClassification,
       awayScore: g.awayScore,
       lines: gameLines,
     };
   });
 
-  return results;
+  return results.filter((r) => r.lines.length > 0 || r.homeClassification === DivisionClassification.FBS || r.awayClassification === DivisionClassification.FBS);
 };

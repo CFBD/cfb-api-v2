@@ -19,6 +19,7 @@ export class BettingController extends Controller {
    * @param home Optional home team filter
    * @param away Optional away team filter
    * @param conference Optional conference filter
+   * @param provider Optional provider name filter
    * @isInt gameId
    * @isInt year
    * @isInt week
@@ -33,6 +34,7 @@ export class BettingController extends Controller {
     @Query() home?: string,
     @Query() away?: string,
     @Query() conference?: string,
+    @Query() provider?: string,
   ): Promise<BettingGame[]> {
     return await getLines(
       gameId,
@@ -43,6 +45,7 @@ export class BettingController extends Controller {
       home,
       away,
       conference,
+      provider,
     );
   }
 }
