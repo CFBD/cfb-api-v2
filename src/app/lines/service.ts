@@ -135,7 +135,9 @@ export const getLines = async (
   }
 
   if (provider) {
-    gamesQuery = gamesQuery.where((eb) => eb(eb.fn('lower', ['linesProvider.name']), '=', provider.toLowerCase()));
+    gamesQuery = gamesQuery.where((eb) =>
+      eb(eb.fn('lower', ['linesProvider.name']), '=', provider.toLowerCase()),
+    );
   }
 
   const games = await gamesQuery.execute();
@@ -190,5 +192,10 @@ export const getLines = async (
     };
   });
 
-  return results.filter((r) => r.lines.length > 0 || r.homeClassification === DivisionClassification.FBS || r.awayClassification === DivisionClassification.FBS);
+  return results.filter(
+    (r) =>
+      r.lines.length > 0 ||
+      r.homeClassification === DivisionClassification.FBS ||
+      r.awayClassification === DivisionClassification.FBS,
+  );
 };

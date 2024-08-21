@@ -132,3 +132,49 @@ jobs:
             docker pull ${{ env.REGISTRY }}/cfbd/cfb-api-v2:main
             docker compose up -d
             docker image prune -f
+
+  buildPython:
+    needs: deploy
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt install wget -y
+          sudo apt install unzip -y
+          sudo apt install jq -y
+          sudo apt install curl -y
+      - name: Generate library
+        run: |
+          api_version=$(curl https://apinext.collegefootballdata.com/api-docs.json | jq .info.version)
+          api_version=${api_version%\"}
+          api_version=${api_version#\"}
+          package_version=(${api_version}a1)
+          code=$(curl -X POST -H "content-type:application/json" -d '{"openAPIUrl": "https://apinext.collegefootballdata.com/api-docs.json", "options": { "packageName": "cfbd", "projectName": "cfbd", "packageUrl": "https://github.com/CFBD/cfbd-python", "packageVersion": "'"${package_version}"'"}}' https://api.openapi-generator.tech/api/gen/clients/python-pydantic-v1 | jq '. | .code')
+          code=${code%\"}
+          code=${code#\"}
+          wget 'http://api.openapi-generator.tech/api/gen/download/'"${code}"''
+          unzip $code
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          repository: cfbd/cfbd-python
+          token: ${{ secrets.GH_PAT }}
+          ref: next
+          path: cfbd-python
+      - name: Copy and push generated code
+        run: |
+          sudo yes | cp -a ./python-pydantic-v1-client/. cfbd-python
+          cd cfbd-python
+          rm .gitlab-ci.yml .travis.yml git_push.sh .github/workflows/python.yml
+          sed -i '30,47d' README.md
+          sed -i 's/git+https:\/\/\/\/.git/cfbd/g' README.md
+          sed -i '18,19d' README.md
+          echo "Configuring git..."
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          echo "Committing changes ..."
+          git commit -am "${{ github.event.commits[0].message }}"
+          echo "Pushing to remote..."
+          git push

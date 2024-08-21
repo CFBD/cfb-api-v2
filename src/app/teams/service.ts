@@ -10,7 +10,10 @@ import {
   Venue,
 } from './types';
 
-export const getTeams = async (conference?: string, year?: number): Promise<Team[]> => {
+export const getTeams = async (
+  conference?: string,
+  year?: number,
+): Promise<Team[]> => {
   let query = kdb
     .selectFrom('team')
     .leftJoin('venue', 'team.venueId', 'venue.id')
