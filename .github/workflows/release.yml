@@ -173,8 +173,11 @@ jobs:
           echo "Configuring git..."
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
-          echo "Committing changes ..."
-          git commit -am "${{ github.event.commits[0].message }}"
-          echo "Pushing to remote..."
-          git push
+          if git status --porcelain --
+          then
+            git add .
+            echo "Committing changes ..."
+            git commit -am "${{ github.event.commits[0].message }}"
+            echo "Pushing to remote..."
+            git push
+          fi
