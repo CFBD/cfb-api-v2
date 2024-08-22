@@ -2,7 +2,7 @@ export interface Coach {
   firstName: string;
   lastName: string;
   /**
-   * @isDate
+   * @isDateTime
    */
   hireDate: Date | null;
   seasons: CoachSeason[];
