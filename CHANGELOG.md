@@ -1,3 +1,10 @@
+## [5.0.11](https://github.com/CFBD/cfb-api-v2/compare/v5.0.10...v5.0.11) (2024-08-22)
+
+
+### Bug Fixes
+
+* **coaches:** bad hireDate format ([5be2f6d](https://github.com/CFBD/cfb-api-v2/commit/5be2f6d013fa4d4d95a13d47e70cf24f2203580c))
+
 ## [5.0.10](https://github.com/CFBD/cfb-api-v2/compare/v5.0.9...v5.0.10) (2024-08-20)
 
 
