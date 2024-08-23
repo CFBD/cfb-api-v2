@@ -182,3 +182,51 @@ jobs:
             echo "Pushing to remote..."
             git push
           fi
+
+  buildTypeScript:
+    needs: deploy
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt install wget -y
+          sudo apt install jq -y
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          repository: cfbd/cfbd-typescript
+          token: ${{ secrets.GH_PAT }}
+      - name: Download spec
+        run: |
+          wget https://apinext.collegefootballdata.com/api-docs.json
+      - name: Set version number
+        run: |
+          api_version=$(cat api-docs.json | jq '. | .info.version')
+          api_version=${api_version%\"}
+          api_version=${api_version#\"}
+          package_version=(${api_version}-alpha.0)
+          sed -i '/"version": /c\  "version": "'"$package_version"'",' package.json
+      - name: Generate client
+        run: |
+          npx @hey-api/openapi-ts -i api-docs.json -o src -c @hey-api/client-fetch
+          sed -i 's/createConfig()/createConfig({ baseUrl: '\''https:\/\/apinext.collegefootballdata.com'\'' })/g' src/services.gen.ts
+      - name: Commit and push changes
+        run: |
+          echo "Configuring git..."
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git status --porcelain --
+          then
+            git add .
+            echo "Committing changes ..."
+            git commit -am "${{ github.event.commits[0].message }}"
+            echo "Pushing to remote..."
+            git push
+          fi
