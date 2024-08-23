@@ -1,3 +1,10 @@
+## [5.0.12](https://github.com/CFBD/cfb-api-v2/compare/v5.0.11...v5.0.12) (2024-08-23)
+
+
+### Bug Fixes
+
+* **typescript:** new TypeScript package ([613379a](https://github.com/CFBD/cfb-api-v2/commit/613379ad04489e319ab01f4f0bb59ee7922a47ff))
+
 ## [5.0.11](https://github.com/CFBD/cfb-api-v2/compare/v5.0.10...v5.0.11) (2024-08-22)
 
 
