@@ -145,6 +145,7 @@ jobs:
           sudo apt install jq -y
           sudo apt install curl -y
       - name: Generate library
+        id: generate
         run: |
           api_version=$(curl https://apinext.collegefootballdata.com/api-docs.json | jq .info.version)
           api_version=${api_version%\"}
@@ -155,6 +156,7 @@ jobs:
           code=${code#\"}
           wget 'http://api.openapi-generator.tech/api/gen/download/'"${code}"''
           unzip $code
+          echo "package_version=$package_version" >> $GITHUB_ENV
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
@@ -170,6 +172,7 @@ jobs:
           sed -i '30,47d' README.md
           sed -i 's/git+https:\/\/\/\/.git/cfbd/g' README.md
           sed -i '18,19d' README.md
+          sed -i 's/pip install cfbd/pip install cfbd@'"$package_version"'/g' README.md
           sed -i '38d' setup.py
           echo "Configuring git..."
           git config user.name "github-actions[bot]"
