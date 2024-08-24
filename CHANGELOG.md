@@ -1,3 +1,10 @@
+## [5.0.13](https://github.com/CFBD/cfb-api-v2/compare/v5.0.12...v5.0.13) (2024-08-24)
+
+
+### Bug Fixes
+
+* **games:** scoreboard internal server error ([f20c138](https://github.com/CFBD/cfb-api-v2/commit/f20c138971a2d6800640a3165b058857fa42c056))
+
 ## [5.0.12](https://github.com/CFBD/cfb-api-v2/compare/v5.0.11...v5.0.12) (2024-08-23)
 
 
