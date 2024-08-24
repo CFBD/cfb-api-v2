@@ -1360,26 +1360,30 @@ export const getScoreboard = async (
       'gl.overUnder',
       'gl.moneylineHome',
       'gl.moneylineAway',
+      'game.currentHomeScore',
+      'game.currentAwayScore',
+      'gt.points as gtHomePoints',
+      'gt2.points as gtAwayPoints',
     ])
     .select(sql<Date>`game.start_date AT TIME ZONE 'UTC'`.as('startDate'))
-    .select((eb) =>
-      eb
-        .case()
-        .when('game.status', '=', 'completed')
-        .then('gt.points')
-        .else('game.currentHomeScore')
-        .end()
-        .as('homePoints'),
-    )
-    .select((eb) =>
-      eb
-        .case()
-        .when('game.status', '=', 'completed')
-        .then('gt2.points')
-        .else('game.currentAwayScore')
-        .end()
-        .as('awayPoints'),
-    )
+    // .select((eb) =>
+    //   eb
+    //     .case()
+    //     .when('game.status', '=', 'completed')
+    //     .then('gt.points')
+    //     .else('game.currentHomeScore')
+    //     .end()
+    //     .as('homePoints'),
+    // )
+    // .select((eb) =>
+    //   eb
+    //     .case()
+    //     .when('game.status', '=', 'completed')
+    //     .then('gt2.points')
+    //     .else('game.currentAwayScore')
+    //     .end()
+    //     .as('awayPoints'),
+    // )
     .select((eb) => eb.cast('game.currentClock', 'varchar').as('currentClock'))
     .select((eb) => eb.fn.coalesce('gm.name', 'gm2.name').as('tv'));
 
@@ -1405,7 +1409,7 @@ export const getScoreboard = async (
       // @ts-ignore
       status: s.status,
       period: s.currentPeriod,
-      clock: s.currentClock?.toISOString() ?? null,
+      clock: s.currentClock ? String(s.currentClock).substring(3) : null,
       situation: s.currentSituation,
       possession: s.currentPossession,
       venue: {
@@ -1419,7 +1423,10 @@ export const getScoreboard = async (
         conference: s.homeConference,
         // @ts-ignore
         classification: s.homeClassification,
-        points: parseInt(s.homePoints),
+        points:
+          s.status != 'completed'
+            ? Number(s.currentHomeScore)
+            : Number(s.gtHomePoints),
       },
       awayTeam: {
         id: s.awayId,
@@ -1427,7 +1434,10 @@ export const getScoreboard = async (
         conference: s.awayConference,
         // @ts-ignore
         classification: s.awayClassification,
-        points: parseInt(s.awayPoints),
+        points:
+          s.status != 'completed'
+            ? Number(s.currentAwayScore)
+            : Number(s.gtAwayPoints),
       },
       weather: {
         temperature: s.temperature ? parseFloat(s.temperature) : null,
