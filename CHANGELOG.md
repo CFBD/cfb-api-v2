@@ -1,3 +1,10 @@
+## [5.0.14](https://github.com/CFBD/cfb-api-v2/compare/v5.0.13...v5.0.14) (2024-08-24)
+
+
+### Bug Fixes
+
+* **python:** installation instructions for alpha ([4bf984d](https://github.com/CFBD/cfb-api-v2/commit/4bf984d67d7b10604c1c5f4dbc7d4bff41d62abf))
+
 ## [5.0.13](https://github.com/CFBD/cfb-api-v2/compare/v5.0.12...v5.0.13) (2024-08-24)
 
 
