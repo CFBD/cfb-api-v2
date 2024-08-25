@@ -1,3 +1,10 @@
+## [5.0.15](https://github.com/CFBD/cfb-api-v2/compare/v5.0.14...v5.0.15) (2024-08-25)
+
+
+### Bug Fixes
+
+* **typescript:** readme docs ([1099b4a](https://github.com/CFBD/cfb-api-v2/commit/1099b4ab79f9876f1429bd4e41185eca79afc7b5))
+
 ## [5.0.14](https://github.com/CFBD/cfb-api-v2/compare/v5.0.13...v5.0.14) (2024-08-24)
 
 
