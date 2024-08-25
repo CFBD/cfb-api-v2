@@ -17,11 +17,7 @@ export const configureServer = async (
 
   app.use(Sentry.Handlers.requestHandler());
 
-  app.use(
-    helmet({
-      contentSecurityPolicy: false,
-    }),
-  );
+  app.use(helmet());
 
   app.use(cookieParser());
   app.use(bodyParser.json());

@@ -9,6 +9,7 @@ env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
+  COMMIT_MESSAGE: ${{ github.event.commits[0].message }}
 
 permissions:
   contents: read # for checkout
@@ -181,7 +182,7 @@ jobs:
           then
             git add .
             echo "Committing changes ..."
-            git commit -am "${{ github.event.commits[0].message }}"
+            git commit -am "$COMMIT_MESSAGE"
             echo "Pushing to remote..."
             git push
           fi
@@ -229,7 +230,7 @@ jobs:
           then
             git add .
             echo "Committing changes ..."
-            git commit -am "${{ github.event.commits[0].message }}"
+            git commit -am "$COMMIT_MESSAGE"
             echo "Pushing to remote..."
             git push
           fi
