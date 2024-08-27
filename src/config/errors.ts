@@ -9,7 +9,10 @@ export default function errorHandler(
   next: NextFunction,
 ): Response | void {
   if (err instanceof ValidateError) {
-    console.warn(`Caught Validation Error for %s:`, req.path, err.fields);
+    console.warn(`Caught Validation Error for %s:`, req.path, {
+      fields: err?.fields,
+      user: req.user,
+    });
     return res.status(400).json({
       message: 'Validation Failed',
       details: err?.fields,
