@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
+import { AuthorizationError } from '../globals';
 import { ValidateError } from 'tsoa';
-import { AuthorizationError } from './auth';
 
 export default function errorHandler(
   err: unknown,

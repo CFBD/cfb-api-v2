@@ -1,6 +1,7 @@
 import { Request } from 'express';
 
 import { authDb } from './database';
+import { AuthorizationError } from '../globals';
 
 const keyPattern = /Bearer (?<token>.+)/;
 
@@ -13,8 +14,6 @@ const patreonLocked: Record<string, number> = {
 const corsOrigin: string =
   process.env.CORS_ORIGIN || 'https://collegefootballdata.com';
 const nodeEnv: string = process.env.NODE_ENV || 'production';
-
-export class AuthorizationError extends Error {}
 
 export const expressAuthentication = async (
   request: Request,
@@ -78,6 +77,7 @@ export const expressAuthentication = async (
           blacklisted: user.blacklisted,
           throttled: user.throttled,
           remainingCalls: user.remaining_calls,
+          isAdmin: user.is_admin,
         });
       } else if (user?.blacklisted) {
         return Promise.reject(

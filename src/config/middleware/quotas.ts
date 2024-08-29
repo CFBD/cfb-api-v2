@@ -1,14 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
 import { authDb } from '../database';
+import { ApiUser } from 'src/globals';
 
 const ignoredPaths = ['/live/plays', '/games/weather', '/scoreboard'];
-
-interface ApiUser {
-  id: number;
-  username: string;
-  patronLevel: number;
-  remainingCalls: number;
-}
 
 export const checkCallQuotas = async (
   req: Request,
@@ -17,6 +11,8 @@ export const checkCallQuotas = async (
 ) => {
   if (
     req.user &&
+    // @ts-ignore
+    !req.user.isAdmin &&
     !ignoredPaths.includes(req.path) &&
     // @ts-ignore
     req.user.remainingCalls <= 0
