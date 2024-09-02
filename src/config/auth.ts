@@ -5,7 +5,7 @@ import { AuthorizationError } from '../globals';
 
 const keyPattern = /Bearer (?<token>.+)/;
 
-const patreonLocked: Record<string, number> = {
+export const patreonLocked: Record<string, number> = {
   '/live/plays': 1,
   '/games/weather': 1,
   '/scoreboard': 1,
@@ -26,6 +26,7 @@ export const expressAuthentication = async (
     ) {
       const origin = request.get('origin');
       const host = request.get('host');
+
       if (
         nodeEnv === 'development' ||
         corsOrigin === origin ||
@@ -89,5 +90,5 @@ export const expressAuthentication = async (
     }
   }
 
-  return Promise.reject({});
+  return Promise.reject(new AuthorizationError('Unauthorized'));
 };

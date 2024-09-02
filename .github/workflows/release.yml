@@ -36,6 +36,8 @@ jobs:
         run: yarn install --frozen-lockfile
       - name: Validate current commit
         run: npx commitlint --last --verbose
+      - name: Run tests
+        run: yarn test
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

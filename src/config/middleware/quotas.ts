@@ -2,7 +2,12 @@ import { NextFunction, Request, Response } from 'express';
 import { authDb } from '../database';
 import { ApiUser } from 'src/globals';
 
-const ignoredPaths = ['/live/plays', '/games/weather', '/scoreboard'];
+export const ignoredPaths = [
+  '/live/plays',
+  '/games/weather',
+  '/scoreboard',
+  '/auth/graphql',
+];
 
 export const checkCallQuotas = async (
   req: Request,
@@ -41,17 +46,14 @@ export const updateQuotas = async (
       !ignoredPaths.includes(req.path)
     ) {
       const user = req.user as ApiUser;
-
-      if (res.statusCode === 200) {
-        try {
-          const remaining = await authDb.one(
-            `UPDATE "user" SET remaining_calls = (remaining_calls - 1) WHERE id = $1 RETURNING remaining_calls`,
-            [user.id],
-          );
-          user.remainingCalls = remaining.remaining_calls;
-        } catch (error) {
-          console.error('Error updating remaining calls', error);
-        }
+      try {
+        const remaining = await authDb.one(
+          `UPDATE "user" SET remaining_calls = (remaining_calls - 1) WHERE id = $1 RETURNING remaining_calls`,
+          [user.id],
+        );
+        user.remainingCalls = remaining.remaining_calls;
+      } catch (error) {
+        console.error('Error updating remaining calls', error);
       }
     }
 
