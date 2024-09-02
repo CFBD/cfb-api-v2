@@ -9,7 +9,6 @@ export class AuthController extends Controller {
     if (request.user) {
       const user = request.user as ApiUser;
       if (user && (user.patronLevel >= 3 || user.isAdmin)) {
-        console.log(request.user);
         this.setStatus(200);
 
         return {
