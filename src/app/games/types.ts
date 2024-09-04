@@ -47,9 +47,6 @@ export interface Game {
    * @isInt
    */
   homePoints: number | null;
-  /**
-   * @minItems 4
-   */
   homeLineScores: number[] | null;
   homePostgameWinProbability: number | null;
   /**
@@ -71,9 +68,6 @@ export interface Game {
    * @isInt
    */
   awayPoints: number | null;
-  /**
-   * @minItems 4
-   */
   awayLineScores: number[] | null;
   awayPostgameWinProbability: number | null;
   /**
