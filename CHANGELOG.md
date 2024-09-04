@@ -1,3 +1,10 @@
+## [5.0.16](https://github.com/CFBD/cfb-api-v2/compare/v5.0.15...v5.0.16) (2024-09-04)
+
+
+### Bug Fixes
+
+* **games:** line scores validation ([a45c778](https://github.com/CFBD/cfb-api-v2/commit/a45c7780bba6d0b7d86a4df84a74e94840a9ffe6))
+
 ## [5.0.15](https://github.com/CFBD/cfb-api-v2/compare/v5.0.14...v5.0.15) (2024-08-25)
 
 
