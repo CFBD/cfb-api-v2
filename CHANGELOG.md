@@ -1,3 +1,10 @@
+## [5.0.18](https://github.com/CFBD/cfb-api-v2/compare/v5.0.17...v5.0.18) (2024-09-06)
+
+
+### Bug Fixes
+
+* **scoreboard:** actually adding line scores ([6ea9ce9](https://github.com/CFBD/cfb-api-v2/commit/6ea9ce9bfa8703dcbd752d3a8715db61391a83a9))
+
 ## [5.0.17](https://github.com/CFBD/cfb-api-v2/compare/v5.0.16...v5.0.17) (2024-09-06)
 
 
