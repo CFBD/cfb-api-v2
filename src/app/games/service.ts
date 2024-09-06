@@ -1300,6 +1300,7 @@ export const getScoreboard = async (
         // @ts-ignore
         classification: s.homeClassification,
         points: s.homePoints,
+        lineScores: s.homeLineScores,
       },
       awayTeam: {
         id: s.awayId,
@@ -1308,6 +1309,7 @@ export const getScoreboard = async (
         // @ts-ignore
         classification: s.awayClassification,
         points: s.awayPoints,
+        lineScores: s.awayLineScores,
       },
       weather: {
         temperature: s.temperature ? parseFloat(s.temperature) : null,
