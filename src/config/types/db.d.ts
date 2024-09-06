@@ -26,6 +26,18 @@ export type Interval = ColumnType<
   IPostgresInterval | number
 >;
 
+export type Json = JsonValue;
+
+export type JsonArray = JsonValue[];
+
+export type JsonObject = {
+  [K in string]?: JsonValue;
+};
+
+export type JsonPrimitive = boolean | number | string | null;
+
+export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
+
 export type MediaType = 'mobile' | 'ppv' | 'radio' | 'tv' | 'web';
 
 export type Numeric = ColumnType<string, number | string, number | string>;
@@ -70,6 +82,11 @@ export interface AthleteTeam {
   id: Generated<number>;
   startYear: number | null;
   teamId: number;
+}
+
+export interface Boxscore {
+  boxscore: Json;
+  id: number;
 }
 
 export interface City {
@@ -129,9 +146,9 @@ export interface Country {
 export interface CurrentConferences {
   abbreviation: string | null;
   classification: Division | null;
+  conference: string | null;
   conferenceId: number | null;
   division: string | null;
-  name: string | null;
   school: string | null;
   teamId: number | null;
 }
@@ -217,11 +234,20 @@ export interface Fpi {
   year: number;
 }
 
+export interface Fumbles {
+  fumbles: Numeric | null;
+  id: number | null;
+  school: string | null;
+  teamId: number | null;
+}
+
 export interface Game {
   attendance: number | null;
   conferenceGame: boolean | null;
+  currentAwayLineScores: number[] | null;
   currentAwayScore: number | null;
   currentClock: Interval | null;
+  currentHomeLineScores: number[] | null;
   currentHomeScore: number | null;
   currentPeriod: number | null;
   currentPossession: string | null;
@@ -240,6 +266,42 @@ export interface Game {
   status: Generated<GameStatus>;
   venueId: number | null;
   week: number;
+}
+
+export interface GameInfo {
+  attendance: number | null;
+  awayClassification: Division | null;
+  awayConference: string | null;
+  awayConferenceId: number | null;
+  awayEndElo: number | null;
+  awayLineScores: number[] | null;
+  awayPoints: number | null;
+  awayPostgameWinProb: Numeric | null;
+  awayStartElo: number | null;
+  awayTeam: string | null;
+  awayTeamId: number | null;
+  conferenceGame: boolean | null;
+  excitement: Numeric | null;
+  homeClassification: Division | null;
+  homeConference: string | null;
+  homeConferenceId: number | null;
+  homeEndElo: number | null;
+  homeLineScores: number[] | null;
+  homePoints: number | null;
+  homePostgameWinProb: Numeric | null;
+  homeStartElo: number | null;
+  homeTeam: string | null;
+  homeTeamId: number | null;
+  id: number | null;
+  neutralSite: boolean | null;
+  notes: string | null;
+  season: number | null;
+  seasonType: SeasonType | null;
+  startDate: Timestamp | null;
+  startTimeTbd: boolean | null;
+  status: GameStatus | null;
+  venueId: number | null;
+  week: number | null;
 }
 
 export interface GameLines {
@@ -303,6 +365,20 @@ export interface GameWeather {
   windDirection: Numeric | null;
   windGust: Numeric | null;
   windSpeed: Numeric | null;
+}
+
+export interface Havoc {
+  dbHavoc: Numeric | null;
+  frontSevenHavoc: Numeric | null;
+  id: number | null;
+  opponent: string | null;
+  opponentId: number | null;
+  season: number | null;
+  seasonType: SeasonType | null;
+  team: string | null;
+  teamId: number | null;
+  totalHavoc: Numeric | null;
+  week: number | null;
 }
 
 export interface Hometown {
@@ -488,6 +564,45 @@ export interface RecruitSchool {
   name: string;
 }
 
+export interface Scoreboard {
+  awayClassification: Division | null;
+  awayConference: string | null;
+  awayConferenceAbbreviation: string | null;
+  awayId: number;
+  awayLineScores: number[] | null;
+  awayPoints: number | null;
+  awayTeam: string;
+  city: string | null;
+  conferenceGame: boolean;
+  currentClock: string | null;
+  currentPeriod: number | null;
+  currentPossession: string | null;
+  currentSituation: string | null;
+  homeClassification: Division | null;
+  homeConference: string | null;
+  homeConferenceAbbreviation: string | null;
+  homeId: number;
+  homeLineScores: number[] | null;
+  homePoints: number | null;
+  homeTeam: string;
+  id: number;
+  moneylineAway: number | null;
+  moneylineHome: number | null;
+  neutralSite: boolean;
+  overUnder: Numeric | null;
+  spread: Numeric | null;
+  startDate: Timestamp;
+  startTimeTbd: boolean;
+  state: string | null;
+  status: GameStatus | null;
+  temperature: Numeric | null;
+  tv: string | null;
+  venue: string | null;
+  weatherDescription: string | null;
+  windDirection: Numeric | null;
+  windSpeed: Numeric | null;
+}
+
 export interface Srs {
   epaDefense: Numeric | null;
   epaOffense: Numeric | null;
@@ -518,6 +633,42 @@ export interface Team {
   shortDisplayName: string | null;
   twitter: string | null;
   venueId: number | null;
+}
+
+export interface TeamInfo {
+  abbreviation: string | null;
+  active: boolean | null;
+  altColor: string | null;
+  altName: string | null;
+  city: string | null;
+  classification: Division | null;
+  color: string | null;
+  conference: string | null;
+  conferenceAbbreviation: string | null;
+  conferenceId: number | null;
+  conferenceShortName: string | null;
+  countryCode: string | null;
+  displayName: string | null;
+  division: string | null;
+  endYear: number | null;
+  id: number | null;
+  images: string[] | null;
+  isVenueDome: boolean | null;
+  isVenueGrass: boolean | null;
+  location: Point | null;
+  mascot: string | null;
+  ncaaName: string | null;
+  nickname: string | null;
+  school: string | null;
+  shortDisplayName: string | null;
+  startYear: number | null;
+  state: string | null;
+  timezone: string | null;
+  twitter: string | null;
+  venue: string | null;
+  venueCapacity: number | null;
+  venueId: number | null;
+  zip: string | null;
 }
 
 export interface TeamStatType {
@@ -590,6 +741,7 @@ export interface ReturningProduction {
 export interface DB {
   athlete: Athlete;
   athleteTeam: AthleteTeam;
+  boxscore: Boxscore;
   city: City;
   coach: Coach;
   coachSeason: CoachSeason;
@@ -605,13 +757,16 @@ export interface DB {
   driveResult: DriveResult;
   fgEp: FgEp;
   fpi: Fpi;
+  fumbles: Fumbles;
   game: Game;
+  gameInfo: GameInfo;
   gameLines: GameLines;
   gameMedia: GameMedia;
   gamePlayerStat: GamePlayerStat;
   gameTeam: GameTeam;
   gameTeamStat: GameTeamStat;
   gameWeather: GameWeather;
+  havoc: Havoc;
   hometown: Hometown;
   linesProvider: LinesProvider;
   play: Play;
@@ -631,9 +786,11 @@ export interface DB {
   recruitPosition: RecruitPosition;
   recruitSchool: RecruitSchool;
   returningProduction: ReturningProduction;
+  scoreboard: Scoreboard;
   srs: Srs;
   stateProvince: StateProvince;
   team: Team;
+  teamInfo: TeamInfo;
   teamStatType: TeamStatType;
   teamTalent: TeamTalent;
   transfer: Transfer;

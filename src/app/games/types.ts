@@ -295,7 +295,7 @@ export interface ScoreboardGame {
   situation: string | null;
   possession: string | null;
   venue: {
-    name: string;
+    name: string | null;
     city: string | null;
     state: string | null;
   };

@@ -20,7 +20,6 @@ import {
   ScoreboardGame,
   TeamRecords,
 } from './types';
-import { sql } from 'kysely';
 
 export const getGames = async (
   year?: number,
@@ -1247,151 +1246,28 @@ export const getScoreboard = async (
   conference?: string,
 ): Promise<ScoreboardGame[]> => {
   let query = kdb
-    .with('thisWeek', (cte) =>
-      cte
-        .selectFrom('game')
-        .innerJoin('gameTeam as gt', 'game.id', 'gt.gameId')
-        .innerJoin('currentConferences as cc', (join) =>
-          join
-            .onRef('gt.teamId', '=', 'cc.teamId')
-            .on('cc.classification', '=', classification),
-        )
-        // @ts-ignore
-        .where('game.startDate', '>', sql`now() - interval '2d'`)
-        .orderBy('game.season')
-        .orderBy('game.seasonType')
-        .orderBy('game.week')
-        .select(['game.id', 'game.season', 'game.seasonType', 'game.week'])
-        .distinct()
-        .limit(1),
-    )
-    .selectFrom('game')
-    .innerJoin('thisWeek', (join) =>
-      join
-        .onRef('game.season', '=', 'thisWeek.season')
-        .onRef('game.week', '=', 'thisWeek.week')
-        .onRef('game.seasonType', '=', 'thisWeek.seasonType'),
-    )
-    .innerJoin('gameTeam as gt', (join) =>
-      join.onRef('game.id', '=', 'gt.gameId').on('gt.homeAway', '=', 'home'),
-    )
-    .innerJoin('team as t', 'gt.teamId', 't.id')
-    .innerJoin('gameTeam as gt2', (join) =>
-      join.onRef('game.id', '=', 'gt2.gameId').onRef('gt.id', '<>', 'gt2.id'),
-    )
-    .innerJoin('team as t2', 'gt2.teamId', 't2.id')
-    .innerJoin('venue', 'game.venueId', 'venue.id')
-    .leftJoin('conferenceTeam as ct', (join) =>
-      join
-        .onRef('t.id', '=', 'ct.teamId')
-        .onRef('ct.startYear', '<=', 'game.season')
-        .on((eb) =>
-          eb.or([
-            eb('ct.endYear', '>=', eb.ref('game.season')),
-            eb('ct.endYear', 'is', null),
-          ]),
-        ),
-    )
-    .leftJoin('conference as c', 'ct.conferenceId', 'c.id')
-    .leftJoin('conferenceTeam as ct2', (join) =>
-      join
-        .onRef('t2.id', '=', 'ct2.teamId')
-        .onRef('ct2.startYear', '<=', 'game.season')
-        .on((eb) =>
-          eb.or([
-            eb('ct2.endYear', '>=', eb.ref('game.season')),
-            eb('ct2.endYear', 'is', null),
-          ]),
-        ),
-    )
-    .leftJoin('conference as c2', 'ct2.conferenceId', 'c2.id')
-    .leftJoin('gameMedia as gm', (join) =>
-      join.onRef('game.id', '=', 'gm.gameId').on('gm.mediaType', '=', 'tv'),
-    )
-    .leftJoin('gameMedia as gm2', (join) =>
-      join
-        .onRef('game.id', '=', 'gm2.gameId')
-        .onRef('gm.id', '<>', 'gm2.id')
-        .on('gm2.mediaType', '=', 'web'),
-    )
-    .leftJoin('gameWeather as gw', 'game.id', 'gw.gameId')
-    .leftJoin('weatherCondition as wc', 'gw.weatherConditionCode', 'wc.id')
-    .leftJoin('gameLines as gl', (join) =>
-      join
-        .onRef('game.id', '=', 'gl.gameId')
-        .on('gl.linesProviderId', '=', 999999),
-    )
+    .selectFrom('scoreboard')
     .where((eb) =>
       eb.or([
-        eb('c.division', '=', classification),
-        eb('c2.division', '=', classification),
+        eb('homeClassification', '=', classification),
+        eb('awayClassification', '=', classification),
       ]),
     )
-    .orderBy('game.startDate')
-    .select([
-      'game.id',
-      'game.startTimeTbd',
-      'game.status',
-      'game.neutralSite',
-      'game.conferenceGame',
-      'venue.name',
-      'venue.city',
-      'venue.state',
-      't.id as homeId',
-      't.school as homeTeam',
-      'c.division as homeClassification',
-      'c.name as homeConference',
-      't2.id as awayId',
-      't2.school as awayTeam',
-      'c2.name as awayConference',
-      'c2.division as awayClassification',
-      'game.currentPeriod',
-      'game.currentClock',
-      'game.currentSituation',
-      'game.currentPossession',
-      'venue.name as venueName',
-      'venue.city as venueCity',
-      'venue.state as venueState',
-      'gw.temperature',
-      'gw.windSpeed',
-      'gw.windDirection',
-      'wc.description as weatherDescription',
-      'gl.spread',
-      'gl.overUnder',
-      'gl.moneylineHome',
-      'gl.moneylineAway',
-      'game.currentHomeScore',
-      'game.currentAwayScore',
-      'gt.points as gtHomePoints',
-      'gt2.points as gtAwayPoints',
-    ])
-    .select(sql<Date>`game.start_date AT TIME ZONE 'UTC'`.as('startDate'))
-    // .select((eb) =>
-    //   eb
-    //     .case()
-    //     .when('game.status', '=', 'completed')
-    //     .then('gt.points')
-    //     .else('game.currentHomeScore')
-    //     .end()
-    //     .as('homePoints'),
-    // )
-    // .select((eb) =>
-    //   eb
-    //     .case()
-    //     .when('game.status', '=', 'completed')
-    //     .then('gt2.points')
-    //     .else('game.currentAwayScore')
-    //     .end()
-    //     .as('awayPoints'),
-    // )
-    .select((eb) => eb.cast('game.currentClock', 'varchar').as('currentClock'))
-    .select((eb) => eb.fn.coalesce('gm.name', 'gm2.name').as('tv'));
+    .selectAll();
 
   if (conference) {
     query = query.where((eb) =>
       eb.or([
-        eb(eb.fn('lower', ['c.abbreviation']), '=', conference.toLowerCase()),
-        eb(eb.fn('lower', ['c2.abbreviation']), '=', conference.toLowerCase()),
+        eb(
+          eb.fn('lower', ['homeConferenceAbbreviation']),
+          '=',
+          conference.toLowerCase(),
+        ),
+        eb(
+          eb.fn('lower', ['awayConferenceAbbreviation']),
+          '=',
+          conference.toLowerCase(),
+        ),
       ]),
     );
   }
@@ -1413,9 +1289,9 @@ export const getScoreboard = async (
       situation: s.currentSituation,
       possession: s.currentPossession,
       venue: {
-        name: s.venueName,
-        city: s.venueCity,
-        state: s.venueState,
+        name: s.venue,
+        city: s.city,
+        state: s.state,
       },
       homeTeam: {
         id: s.homeId,
@@ -1423,10 +1299,7 @@ export const getScoreboard = async (
         conference: s.homeConference,
         // @ts-ignore
         classification: s.homeClassification,
-        points:
-          s.status != 'completed'
-            ? Number(s.currentHomeScore)
-            : Number(s.gtHomePoints),
+        points: s.homePoints,
       },
       awayTeam: {
         id: s.awayId,
@@ -1434,10 +1307,7 @@ export const getScoreboard = async (
         conference: s.awayConference,
         // @ts-ignore
         classification: s.awayClassification,
-        points:
-          s.status != 'completed'
-            ? Number(s.currentAwayScore)
-            : Number(s.gtAwayPoints),
+        points: s.awayPoints,
       },
       weather: {
         temperature: s.temperature ? parseFloat(s.temperature) : null,
