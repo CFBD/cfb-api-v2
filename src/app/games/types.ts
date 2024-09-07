@@ -294,6 +294,7 @@ export interface ScoreboardGame {
   clock: string | null;
   situation: string | null;
   possession: string | null;
+  lastPlay: string | null;
   venue: {
     name: string | null;
     city: string | null;

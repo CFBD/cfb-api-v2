@@ -1288,6 +1288,7 @@ export const getScoreboard = async (
       clock: s.currentClock ? String(s.currentClock).substring(3) : null,
       situation: s.currentSituation,
       possession: s.currentPossession,
+      lastPlay: s.lastPlay,
       venue: {
         name: s.venue,
         city: s.city,

@@ -586,6 +586,7 @@ export interface Scoreboard {
   homePoints: number | null;
   homeTeam: string;
   id: number;
+  lastPlay: string | null;
   moneylineAway: number | null;
   moneylineHome: number | null;
   neutralSite: boolean;
