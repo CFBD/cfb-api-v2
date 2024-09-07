@@ -1,3 +1,10 @@
+## [5.0.20](https://github.com/CFBD/cfb-api-v2/compare/v5.0.19...v5.0.20) (2024-09-07)
+
+
+### Bug Fixes
+
+* **scoreboard:** last play property ([4475a3c](https://github.com/CFBD/cfb-api-v2/commit/4475a3c453d33761108864485d1d7539aed1705e))
+
 ## [5.0.19](https://github.com/CFBD/cfb-api-v2/compare/v5.0.18...v5.0.19) (2024-09-06)
 
 
