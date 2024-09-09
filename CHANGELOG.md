@@ -1,3 +1,10 @@
+## [5.0.21](https://github.com/CFBD/cfb-api-v2/compare/v5.0.20...v5.0.21) (2024-09-09)
+
+
+### Bug Fixes
+
+* **calendar:** refactor ([f8526fe](https://github.com/CFBD/cfb-api-v2/commit/f8526fec4b7e2384003ef8a4828907f0a44c74cb))
+
 ## [5.0.20](https://github.com/CFBD/cfb-api-v2/compare/v5.0.19...v5.0.20) (2024-09-07)
 
 
