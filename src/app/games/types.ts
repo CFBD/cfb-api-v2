@@ -266,9 +266,19 @@ export interface CalendarWeek {
   /**
    * @isDateTime
    */
+  startDate: Date;
+  /**
+   * @isDateTime
+   */
+  endDate: Date;
+  /**
+   * @isDateTime
+   * @deprecated
+   */
   firstGameStart: Date;
   /**
    * @isDateTime
+   * @deprecated
    */
   lastGameStart: Date;
 }

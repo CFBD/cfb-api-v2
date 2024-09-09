@@ -1220,12 +1220,9 @@ export const getRecords = async (
 
 export const getCalendar = async (year: number): Promise<CalendarWeek[]> => {
   const weeks = await kdb
-    .selectFrom('game')
-    .where('season', '=', year)
-    .groupBy(['week', 'seasonType'])
-    .select(['week', 'seasonType'])
-    .select((eb) => eb.fn.min('startDate').as('firstGameStart'))
-    .select((eb) => eb.fn.max('startDate').as('lastGameStart'))
+    .selectFrom('calendar')
+    .where('year', '=', year)
+    .select(['week', 'seasonType', 'startDate', 'endDate'])
     .orderBy(['seasonType', 'week'])
     .execute();
 
@@ -1235,8 +1232,10 @@ export const getCalendar = async (year: number): Promise<CalendarWeek[]> => {
       week: w.week,
       // @ts-ignore
       seasonType: w.seasonType,
-      firstGameStart: w.firstGameStart,
-      lastGameStart: w.lastGameStart,
+      startDate: w.startDate,
+      endDate: w.endDate,
+      firstGameStart: w.startDate,
+      lastGameStart: w.endDate,
     }),
   );
 };

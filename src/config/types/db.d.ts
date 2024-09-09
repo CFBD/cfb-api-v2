@@ -89,6 +89,14 @@ export interface Boxscore {
   id: number;
 }
 
+export interface Calendar {
+  endDate: Timestamp;
+  seasonType: SeasonType;
+  startDate: Timestamp;
+  week: number;
+  year: number;
+}
+
 export interface City {
   id: Generated<number>;
   name: string;
@@ -249,6 +257,7 @@ export interface Game {
   currentClock: Interval | null;
   currentHomeLineScores: number[] | null;
   currentHomeScore: number | null;
+  currentLastPlay: string | null;
   currentPeriod: number | null;
   currentPossession: string | null;
   currentSituation: string | null;
@@ -743,6 +752,7 @@ export interface DB {
   athlete: Athlete;
   athleteTeam: AthleteTeam;
   boxscore: Boxscore;
+  calendar: Calendar;
   city: City;
   coach: Coach;
   coachSeason: CoachSeason;
