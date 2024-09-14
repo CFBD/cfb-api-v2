@@ -2,6 +2,7 @@ import { ValidateError } from 'tsoa';
 import { db, kdb } from '../../config/database';
 import { SeasonType } from '../enums';
 import {
+  AdjustedMetrics,
   AdvancedGameStat,
   AdvancedSeasonStat,
   PlayerStat,
@@ -1680,4 +1681,93 @@ export const getAdvancedGameStats = async (
   }
 
   return stats;
+};
+
+export const getAdjustedTeamStats = async (
+  year?: number,
+  team?: string,
+  conference?: string,
+) => {
+  let query = kdb
+    .selectFrom('adjustedTeamMetrics')
+    .innerJoin('teamInfo', (join) =>
+      join
+        .onRef('adjustedTeamMetrics.teamId', '=', 'teamInfo.id')
+        .onRef('teamInfo.startYear', '<=', 'adjustedTeamMetrics.year')
+        .on((eb) =>
+          eb.or([
+            eb('teamInfo.endYear', 'is', null),
+            eb('teamInfo.endYear', '>=', eb.ref('adjustedTeamMetrics.year')),
+          ]),
+        ),
+    )
+    .selectAll('adjustedTeamMetrics')
+    .select([
+      'teamInfo.id as teamId',
+      'teamInfo.school as team',
+      'teamInfo.conferenceAbbreviation as conference',
+    ]);
+
+  if (year) {
+    query = query.where('adjustedTeamMetrics.year', '=', year);
+  }
+
+  if (team) {
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['teamInfo.school']), '=', team.toLowerCase()),
+    );
+  }
+
+  if (conference) {
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['teamInfo.conferenceAbbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
+    );
+  }
+
+  const results = await query.execute();
+
+  return results.map(
+    (r): AdjustedMetrics => ({
+      year: r.year,
+      teamId: r.teamId,
+      team: r.team ?? '',
+      conference: r.conference ?? '',
+      epa: {
+        total: Number(r.epa),
+        passing: Number(r.passingEpa),
+        rushing: Number(r.rushingEpa),
+      },
+      epaAllowed: {
+        total: Number(r.epaAllowed),
+        passing: Number(r.passingEpaAllowed),
+        rushing: Number(r.rushingEpaAllowed),
+      },
+      successRate: {
+        total: Number(r.success),
+        standardDowns: Number(r.standardDownsSuccess),
+        passingDowns: Number(r.passingDownsSuccess),
+      },
+      successRateAllowed: {
+        total: Number(r.successAllowed),
+        standardDowns: Number(r.standardDownsSuccessAllowed),
+        passingDowns: Number(r.passingDownsSuccessAllowed),
+      },
+      rushing: {
+        lineYards: Number(r.lineYards),
+        secondLevelYards: Number(r.secondLevelYards),
+        openFieldYards: Number(r.openFieldYards),
+      },
+      rushingAllowed: {
+        lineYards: Number(r.lineYardsAllowed),
+        secondLevelYards: Number(r.secondLevelYardsAllowed),
+        openFieldYards: Number(r.openFieldYardsAllowed),
+      },
+      explosiveness: Number(r.explosiveness),
+      explosivenessAllowed: Number(r.explosivenessAllowed),
+    }),
+  );
 };

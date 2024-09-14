@@ -61,6 +61,31 @@ export type SeasonType =
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface AdjustedTeamMetrics {
+  epa: Numeric;
+  epaAllowed: Numeric;
+  explosiveness: Numeric;
+  explosivenessAllowed: Numeric;
+  lineYards: Numeric;
+  lineYardsAllowed: Numeric;
+  openFieldYards: Numeric;
+  openFieldYardsAllowed: Numeric;
+  passingDownsSuccess: Numeric;
+  passingDownsSuccessAllowed: Numeric;
+  passingEpa: Numeric;
+  passingEpaAllowed: Numeric;
+  rushingEpa: Numeric;
+  rushingEpaAllowed: Numeric;
+  secondLevelYards: Numeric;
+  secondLevelYardsAllowed: Numeric;
+  standardDownsSuccess: Numeric;
+  standardDownsSuccessAllowed: Numeric;
+  success: Numeric;
+  successAllowed: Numeric;
+  teamId: number;
+  year: number;
+}
+
 export interface Athlete {
   active: boolean | null;
   firstName: string | null;
@@ -749,6 +774,7 @@ export interface ReturningProduction {
 }
 
 export interface DB {
+  adjustedTeamMetrics: AdjustedTeamMetrics;
   athlete: Athlete;
   athleteTeam: AthleteTeam;
   boxscore: Boxscore;

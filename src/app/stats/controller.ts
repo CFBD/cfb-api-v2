@@ -2,6 +2,7 @@ import { Controller, Get, Middlewares, Query, Route, Tags } from 'tsoa';
 
 import middlewares from '../../config/middleware';
 import {
+  AdjustedMetrics,
   AdvancedGameStat,
   AdvancedSeasonStat,
   PlayerStat,
@@ -9,6 +10,7 @@ import {
 } from './types';
 import { SeasonType } from '../enums';
 import {
+  getAdjustedTeamStats,
   getAdvancedGameStats,
   getAdvancedStats,
   getCategories,
@@ -139,5 +141,21 @@ export class StatsController extends Controller {
       excludeGarbageTime,
       seasonType,
     );
+  }
+
+  /**
+   * Retrieve opponent-adjusted team season statistics
+   * @param year Optional year filter
+   * @param team Optional team filter
+   * @param conference Optional conference filter
+   * @isInt year
+   */
+  @Get('team/season/adjusted')
+  public async getAdjustedTeamSeasonStats(
+    @Query() year?: number,
+    @Query() team?: string,
+    @Query() conference?: string,
+  ): Promise<AdjustedMetrics[]> {
+    return await getAdjustedTeamStats(year, team, conference);
   }
 }
