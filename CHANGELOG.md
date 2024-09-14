@@ -1,3 +1,10 @@
+## [5.1.1](https://github.com/CFBD/cfb-api-v2/compare/v5.1.0...v5.1.1) (2024-09-14)
+
+
+### Bug Fixes
+
+* **metrics:** updating adjusted stats route ([ed76312](https://github.com/CFBD/cfb-api-v2/commit/ed7631201a7007a818db3b777560287e86769e57))
+
 # [5.1.0](https://github.com/CFBD/cfb-api-v2/compare/v5.0.21...v5.1.0) (2024-09-14)
 
 
