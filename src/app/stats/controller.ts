@@ -150,7 +150,7 @@ export class StatsController extends Controller {
    * @param conference Optional conference filter
    * @isInt year
    */
-  @Get('team/season/adjusted')
+  @Get('season/adjusted')
   public async getAdjustedTeamSeasonStats(
     @Query() year?: number,
     @Query() team?: string,
