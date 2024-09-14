@@ -1,3 +1,10 @@
+# [5.1.0](https://github.com/CFBD/cfb-api-v2/compare/v5.0.21...v5.1.0) (2024-09-14)
+
+
+### Features
+
+* **metrics:** opponent-adjusted team metrics ([f7d9866](https://github.com/CFBD/cfb-api-v2/commit/f7d9866513a7d39a79b99e6fce4e2e9931770790))
+
 ## [5.0.21](https://github.com/CFBD/cfb-api-v2/compare/v5.0.20...v5.0.21) (2024-09-09)
 
 
