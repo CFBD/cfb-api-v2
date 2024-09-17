@@ -1,3 +1,10 @@
+## [5.1.2](https://github.com/CFBD/cfb-api-v2/compare/v5.1.1...v5.1.2) (2024-09-17)
+
+
+### Bug Fixes
+
+* **metrics:** advanced game stats typings ([d862aa1](https://github.com/CFBD/cfb-api-v2/commit/d862aa146bd8fe151a39783a425c9adbb402514d))
+
 ## [5.1.1](https://github.com/CFBD/cfb-api-v2/compare/v5.1.0...v5.1.1) (2024-09-14)
 
 
