@@ -136,6 +136,34 @@ jobs:
             docker compose up -d
             docker image prune -f
 
+  discord:
+    needs: deploy
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    env:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt install jq -y
+          sudo apt install curl -y
+      - name: Get API version
+        run: |
+          api_version=$(curl https://apinext.collegefootballdata.com/api-docs.json | jq .info.version)
+          api_version=${api_version%\"}
+          api_version=${api_version#\"}
+          echo "api_version=$api_version" >> $GITHUB_ENV
+      - name: Send Discord message
+        uses: sarisia/actions-status-discord@v1
+        with:
+          nodetail: true
+          title: 'New version of REST API v2 deployed'
+          url: 'https://github.com/CFBD/cfb-api-v2'
+          color: 0x38b0ff
+          description: |
+            v${{ env.api_version}}
+            ${{ env.COMMIT_MESSAGE }}
+
   buildPython:
     needs: deploy
     runs-on: ubuntu-latest
