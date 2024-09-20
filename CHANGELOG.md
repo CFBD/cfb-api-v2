@@ -1,3 +1,10 @@
+## [5.1.3](https://github.com/CFBD/cfb-api-v2/compare/v5.1.2...v5.1.3) (2024-09-20)
+
+
+### Bug Fixes
+
+* **elo:** results not populating with week parameter ([2e0dfef](https://github.com/CFBD/cfb-api-v2/commit/2e0dfefa0b41c15c4c0f711a5a3e20db91a1646e))
+
 ## [5.1.2](https://github.com/CFBD/cfb-api-v2/compare/v5.1.1...v5.1.2) (2024-09-17)
 
 
