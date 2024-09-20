@@ -5,13 +5,17 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Launch Program",
       "type": "node",
       "request": "launch",
-      "name": "Launch Program",
-      "skipFiles": ["<node_internals>/**"],
-      "program": "${workspaceFolder}/src/app.ts",
-      "preLaunchTask": "tsc: build - tsconfig.json",
-      "outFiles": ["${workspaceFolder}/build/**/*.js"]
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--nolazy", "-r", "ts-node/register/transpile-only"],
+
+      "args": ["src/app.ts"],
+
+      "cwd": "${workspaceRoot}",
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": ["<node_internals>/**", "node_modules/**"]
     }
   ]
 }

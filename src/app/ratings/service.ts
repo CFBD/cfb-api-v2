@@ -374,12 +374,11 @@ export const getElo = async (
       }
 
       if (week) {
-        cte = cte.where('game.week', '=', week);
+        cte = cte.where('game.week', '<=', week);
       }
 
       if ((seasonType && seasonType === SeasonType.Regular) || week) {
-        // @ts-ignore
-        cte = cte.where('game.seasonType', '=', seasonType);
+        cte = cte.where('game.seasonType', '=', 'regular');
       }
 
       if (team) {
