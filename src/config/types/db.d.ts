@@ -44,6 +44,12 @@ export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type PlayCall = 'pass' | 'rush';
 
+export type PlayerAdjustedMetricType =
+  | 'field_goals'
+  | 'passing'
+  | 'rushing'
+  | 'total';
+
 export type Point = {
   x: number;
   y: number;
@@ -60,6 +66,15 @@ export type SeasonType =
   | 'spring_regular';
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
+
+export interface AdjustedPlayerMetrics {
+  athleteId: Int8;
+  id: Generated<number>;
+  metricType: PlayerAdjustedMetricType;
+  metricValue: Numeric;
+  plays: number | null;
+  year: number;
+}
 
 export interface AdjustedTeamMetrics {
   epa: Numeric;
@@ -557,6 +572,31 @@ export interface Ratings {
   year: number;
 }
 
+export interface RatingSystems {
+  conference: string | null;
+  conferenceId: number | null;
+  elo: number | null;
+  fpi: Numeric | null;
+  fpiAvgWinProbabilityRank: number | null;
+  fpiDefensiveEfficiency: Numeric | null;
+  fpiGameControlRank: number | null;
+  fpiOffensiveEfficiency: Numeric | null;
+  fpiOverallEfficiency: Numeric | null;
+  fpiRemainingSosRank: number | null;
+  fpiResumeRank: number | null;
+  fpiSosRank: number | null;
+  fpiSpecialTeamsEfficiency: Numeric | null;
+  fpiStrengthOfRecordRank: number | null;
+  spDefense: Numeric | null;
+  spOffense: Numeric | null;
+  spOverall: Numeric | null;
+  spSpecialTeams: Numeric | null;
+  srs: Numeric | null;
+  team: string | null;
+  teamId: number | null;
+  year: number | null;
+}
+
 export interface Recruit {
   athleteId: number | null;
   cityId: number | null;
@@ -774,6 +814,7 @@ export interface ReturningProduction {
 }
 
 export interface DB {
+  adjustedPlayerMetrics: AdjustedPlayerMetrics;
   adjustedTeamMetrics: AdjustedTeamMetrics;
   athlete: Athlete;
   athleteTeam: AthleteTeam;
@@ -818,6 +859,7 @@ export interface DB {
   position: Position;
   ppa: Ppa;
   ratings: Ratings;
+  ratingSystems: RatingSystems;
   recruit: Recruit;
   recruitingTeam: RecruitingTeam;
   recruitPosition: RecruitPosition;
