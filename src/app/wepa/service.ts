@@ -1,5 +1,5 @@
-import { kdb } from 'src/config/database';
-import { AdjustedTeamMetrics, PlayerWeightedEPA } from './types';
+import { kdb } from '../../config/database';
+import { AdjustedTeamMetrics, KickerPAAR, PlayerWeightedEPA } from './types';
 
 export const getAdjustedTeamStats = async (
   year?: number,
@@ -128,7 +128,8 @@ export const getPlayerPassingWepa = async (
       'teamInfo.conference',
       'adjustedPlayerMetrics.metricValue as epa',
       'adjustedPlayerMetrics.plays',
-    ]);
+    ])
+    .distinct();
 
   if (year) {
     query = query.where('adjustedPlayerMetrics.year', '=', year);
@@ -170,7 +171,7 @@ export const getPlayerPassingWepa = async (
       position: r.position,
       team: r.team ?? '',
       conference: r.conference ?? '',
-      wepa: Number(r.epa),
+      wepa: Math.round(Number(r.epa) * 100) / 100,
       plays: r.plays ?? 0,
     }),
   );
@@ -214,7 +215,8 @@ export const getPlayerRushingWepa = async (
       'teamInfo.conference',
       'adjustedPlayerMetrics.metricValue as epa',
       'adjustedPlayerMetrics.plays',
-    ]);
+    ])
+    .distinct();
 
   if (year) {
     query = query.where('adjustedPlayerMetrics.year', '=', year);
@@ -256,8 +258,82 @@ export const getPlayerRushingWepa = async (
       position: r.position,
       team: r.team ?? '',
       conference: r.conference ?? '',
-      wepa: Number(r.epa),
+      wepa: Math.round(Number(r.epa) * 100) / 100,
       plays: r.plays ?? 0,
+    }),
+  );
+};
+
+export const getKickerPaar = async (
+  year?: number,
+  team?: string,
+  conference?: string,
+): Promise<KickerPAAR[]> => {
+  let query = kdb
+    .selectFrom('adjustedPlayerMetrics')
+    .innerJoin('athlete', 'adjustedPlayerMetrics.athleteId', 'athlete.id')
+    .innerJoin('athleteTeam', (join) =>
+      join
+        .onRef('athlete.id', '=', 'athleteTeam.athleteId')
+        .onRef('adjustedPlayerMetrics.year', '>=', 'athleteTeam.startYear')
+        .onRef('adjustedPlayerMetrics.year', '<=', 'athleteTeam.endYear'),
+    )
+    .innerJoin('position', 'athlete.positionId', 'position.id')
+    .innerJoin('teamInfo', (join) =>
+      join
+        .onRef('athleteTeam.teamId', '=', 'teamInfo.id')
+        .onRef('adjustedPlayerMetrics.year', '>=', 'teamInfo.startYear')
+        .on((eb) =>
+          eb.or([
+            eb('teamInfo.endYear', '>=', eb.ref('adjustedPlayerMetrics.year')),
+            eb('teamInfo.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .where('adjustedPlayerMetrics.metricType', '=', 'field_goals')
+    .select([
+      'athlete.id',
+      'athlete.name',
+      'adjustedPlayerMetrics.year',
+      'position.abbreviation as position',
+      'teamInfo.school as team',
+      'teamInfo.conference',
+      'adjustedPlayerMetrics.metricValue as epa',
+      'adjustedPlayerMetrics.plays',
+    ])
+    .distinct();
+
+  if (year) {
+    query = query.where('adjustedPlayerMetrics.year', '=', year);
+  }
+
+  if (team) {
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['teamInfo.school']), '=', team.toLowerCase()),
+    );
+  }
+
+  if (conference) {
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['teamInfo.conference']),
+        '=',
+        conference.toLowerCase(),
+      ),
+    );
+  }
+
+  const results = await query.execute();
+
+  return results.map(
+    (r): KickerPAAR => ({
+      year: r.year,
+      athleteId: r.id,
+      athleteName: r.name,
+      team: r.team ?? '',
+      conference: r.conference ?? '',
+      paar: Math.round(Number(r.epa) * 100) / 100,
+      attempts: r.plays ?? 0,
     }),
   );
 };

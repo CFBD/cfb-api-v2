@@ -59,3 +59,19 @@ export interface PlayerWeightedEPA {
    */
   plays: number;
 }
+
+export interface KickerPAAR {
+  /**
+   * @isInt
+   */
+  year: number;
+  athleteId: string;
+  athleteName: string;
+  team: string;
+  conference: string;
+  paar: number;
+  /**
+   * @isInt
+   */
+  attempts: number;
+}

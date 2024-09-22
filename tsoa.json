@@ -84,6 +84,10 @@
       {
         "name": "draft",
         "description": "NFL Draft data"
+      },
+      {
+        "name": "adjustedMetrics",
+        "description": "Metrics adjusted for opponent strength and other factors"
       }
     ]
   },
