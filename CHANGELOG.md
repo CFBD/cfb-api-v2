@@ -1,3 +1,11 @@
+# [5.2.0](https://github.com/CFBD/cfb-api-v2/compare/v5.1.3...v5.2.0) (2024-09-22)
+
+
+### Features
+
+* **wepa:** moving team endpoint and adding new player endpoints ([11f3a17](https://github.com/CFBD/cfb-api-v2/commit/11f3a17a65621ace1a0a874478fb419f48178bec))
+* **wepa:** new endpoints ([84adabd](https://github.com/CFBD/cfb-api-v2/commit/84adabde7c64ae991dc75bd883f60ff41d9ec6ae))
+
 ## [5.1.3](https://github.com/CFBD/cfb-api-v2/compare/v5.1.2...v5.1.3) (2024-09-20)
 
 
