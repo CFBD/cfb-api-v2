@@ -949,7 +949,7 @@ export const getRecords = async (
     ])
     .select([
       'game.season',
-      't.id as team_id',
+      't.id as teamId',
       't.school as team',
       'c.division as classification',
       'c.name as conference',
@@ -1174,7 +1174,7 @@ export const getRecords = async (
   return results.map(
     (r): TeamRecords => ({
       year: r.season,
-      teamId: r.team_id,
+      teamId: r.teamId,
       team: r.team,
       // @ts-ignore
       classification: r.classification,
