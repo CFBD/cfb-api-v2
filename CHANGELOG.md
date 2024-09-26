@@ -1,3 +1,10 @@
+## [5.2.1](https://github.com/CFBD/cfb-api-v2/compare/v5.2.0...v5.2.1) (2024-09-26)
+
+
+### Bug Fixes
+
+* **records:** missing team id field ([f9c8f63](https://github.com/CFBD/cfb-api-v2/commit/f9c8f6395cf60ea44d8c08a4521a2ecb8325137a))
+
 # [5.2.0](https://github.com/CFBD/cfb-api-v2/compare/v5.1.3...v5.2.0) (2024-09-22)
 
 
