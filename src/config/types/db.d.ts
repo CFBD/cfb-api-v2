@@ -81,6 +81,8 @@ export interface AdjustedTeamMetrics {
   epaAllowed: Numeric;
   explosiveness: Numeric;
   explosivenessAllowed: Numeric;
+  highlightYards: Numeric;
+  highlightYardsAllowed: Numeric;
   lineYards: Numeric;
   lineYardsAllowed: Numeric;
   openFieldYards: Numeric;

@@ -78,11 +78,13 @@ export const getAdjustedTeamStats = async (
         lineYards: Number(r.lineYards),
         secondLevelYards: Number(r.secondLevelYards),
         openFieldYards: Number(r.openFieldYards),
+        highlightYards: Number(r.highlightYards),
       },
       rushingAllowed: {
         lineYards: Number(r.lineYardsAllowed),
         secondLevelYards: Number(r.secondLevelYardsAllowed),
         openFieldYards: Number(r.openFieldYardsAllowed),
+        highlightYards: Number(r.highlightYardsAllowed),
       },
       explosiveness: Number(r.explosiveness),
       explosivenessAllowed: Number(r.explosivenessAllowed),

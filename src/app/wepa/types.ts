@@ -33,11 +33,13 @@ export interface AdjustedTeamMetrics {
     lineYards: number;
     secondLevelYards: number;
     openFieldYards: number;
+    highlightYards: number;
   };
   rushingAllowed: {
     lineYards: number;
     secondLevelYards: number;
     openFieldYards: number;
+    highlightYards: number;
   };
   explosiveness: number;
   explosivenessAllowed: number;
