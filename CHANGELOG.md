@@ -1,3 +1,10 @@
+# [5.3.0](https://github.com/CFBD/cfb-api-v2/compare/v5.2.1...v5.3.0) (2024-10-02)
+
+
+### Features
+
+* **wepa:** adding highlight yards ([d537366](https://github.com/CFBD/cfb-api-v2/commit/d537366e674b6e0ef60905a33b0b0124f4dca877))
+
 ## [5.2.1](https://github.com/CFBD/cfb-api-v2/compare/v5.2.0...v5.2.1) (2024-09-26)
 
 
