@@ -8,7 +8,7 @@ import {
   LiveGamePlay,
   LiveGameTeam,
 } from './types';
-import { UserMessageError } from 'src/globals';
+import { UserMessageError } from '../../globals';
 
 const PLAYS_URL: string = process.env.PLAYS_URL || '';
 
