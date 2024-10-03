@@ -10,3 +10,12 @@ export interface ApiUser {
   remainingCalls: number;
   isAdmin: boolean;
 }
+
+export class UserMessageError extends Error {
+  message: string;
+
+  constructor(message: string) {
+    super(message);
+    this.message = message;
+  }
+}

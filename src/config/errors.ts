@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { AuthorizationError } from '../globals';
+import { AuthorizationError, UserMessageError } from '../globals';
 import { ValidateError } from 'tsoa';
 
 export default function errorHandler(
@@ -21,6 +21,12 @@ export default function errorHandler(
 
   if (err instanceof AuthorizationError) {
     return res.status(401).json({
+      message: err.message,
+    });
+  }
+
+  if (err instanceof UserMessageError) {
+    return res.status(400).json({
       message: err.message,
     });
   }

@@ -8,6 +8,7 @@ import {
   LiveGamePlay,
   LiveGameTeam,
 } from './types';
+import { UserMessageError } from 'src/globals';
 
 const PLAYS_URL: string = process.env.PLAYS_URL || '';
 
@@ -93,6 +94,11 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
 
   const comp = response.data.gamepackageJSON.header.competitions[0];
   const teams = comp.competitors;
+
+  if (!response.data.gamepackageJSON?.drives?.previous?.length) {
+    throw new UserMessageError('No plays found for game.');
+  }
+
   const driveData = response.data.gamepackageJSON.drives.previous.filter(
     (p) => p.team,
   );
