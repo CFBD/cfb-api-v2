@@ -1,3 +1,10 @@
+## [5.3.2](https://github.com/CFBD/cfb-api-v2/compare/v5.3.1...v5.3.2) (2024-10-03)
+
+
+### Bug Fixes
+
+* **live:** fixing missing plays error message ([431c374](https://github.com/CFBD/cfb-api-v2/commit/431c374363bf4ed5d0d9c14f64b439ff03e4d045))
+
 ## [5.3.1](https://github.com/CFBD/cfb-api-v2/compare/v5.3.0...v5.3.1) (2024-10-03)
 
 
