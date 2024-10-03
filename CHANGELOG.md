@@ -1,3 +1,10 @@
+## [5.3.1](https://github.com/CFBD/cfb-api-v2/compare/v5.3.0...v5.3.1) (2024-10-03)
+
+
+### Bug Fixes
+
+* **live:** notify when no play data available ([6be2c36](https://github.com/CFBD/cfb-api-v2/commit/6be2c36324fe180f0fd93ff4481c90eb741e5a0b))
+
 # [5.3.0](https://github.com/CFBD/cfb-api-v2/compare/v5.2.1...v5.3.0) (2024-10-02)
 
 
