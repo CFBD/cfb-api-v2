@@ -1,3 +1,10 @@
+## [5.3.3](https://github.com/CFBD/cfb-api-v2/compare/v5.3.2...v5.3.3) (2024-10-12)
+
+
+### Bug Fixes
+
+* **records:** expectedWins type binding can be null ([a17dde9](https://github.com/CFBD/cfb-api-v2/commit/a17dde961ce7be49fdd7eb6ada4e096b9f80b91c))
+
 ## [5.3.2](https://github.com/CFBD/cfb-api-v2/compare/v5.3.1...v5.3.2) (2024-10-03)
 
 
