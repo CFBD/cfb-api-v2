@@ -245,7 +245,7 @@ export interface TeamRecords {
   classification: DivisionClassification | null;
   conference: string;
   division: string;
-  expectedWins: number;
+  expectedWins: number | null;
   total: TeamRecord;
   conferenceGames: TeamRecord;
   homeGames: TeamRecord;
