@@ -17,6 +17,4 @@ if (env != 'development') {
   };
 }
 
-const corsConfig = cors(corsOptions);
-
-export default corsConfig;
+export default cors(corsOptions);

@@ -164,7 +164,7 @@ describe('CORS auth tests', () => {
     };
 
     const user = await expressAuthentication(request, 'apiKey');
-    expect(user).toEqual({});
+    expect(user).toEqual(null);
   });
 
   test('cors allowed for domain host', async () => {
@@ -184,7 +184,7 @@ describe('CORS auth tests', () => {
     };
 
     const user = await expressAuthentication(request, 'apiKey');
-    expect(user).toEqual({});
+    expect(user).toEqual(null);
   });
 
   test('cors not allowed for other domain', async () => {

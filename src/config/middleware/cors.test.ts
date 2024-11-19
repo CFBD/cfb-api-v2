@@ -7,8 +7,8 @@ describe('cors middleware tests', () => {
     cors(
       { headers: { origin: 'https://collegefootballdata.com' } },
       {
-        setHeader: () => {},
-        end: () => {},
+        setHeader: () => { },
+        end: () => { },
       },
       next,
     );
@@ -23,8 +23,8 @@ describe('cors middleware tests', () => {
       cors(
         { headers: {} },
         {
-          setHeader: () => {},
-          end: () => {},
+          setHeader: () => { },
+          end: () => { },
         },
         next,
       );
@@ -42,8 +42,8 @@ describe('cors middleware tests', () => {
       cors(
         { headers: { origin: 'https://example.com' } },
         {
-          setHeader: () => {},
-          end: () => {},
+          setHeader: () => { },
+          end: () => { },
         },
         next,
       );

@@ -4,6 +4,7 @@ import swaggerUi from 'swagger-ui-express';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
+import cors from 'cors';
 import * as Sentry from '@sentry/node';
 
 import { RegisterRoutes } from '../../build/routes';
@@ -38,7 +39,7 @@ export const configureServer = async (
   const spec = await import('../../build/swagger.json');
 
   // @ts-ignore
-  app.get('/api-docs.json', (req, res) => {
+  app.get('/api-docs.json', cors(), (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(spec);
   });

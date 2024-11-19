@@ -32,7 +32,7 @@ export const expressAuthentication = async (
         corsOrigin === origin ||
         corsOrigin === host
       ) {
-        return Promise.resolve({});
+        return Promise.resolve(null);
       }
     }
 
