@@ -251,6 +251,8 @@ export interface TeamRecords {
   homeGames: TeamRecord;
   awayGames: TeamRecord;
   neutralSiteGames: TeamRecord;
+  regularSeason: TeamRecord;
+  postseason: TeamRecord;
 }
 
 export interface CalendarWeek {

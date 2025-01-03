@@ -1146,6 +1146,86 @@ export const getRecords = async (
         )
         .as('neutralTies'),
     )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere('game.seasonType', '=', SeasonType.Regular)
+        .as('regularSeasonGames'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.winner', '=', true),
+            eb('game.seasonType', '=', SeasonType.Regular),
+          ]),
+        )
+        .as('regularSeasonWins'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt2.winner', '=', true),
+            eb('game.seasonType', '=', SeasonType.Regular),
+          ]),
+        )
+        .as('regularSeasonLosses'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.winner', '<>', true),
+            eb('gt2.winner', '<>', true),
+            eb('game.seasonType', '=', SeasonType.Regular),
+          ]),
+        )
+        .as('regularSeasonTies'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere('game.seasonType', '=', SeasonType.Postseason)
+        .as('postseasonGames'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.winner', '=', true),
+            eb('game.seasonType', '=', SeasonType.Postseason),
+          ]),
+        )
+        .as('postseasonWins'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt2.winner', '=', true),
+            eb('game.seasonType', '=', SeasonType.Postseason),
+          ]),
+        )
+        .as('postseasonLosses'),
+    )
+    .select((eb) =>
+      eb.fn
+        .countAll()
+        .filterWhere(
+          eb.and([
+            eb('gt.winner', '<>', true),
+            eb('gt2.winner', '<>', true),
+            eb('game.seasonType', '=', SeasonType.Postseason),
+          ]),
+        )
+        .as('postseasonTies'),
+    )
     .select((eb) => eb.fn.sum('gt.winProb').as('expectedWins'));
 
   if (year) {
@@ -1213,6 +1293,18 @@ export const getRecords = async (
         wins: intParseOrConvert(r.neutralWins),
         losses: intParseOrConvert(r.neutralLosses),
         ties: intParseOrConvert(r.neutralTies),
+      },
+      regularSeason: {
+        games: intParseOrConvert(r.regularSeasonGames),
+        wins: intParseOrConvert(r.regularSeasonWins),
+        losses: intParseOrConvert(r.regularSeasonLosses),
+        ties: intParseOrConvert(r.regularSeasonTies),
+      },
+      postseason: {
+        games: intParseOrConvert(r.postseasonGames),
+        wins: intParseOrConvert(r.postseasonWins),
+        losses: intParseOrConvert(r.postseasonLosses),
+        ties: intParseOrConvert(r.postseasonTies),
       },
     }),
   );
