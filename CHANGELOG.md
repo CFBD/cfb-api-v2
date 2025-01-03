@@ -1,3 +1,10 @@
+# [5.4.0](https://github.com/CFBD/cfb-api-v2/compare/v5.3.3...v5.4.0) (2025-01-03)
+
+
+### Features
+
+* **records:** regular and postseason records ([f912bb8](https://github.com/CFBD/cfb-api-v2/commit/f912bb85ac86d76aa359cfd2bb5c5e0f55bcd4a2))
+
 ## [5.3.3](https://github.com/CFBD/cfb-api-v2/compare/v5.3.2...v5.3.3) (2024-10-12)
 
 
