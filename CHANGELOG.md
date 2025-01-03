@@ -1,3 +1,10 @@
+## [5.4.1](https://github.com/CFBD/cfb-api-v2/compare/v5.4.0...v5.4.1) (2025-01-03)
+
+
+### Bug Fixes
+
+* **cicd:** cicd fix for records endpoint change ([119f3f7](https://github.com/CFBD/cfb-api-v2/commit/119f3f75836e3ab4d4dbd3b958e80caf365c2b19))
+
 # [5.4.0](https://github.com/CFBD/cfb-api-v2/compare/v5.3.3...v5.4.0) (2025-01-03)
 
 
