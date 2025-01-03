@@ -54,7 +54,9 @@ export const configureServer = async (
       req.swaggerDoc = spec;
       next();
     },
+    // @ts-ignore
     swaggerUi.serveFiles(spec),
+    // @ts-ignore
     swaggerUi.setup(),
   );
 
