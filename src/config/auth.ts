@@ -9,6 +9,10 @@ export const patreonLocked: Record<string, number> = {
   '/live/plays': 1,
   '/games/weather': 1,
   '/scoreboard': 1,
+  '/wepa/team/season': 1,
+  '/wepa/players/passing': 1,
+  '/wepa/players/rushing': 1,
+  '/wepa/players/kicking': 1,
 };
 
 const corsOrigin: string =
@@ -52,14 +56,6 @@ export const expressAuthentication = async (
         token?.groups?.['token'],
       );
       if (user && !user.blacklisted) {
-        if (!user.patron_level) {
-          return Promise.reject(
-            new AuthorizationError(
-              'This version of the CFBD API is in limited beta and requires a Patreon subscription. Please visit https://www.patreon.com/collegefootballdata to subscribe.',
-            ),
-          );
-        }
-
         if (Object.keys(patreonLocked).includes(request.path)) {
           const requiredLevel = patreonLocked[request.path];
           if (!user.patron_level || user.patron_level < requiredLevel) {
