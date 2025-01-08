@@ -44,10 +44,10 @@ export const getPicks = async (
     .innerJoin('team', 'draftPicks.collegeTeamId', 'team.id')
     .leftJoin('conferenceTeam', (join) =>
       join
-        .onRef('team.id', '=', 'conferenceTeam.id')
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
         .on(sql`(draft_picks.year - 1) >= conference_team.start_year`)
         .on(
-          sql`conference_team.end_year is null or (draft_picks.year - 1) <= conference_team.end_year`,
+          sql`(conference_team.end_year is null or (draft_picks.year - 1) <= conference_team.end_year)`,
         ),
     )
     .leftJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
