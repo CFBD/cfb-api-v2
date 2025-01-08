@@ -1,3 +1,10 @@
+## [5.4.4](https://github.com/CFBD/cfb-api-v2/compare/v5.4.3...v5.4.4) (2025-01-08)
+
+
+### Bug Fixes
+
+* **typescript:** update package generator version ([b7c66e2](https://github.com/CFBD/cfb-api-v2/commit/b7c66e29d92eb02d08fdd2c4ae888accaabb9a6d))
+
 ## [5.4.3](https://github.com/CFBD/cfb-api-v2/compare/v5.4.2...v5.4.3) (2025-01-08)
 
 
