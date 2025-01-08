@@ -1,3 +1,10 @@
+## [5.4.3](https://github.com/CFBD/cfb-api-v2/compare/v5.4.2...v5.4.3) (2025-01-08)
+
+
+### Bug Fixes
+
+* **draft:** duplicated pick records ([011050d](https://github.com/CFBD/cfb-api-v2/commit/011050d05e71bc209d18ab276ce9aad90b4bc858))
+
 ## [5.4.2](https://github.com/CFBD/cfb-api-v2/compare/v5.4.1...v5.4.2) (2025-01-04)
 
 
