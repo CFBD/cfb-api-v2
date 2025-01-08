@@ -250,7 +250,7 @@ jobs:
       - name: Generate client
         run: |
           npx @hey-api/openapi-ts -i api-docs.json -o src -c @hey-api/client-fetch
-          sed -i 's/createConfig()/createConfig({ baseUrl: '\''https:\/\/apinext.collegefootballdata.com'\'' })/g' src/services.gen.ts
+          sed -i 's/createConfig()/createConfig({ baseUrl: '\''https:\/\/apinext.collegefootballdata.com'\'' })/g' src/sdk.gen.ts
       - name: Commit and push changes
         run: |
           echo "Configuring git..."
