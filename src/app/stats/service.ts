@@ -51,16 +51,7 @@ export const getPlayerSeasonStats = async (
       'conference.name as conference',
       'playerStatCategory.name as category',
     ])
-    .where('game.season', '=', year)
-    .groupBy([
-      'game.season',
-      'athlete.id',
-      'athlete.name',
-      'team.school',
-      'conference.name',
-      'playerStatCategory.name',
-      'playerStatType.name',
-    ]);
+    .where('game.season', '=', year);
 
   if (conference) {
     baseQuery = baseQuery.where((eb) =>
@@ -137,7 +128,16 @@ export const getPlayerSeasonStats = async (
     .select('playerStatType.name as statType')
     .select((eb) =>
       eb.fn.sum<number>(eb.cast('gamePlayerStat.stat', 'numeric')).as('stat'),
-    );
+    )
+    .groupBy([
+      'game.season',
+      'athlete.id',
+      'athlete.name',
+      'team.school',
+      'conference.name',
+      'playerStatCategory.name',
+      'playerStatType.name',
+    ]);
 
   query = query
     .union(
@@ -150,7 +150,16 @@ export const getPlayerSeasonStats = async (
           eb.fn
             .max<number>(eb.cast('gamePlayerStat.stat', 'integer'))
             .as('stat'),
-        ),
+        )
+        .groupBy([
+          'game.season',
+          'athlete.id',
+          'athlete.name',
+          'team.school',
+          'conference.name',
+          'playerStatCategory.name',
+          'playerStatType.name',
+        ]),
     )
     .union(
       baseQuery
@@ -205,7 +214,16 @@ export const getPlayerSeasonStats = async (
               ),
             )
             .as('stat'),
-        ),
+        )
+        .groupBy([
+          'game.season',
+          'athlete.id',
+          'athlete.name',
+          'team.school',
+          'conference.name',
+          'playerStatCategory.name',
+          'playerStatType.name',
+        ]),
     )
     .union(
       baseQuery
@@ -260,7 +278,16 @@ export const getPlayerSeasonStats = async (
               ),
             )
             .as('stat'),
-        ),
+        )
+        .groupBy([
+          'game.season',
+          'athlete.id',
+          'athlete.name',
+          'team.school',
+          'conference.name',
+          'playerStatCategory.name',
+          'playerStatType.name',
+        ]),
     )
     .union(
       baseQuery
@@ -358,7 +385,15 @@ export const getPlayerSeasonStats = async (
             .else(0)
             .end()
             .as('stat'),
-        ),
+        )
+        .groupBy([
+          'game.season',
+          'athlete.id',
+          'athlete.name',
+          'team.school',
+          'conference.name',
+          'playerStatCategory.name',
+        ]),
     )
     .union(
       baseQuery
@@ -426,9 +461,24 @@ export const getPlayerSeasonStats = async (
             .else(0)
             .end()
             .as('stat'),
-        ),
+        )
+        .groupBy([
+          'game.season',
+          'athlete.id',
+          'athlete.name',
+          'team.school',
+          'conference.name',
+          'playerStatCategory.name',
+          'playerStatType.name',
+        ]),
     );
 
+  const compiled = query.compile();
+  let sqlString = compiled.sql;
+  for (let i = compiled.parameters.length; i > 0; i--) {
+    sqlString = sqlString.replace(`$${i}`, `${compiled.parameters[i - 1]}`);
+  }
+  console.log(sqlString);
   const results = await query.execute();
 
   return results
