@@ -345,7 +345,7 @@ export const getElo = async (
             .on((eb) =>
               eb.or([
                 eb('conferenceTeam.endYear', 'is', null),
-                eb('conferenceTeam.endYear', '>', eb.ref('game.season')),
+                eb('conferenceTeam.endYear', '>=', eb.ref('game.season')),
               ]),
             ),
         )
