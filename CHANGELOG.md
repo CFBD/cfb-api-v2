@@ -1,3 +1,10 @@
+## [5.4.5](https://github.com/CFBD/cfb-api-v2/compare/v5.4.4...v5.4.5) (2025-01-12)
+
+
+### Bug Fixes
+
+* **playerStats:** ypp aggregation ([46a178d](https://github.com/CFBD/cfb-api-v2/commit/46a178d1fc60341757a5d4d429493b6b5495427a))
+
 ## [5.4.4](https://github.com/CFBD/cfb-api-v2/compare/v5.4.3...v5.4.4) (2025-01-08)
 
 
