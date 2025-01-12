@@ -1,3 +1,10 @@
+## [5.4.6](https://github.com/CFBD/cfb-api-v2/compare/v5.4.5...v5.4.6) (2025-01-12)
+
+
+### Bug Fixes
+
+* **ratings:** elo query fix for past years ([3384db6](https://github.com/CFBD/cfb-api-v2/commit/3384db65cb27fa4a574e049546ea06075a429ef4))
+
 ## [5.4.5](https://github.com/CFBD/cfb-api-v2/compare/v5.4.4...v5.4.5) (2025-01-12)
 
 
