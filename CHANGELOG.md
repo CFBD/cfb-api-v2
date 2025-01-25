@@ -1,3 +1,10 @@
+## [5.4.7](https://github.com/CFBD/cfb-api-v2/compare/v5.4.6...v5.4.7) (2025-01-25)
+
+
+### Bug Fixes
+
+* **stats:** making player stat a string ([b9c918c](https://github.com/CFBD/cfb-api-v2/commit/b9c918c4caff702a4d316f6c75cd9d4af6633410))
+
 ## [5.4.6](https://github.com/CFBD/cfb-api-v2/compare/v5.4.5...v5.4.6) (2025-01-12)
 
 
