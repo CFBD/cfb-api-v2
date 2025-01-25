@@ -12,7 +12,7 @@ export interface PlayerStat {
   conference: string;
   category: string;
   statType: string;
-  stat: number;
+  stat: string;
 }
 
 export interface TeamStat {
