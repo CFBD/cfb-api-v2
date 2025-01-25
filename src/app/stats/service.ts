@@ -495,7 +495,7 @@ export const getPlayerSeasonStats = async (
         conference: r.conference,
         category: r.category,
         statType: r.statType,
-        stat: r.stat,
+        stat: r.stat.toString(),
       }),
     );
 };

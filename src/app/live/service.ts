@@ -388,8 +388,8 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
     period: comp.status.period ?? null,
     clock: comp.status.displayClock ?? '',
     possession: currentDrive
-      ? teams.find((t) => t.team.displayName === currentDrive.team.displayName)
-          ?.team.location ?? ''
+      ? (teams.find((t) => t.team.displayName === currentDrive.team.displayName)
+          ?.team.location ?? '')
       : '',
     down: currentPlay?.end?.down ?? null,
     distance: currentPlay?.end?.distance ?? null,
