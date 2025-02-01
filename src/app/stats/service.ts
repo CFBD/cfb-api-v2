@@ -473,12 +473,6 @@ export const getPlayerSeasonStats = async (
         ]),
     );
 
-  const compiled = query.compile();
-  let sqlString = compiled.sql;
-  for (let i = compiled.parameters.length; i > 0; i--) {
-    sqlString = sqlString.replace(`$${i}`, `${compiled.parameters[i - 1]}`);
-  }
-  console.log(sqlString);
   const results = await query.execute();
 
   return results
