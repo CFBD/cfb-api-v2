@@ -11,8 +11,10 @@ if (env != 'development') {
     origin: (requestOrigin, callback) => {
       console.log(`Request Origin: ${requestOrigin}`);
       if (!requestOrigin || requestOrigin == corsOrigin) {
+        console.log('Allowed by CORS', requestOrigin);
         callback(null);
       } else {
+        console.log('Not allowed by CORS', requestOrigin);
         callback(new Error(`Not allowed by CORS: ${requestOrigin}`));
       }
     },
