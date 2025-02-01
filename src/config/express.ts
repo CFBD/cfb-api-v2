@@ -5,6 +5,7 @@ import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import cors from 'cors';
+import middlewares from './middleware';
 import * as Sentry from '@sentry/node';
 
 import { RegisterRoutes } from '../../build/routes';
@@ -30,6 +31,7 @@ export const configureServer = async (
 
   app.use(Sentry.Handlers.errorHandler());
 
+  app.use(middlewares.cors);
   app.use(updateQuotas);
 
   RegisterRoutes(app);

@@ -163,7 +163,6 @@ export const generateMeanPassingChart = async (
     .select((eb) => eb.fn.avg('ppa').as('avgPpa'));
 
   const results = await query.execute();
-  console.log(results);
 
   return results.map(
     (r): PlayerPPAChartItem => ({
