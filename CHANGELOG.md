@@ -1,3 +1,10 @@
+## [5.4.9](https://github.com/CFBD/cfb-api-v2/compare/v5.4.8...v5.4.9) (2025-02-03)
+
+
+### Bug Fixes
+
+* api keys ([ffd4a0a](https://github.com/CFBD/cfb-api-v2/commit/ffd4a0a706bf2ddf21b72d25b038d86d37950076))
+
 ## [5.4.8](https://github.com/CFBD/cfb-api-v2/compare/v5.4.7...v5.4.8) (2025-01-25)
 
 
