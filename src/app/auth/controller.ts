@@ -1,5 +1,6 @@
 import { ApiUser, AuthorizationError } from '../../globals';
-import { Route, Controller, Get, Hidden, Request } from 'tsoa';
+import { Route, Controller, Get, Hidden, Request, Post, Body } from 'tsoa';
+import { generateApiKey } from './service';
 
 @Route('auth')
 export class AuthController extends Controller {
@@ -26,5 +27,12 @@ export class AuthController extends Controller {
         'The GraphQL endpoint requires Patreon Tier 3 or above. Please visit https://www.patreon.com/collegefootballdata to subscribe.',
       ),
     );
+  }
+
+  @Post('key')
+  @Hidden()
+  public async requestApiKey(@Body() body: { email: string }) {
+    await generateApiKey(body.email);
+    this.setStatus(200);
   }
 }
