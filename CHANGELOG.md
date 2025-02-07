@@ -1,3 +1,10 @@
+## [5.5.1](https://github.com/CFBD/cfb-api-v2/compare/v5.5.0...v5.5.1) (2025-02-07)
+
+
+### Bug Fixes
+
+* **docs:** removing language around the limited beta ([53b4511](https://github.com/CFBD/cfb-api-v2/commit/53b451110a1614cd36d150cb231f6418d30151ce))
+
 # [5.5.0](https://github.com/CFBD/cfb-api-v2/compare/v5.4.10...v5.5.0) (2025-02-07)
 
 
