@@ -83,17 +83,17 @@ export interface MatchupGame {
   seasonType: string;
   date: string;
   neutralSite: boolean;
-  venue: string;
+  venue: string | null;
   homeTeam: string;
   /**
    * @isInt
    */
-  homeScore: number;
+  homeScore: number | null;
   awayTeam: string;
   /**
    * @isInt
    */
-  awayScore: number;
+  awayScore: number | null;
   winner: string | null;
 }
 
