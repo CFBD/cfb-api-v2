@@ -203,7 +203,6 @@ jobs:
           sed -i '30,47d' README.md
           sed -i 's/git+https:\/\/\/\/.git/cfbd/g' README.md
           sed -i '18,19d' README.md
-          sed -i 's/pip install cfbd/pip install cfbd@'"$package_version"'/g' README.md
           sed -i '38d' setup.py
           echo "Configuring git..."
           git config user.name "github-actions[bot]"

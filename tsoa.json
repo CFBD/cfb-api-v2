@@ -1,13 +1,15 @@
 {
   "entryFile": "src/app.ts",
   "noImplicitAdditionalProperties": "throw-on-extras",
-  "controllerPathGlobs": ["src/**/controller.ts"],
+  "controllerPathGlobs": [
+    "src/**/controller.ts"
+  ],
   "spec": {
     "outputDirectory": "build",
     "specVersion": 3,
     "host": "apinext.collegefootballdata.com",
     "name": "College Football Data API",
-    "description": "This API is in limited Beta for Patreon subscribers. It may have bugs and is subject to changes. API keys can be acquired from the CollegeFootballData.com website.",
+    "description": "This is an API for query various college football datasets and analytics. API keys can be acquired from the CollegeFootballData.com website.",
     "license": "",
     "contact": {
       "email": "admin@collegefootballdata.com",
