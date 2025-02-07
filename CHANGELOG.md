@@ -1,3 +1,10 @@
+## [5.4.10](https://github.com/CFBD/cfb-api-v2/compare/v5.4.9...v5.4.10) (2025-02-07)
+
+
+### Bug Fixes
+
+* **matchup:** parsing nullable types ([ff0b854](https://github.com/CFBD/cfb-api-v2/commit/ff0b854f7dfbd9d99fdd647e82c250de68e0011d))
+
 ## [5.4.9](https://github.com/CFBD/cfb-api-v2/compare/v5.4.8...v5.4.9) (2025-02-03)
 
 
