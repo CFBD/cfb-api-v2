@@ -181,7 +181,7 @@ jobs:
           api_version=$(curl https://apinext.collegefootballdata.com/api-docs.json | jq .info.version)
           api_version=${api_version%\"}
           api_version=${api_version#\"}
-          package_version=(${api_version}a1)
+          package_version=(${api_version})
           code=$(curl -X POST -H "content-type:application/json" -d '{"openAPIUrl": "https://apinext.collegefootballdata.com/api-docs.json", "options": { "packageName": "cfbd", "projectName": "cfbd", "packageUrl": "https://github.com/CFBD/cfbd-python", "packageVersion": "'"${package_version}"'"}}' https://api.openapi-generator.tech/api/gen/clients/python-pydantic-v1 | jq '. | .code')
           code=${code%\"}
           code=${code#\"}
@@ -193,7 +193,7 @@ jobs:
         with:
           repository: cfbd/cfbd-python
           token: ${{ secrets.GH_PAT }}
-          ref: next
+          ref: main
           path: cfbd-python
       - name: Copy and push generated code
         run: |
@@ -245,7 +245,7 @@ jobs:
           api_version=$(cat api-docs.json | jq '. | .info.version')
           api_version=${api_version%\"}
           api_version=${api_version#\"}
-          package_version=(${api_version}-alpha.0)
+          package_version=(${api_version})
           sed -i '/"version": /c\  "version": "'"$package_version"'",' package.json
       - name: Generate client
         run: |
