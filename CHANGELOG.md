@@ -1,3 +1,10 @@
+# [5.5.0](https://github.com/CFBD/cfb-api-v2/compare/v5.4.10...v5.5.0) (2025-02-07)
+
+
+### Features
+
+* **packages:** removing alpha designation ([ff13935](https://github.com/CFBD/cfb-api-v2/commit/ff13935613196fb113c98ee9ae6b4c6c01877ebd))
+
 ## [5.4.10](https://github.com/CFBD/cfb-api-v2/compare/v5.4.9...v5.4.10) (2025-02-07)
 
 
