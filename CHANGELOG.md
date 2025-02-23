@@ -1,3 +1,10 @@
+## [5.6.3](https://github.com/CFBD/cfb-api-v2/compare/v5.6.2...v5.6.3) (2025-02-23)
+
+
+### Bug Fixes
+
+* **packages:** .net readme fix ([287a0df](https://github.com/CFBD/cfb-api-v2/commit/287a0dffd09f6c2a31daf9a7e2e7344e77dd7ca0))
+
 ## [5.6.2](https://github.com/CFBD/cfb-api-v2/compare/v5.6.1...v5.6.2) (2025-02-23)
 
 
