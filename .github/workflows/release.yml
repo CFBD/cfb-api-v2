@@ -263,3 +263,62 @@ jobs:
             echo "Pushing to remote..."
             git push
           fi
+
+  buildCSharp:
+    needs: deploy
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt install wget -y
+          sudo apt install unzip -y
+          sudo apt install jq -y
+          sudo apt install curl -y
+      - name: Generate library
+        id: generate
+        run: |
+          api_version=$(curl https://apinext.collegefootballdata.com/api-docs.json | jq .info.version)
+          api_version=${api_version%\"}
+          api_version=${api_version#\"}
+          package_version=(${api_version})
+          code=$(curl -X POST -H "content-type:application/json" -d '{"openAPIUrl": "https://apinext.collegefootballdata.com/api-docs.json", "options": { "packageName": "CollegeFootballData", "projectName": "cfbd", "packageUrl": "https://github.com/CFBD/cbbd-csharp", "packageVersion": "'"${package_version}"'", "targetFramework": "net8.0", "packageTags": "CFBD;CFB;NCAAF;NCAA;football"}}' https://api.openapi-generator.tech/api/gen/clients/csharp | jq '. | .code')
+          code=${code%\"}
+          code=${code#\"}
+          wget 'http://api.openapi-generator.tech/api/gen/download/'"${code}"''
+          unzip $code
+          echo "package_version=$package_version" >> $GITHUB_ENV
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          repository: cfbd/cfbd-python
+          token: ${{ secrets.GH_PAT }}
+          ref: main
+          path: cfbd-net
+      - name: Copy and push generated code
+        run: |
+          sudo yes | cp -a ./csharp-client/. cfbd-net
+          cd cfbd-net
+          rm git_push.sh
+          sed -i '30,68d' README.md
+          sed -i '36i ```bash' README.md
+          sed -i '37i dotnet add package CollegeFootballData' README.md
+          sed -i '38i ```' README.md
+          sed -i '17d' ./src/CollegeFootballData/CollegeFootballData.csproj
+          sed -i '17i \ \ \ \ <RepositoryUrl>https://github.com/cfbd/cfb-net.git</RepositoryUrl>' ./src/CollegeFootballData/CollegeFootballData.csproj
+          sed -d '9,12d' ./src/CollegeFootballData/CollegeFootballData.csproj
+          sed -i '9i \ \ \ \ <Authors>CollegeFootballData.com</Authors>' ./src/CollegeFootballData/CollegeFootballData.csproj
+          sed -i '10i \ \ \ \ <Company>CollegeFootballData.com</Company>' ./src/CollegeFootballData/CollegeFootballData.csproj
+          sed -i '11i \ \ \ \ <AssemblyTitle>CollegeFootballData.com</AssemblyTitle>' ./src/CollegeFootballData/CollegeFootballData.csproj
+          sed -i '12i \ \ \ \ <Description>Official client library for the CollegeFootballData.com API</Description>' ./src/CollegeFootballData/CollegeFootballData.csproj
+          echo "Configuring git..."
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git status --porcelain --
+          then
+            git add .
+            echo "Committing changes ..."
+            git commit -am "$COMMIT_MESSAGE"
+            echo "Pushing to remote..."
+            git push
+          fi
