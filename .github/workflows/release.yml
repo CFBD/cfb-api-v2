@@ -300,7 +300,8 @@ jobs:
           sudo yes | cp -a ./csharp-client/. cfbd-net
           cd cfbd-net
           rm git_push.sh
-          sed -i '30,68d' README.md
+          sed -i '35,68d' README.md
+          sed -i '35i Install via the dotnet CLI:' README.md
           sed -i '36i ```bash' README.md
           sed -i '37i dotnet add package CollegeFootballData' README.md
           sed -i '38i ```' README.md
