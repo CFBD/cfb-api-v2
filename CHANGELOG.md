@@ -1,3 +1,10 @@
+## [5.6.1](https://github.com/CFBD/cfb-api-v2/compare/v5.6.0...v5.6.1) (2025-02-23)
+
+
+### Bug Fixes
+
+* **packages:** official .net client library support ([08d6762](https://github.com/CFBD/cfb-api-v2/commit/08d67624bdf262657a956d6cf9e73621e3432d87))
+
 # [5.6.0](https://github.com/CFBD/cfb-api-v2/compare/v5.5.1...v5.6.0) (2025-02-23)
 
 
