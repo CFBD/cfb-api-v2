@@ -306,7 +306,7 @@ jobs:
           sed -i '38i ```' README.md
           sed -i '17d' ./src/CollegeFootballData/CollegeFootballData.csproj
           sed -i '17i \ \ \ \ <RepositoryUrl>https://github.com/cfbd/cfb-net.git</RepositoryUrl>' ./src/CollegeFootballData/CollegeFootballData.csproj
-          sed -d '9,12d' ./src/CollegeFootballData/CollegeFootballData.csproj
+          sed -i '9,12d' ./src/CollegeFootballData/CollegeFootballData.csproj
           sed -i '9i \ \ \ \ <Authors>CollegeFootballData.com</Authors>' ./src/CollegeFootballData/CollegeFootballData.csproj
           sed -i '10i \ \ \ \ <Company>CollegeFootballData.com</Company>' ./src/CollegeFootballData/CollegeFootballData.csproj
           sed -i '11i \ \ \ \ <AssemblyTitle>CollegeFootballData.com</AssemblyTitle>' ./src/CollegeFootballData/CollegeFootballData.csproj
