@@ -291,7 +291,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          repository: cfbd/cfbd-python
+          repository: cfbd/cfbd-net
           token: ${{ secrets.GH_PAT }}
           ref: main
           path: cfbd-net
