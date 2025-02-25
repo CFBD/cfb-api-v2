@@ -63,7 +63,9 @@ export const getTeams = async (
       'venue.yearConstructed',
       'venue.dome',
       'venue.timezone',
-    ]);
+    ])
+    .orderBy('team.active desc')
+    .orderBy('team.school');
 
   if (conference) {
     query = query.where((eb) =>
