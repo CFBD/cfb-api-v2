@@ -413,24 +413,24 @@ FROM team AS t
           plays: parseInt(t.plays),
           overall: {
             total: parseFloat(t.ppa),
-            quarter1: parseFloat(t.ppa_1),
-            quarter2: parseFloat(t.ppa_2),
-            quarter3: parseFloat(t.ppa_3),
-            quarter4: parseFloat(t.ppa_4),
+            quarter1: t.ppa_1 ? parseFloat(t.ppa_1) : null,
+            quarter2: t.ppa_2 ? parseFloat(t.ppa_2) : null,
+            quarter3: t.ppa_3 ? parseFloat(t.ppa_3) : null,
+            quarter4: t.ppa_4 ? parseFloat(t.ppa_4) : null,
           },
           passing: {
             total: parseFloat(t.passing_ppa),
-            quarter1: parseFloat(t.passing_ppa_1),
-            quarter2: parseFloat(t.passing_ppa_2),
-            quarter3: parseFloat(t.passing_ppa_3),
-            quarter4: parseFloat(t.passing_ppa_4),
+            quarter1: t.passing_ppa_1 ? parseFloat(t.passing_ppa_1) : null,
+            quarter2: t.passing_ppa_2 ? parseFloat(t.passing_ppa_2) : null,
+            quarter3: t.passing_ppa_3 ? parseFloat(t.passing_ppa_3) : null,
+            quarter4: t.passing_ppa_4 ? parseFloat(t.passing_ppa_4) : null,
           },
           rushing: {
             total: parseFloat(t.rushing_ppa),
-            quarter1: parseFloat(t.rushing_ppa_1),
-            quarter2: parseFloat(t.rushing_ppa_2),
-            quarter3: parseFloat(t.rushing_ppa_3),
-            quarter4: parseFloat(t.rushing_ppa_4),
+            quarter1: t.rushing_ppa_1 ? parseFloat(t.rushing_ppa_1) : null,
+            quarter2: t.rushing_ppa_2 ? parseFloat(t.rushing_ppa_2) : null,
+            quarter3: t.rushing_ppa_3 ? parseFloat(t.rushing_ppa_3) : null,
+            quarter4: t.rushing_ppa_4 ? parseFloat(t.rushing_ppa_4) : null,
           },
         }),
       ),
@@ -440,24 +440,40 @@ FROM team AS t
           plays: parseInt(t.plays),
           overall: {
             total: parseFloat(t.cum_ppa),
-            quarter1: parseFloat(t.cum_ppa_1),
-            quarter2: parseFloat(t.cum_ppa_2),
-            quarter3: parseFloat(t.cum_ppa_3),
-            quarter4: parseFloat(t.cum_ppa_4),
+            quarter1: t.cum_ppa_1 ? parseFloat(t.cum_ppa_1) : null,
+            quarter2: t.cum_ppa_2 ? parseFloat(t.cum_ppa_2) : null,
+            quarter3: t.cum_ppa_3 ? parseFloat(t.cum_ppa_3) : null,
+            quarter4: t.cum_ppa_4 ? parseFloat(t.cum_ppa_4) : null,
           },
           passing: {
             total: parseFloat(t.cum_passing_ppa),
-            quarter1: parseFloat(t.cum_passing_ppa_1),
-            quarter2: parseFloat(t.cum_passing_ppa_2),
-            quarter3: parseFloat(t.cum_passing_ppa_3),
-            quarter4: parseFloat(t.cum_passing_ppa_4),
+            quarter1: t.cum_passing_ppa_1
+              ? parseFloat(t.cum_passing_ppa_1)
+              : null,
+            quarter2: t.cum_passing_ppa_2
+              ? parseFloat(t.cum_passing_ppa_2)
+              : null,
+            quarter3: t.cum_passing_ppa_3
+              ? parseFloat(t.cum_passing_ppa_3)
+              : null,
+            quarter4: t.cum_passing_ppa_4
+              ? parseFloat(t.cum_passing_ppa_4)
+              : null,
           },
           rushing: {
             total: parseFloat(t.cum_rushing_ppa),
-            quarter1: parseFloat(t.cum_rushing_ppa_1),
-            quarter2: parseFloat(t.cum_rushing_ppa_2),
-            quarter3: parseFloat(t.cum_rushing_ppa_3),
-            quarter4: parseFloat(t.cum_rushing_ppa_4),
+            quarter1: t.cum_rushing_ppa_1
+              ? parseFloat(t.cum_rushing_ppa_1)
+              : null,
+            quarter2: t.cum_rushing_ppa_2
+              ? parseFloat(t.cum_rushing_ppa_2)
+              : null,
+            quarter3: t.cum_rushing_ppa_3
+              ? parseFloat(t.cum_rushing_ppa_3)
+              : null,
+            quarter4: t.cum_rushing_ppa_4
+              ? parseFloat(t.cum_rushing_ppa_4)
+              : null,
           },
         }),
       ),
@@ -466,24 +482,40 @@ FROM team AS t
           team: t.team,
           overall: {
             total: parseFloat(t.success_rate),
-            quarter1: parseFloat(t.success_rate_1),
-            quarter2: parseFloat(t.success_rate_2),
-            quarter3: parseFloat(t.success_rate_3),
-            quarter4: parseFloat(t.success_rate_4),
+            quarter1: t.success_rate_1 ? parseFloat(t.success_rate_1) : null,
+            quarter2: t.success_rate_2 ? parseFloat(t.success_rate_2) : null,
+            quarter3: t.success_rate_3 ? parseFloat(t.success_rate_3) : null,
+            quarter4: t.success_rate_4 ? parseFloat(t.success_rate_4) : null,
           },
           standardDowns: {
             total: parseFloat(t.standard_success_rate),
-            quarter1: parseFloat(t.standard_success_rate_1),
-            quarter2: parseFloat(t.standard_success_rate_2),
-            quarter3: parseFloat(t.standard_success_rate_3),
-            quarter4: parseFloat(t.standard_success_rate_4),
+            quarter1: t.standard_success_rate_1
+              ? parseFloat(t.standard_success_rate_1)
+              : null,
+            quarter2: t.standard_success_rate_2
+              ? parseFloat(t.standard_success_rate_2)
+              : null,
+            quarter3: t.standard_success_rate_3
+              ? parseFloat(t.standard_success_rate_3)
+              : null,
+            quarter4: t.standard_success_rate_4
+              ? parseFloat(t.standard_success_rate_4)
+              : null,
           },
           passingDowns: {
             total: parseFloat(t.passing_success_rate),
-            quarter1: parseFloat(t.passing_success_rate_1),
-            quarter2: parseFloat(t.passing_success_rate_2),
-            quarter3: parseFloat(t.passing_success_rate_3),
-            quarter4: parseFloat(t.passing_success_rate_4),
+            quarter1: t.passing_success_rate_1
+              ? parseFloat(t.passing_success_rate_1)
+              : null,
+            quarter2: t.passing_success_rate_2
+              ? parseFloat(t.passing_success_rate_2)
+              : null,
+            quarter3: t.passing_success_rate_3
+              ? parseFloat(t.passing_success_rate_3)
+              : null,
+            quarter4: t.passing_success_rate_4
+              ? parseFloat(t.passing_success_rate_4)
+              : null,
           },
         }),
       ),
@@ -492,10 +524,10 @@ FROM team AS t
           team: t.team,
           overall: {
             total: parseFloat(t.explosiveness),
-            quarter1: parseFloat(t.explosiveness_1),
-            quarter2: parseFloat(t.explosiveness_2),
-            quarter3: parseFloat(t.explosiveness_3),
-            quarter4: parseFloat(t.explosiveness_4),
+            quarter1: t.explosiveness_1 ? parseFloat(t.explosiveness_1) : null,
+            quarter2: t.explosiveness_2 ? parseFloat(t.explosiveness_2) : null,
+            quarter3: t.explosiveness_3 ? parseFloat(t.explosiveness_3) : null,
+            quarter4: t.explosiveness_4 ? parseFloat(t.explosiveness_4) : null,
           },
         }),
       ),
@@ -553,10 +585,10 @@ FROM team AS t
           team: p.school,
           position: p.position,
           total: parseFloat(p.overall_usage),
-          quarter1: parseFloat(p.overall_usage_1),
-          quarter2: parseFloat(p.overall_usage_2),
-          quarter3: parseFloat(p.overall_usage_3),
-          quarter4: parseFloat(p.overall_usage_4),
+          quarter1: p.overall_usage_1 ? parseFloat(p.overall_usage_1) : null,
+          quarter2: p.overall_usage_2 ? parseFloat(p.overall_usage_2) : null,
+          quarter3: p.overall_usage_3 ? parseFloat(p.overall_usage_3) : null,
+          quarter4: p.overall_usage_4 ? parseFloat(p.overall_usage_4) : null,
           rushing: parseFloat(p.rush_usage),
           passing: parseFloat(p.pass_usage),
         }),
@@ -568,19 +600,19 @@ FROM team AS t
           position: p.position,
           average: {
             total: parseFloat(p.ppa),
-            quarter1: parseFloat(p.ppa_1),
-            quarter2: parseFloat(p.ppa_2),
-            quarter3: parseFloat(p.ppa_3),
-            quarter4: parseFloat(p.ppa_4),
+            quarter1: p.ppa_1 ? parseFloat(p.ppa_1) : null,
+            quarter2: p.ppa_2 ? parseFloat(p.ppa_2) : null,
+            quarter3: p.ppa_3 ? parseFloat(p.ppa_3) : null,
+            quarter4: p.ppa_4 ? parseFloat(p.ppa_4) : null,
             rushing: parseFloat(p.ppa_rush),
             passing: parseFloat(p.ppa_pass),
           },
           cumulative: {
             total: parseFloat(p.cum_ppa),
-            quarter1: parseFloat(p.cum_ppa_1),
-            quarter2: parseFloat(p.cum_ppa_2),
-            quarter3: parseFloat(p.cum_ppa_3),
-            quarter4: parseFloat(p.cum_ppa_4),
+            quarter1: p.cum_ppa_1 ? parseFloat(p.cum_ppa_1) : null,
+            quarter2: p.cum_ppa_2 ? parseFloat(p.cum_ppa_2) : null,
+            quarter3: p.cum_ppa_3 ? parseFloat(p.cum_ppa_3) : null,
+            quarter4: p.cum_ppa_4 ? parseFloat(p.cum_ppa_4) : null,
             rushing: parseFloat(p.cum_ppa_rush),
             passing: parseFloat(p.cum_ppa_pass),
           },
