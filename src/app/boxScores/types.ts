@@ -1,9 +1,9 @@
 export interface StatsByQuarter {
   total: number;
-  quarter1: number;
-  quarter2: number;
-  quarter3: number;
-  quarter4: number;
+  quarter1: number | null;
+  quarter2: number | null;
+  quarter3: number | null;
+  quarter4: number | null;
 }
 
 export interface TeamPPA {
