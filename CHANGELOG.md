@@ -1,3 +1,10 @@
+## [5.6.6](https://github.com/CFBD/cfb-api-v2/compare/v5.6.5...v5.6.6) (2025-03-04)
+
+
+### Bug Fixes
+
+* **box scores:** another type binding fix ([256b044](https://github.com/CFBD/cfb-api-v2/commit/256b0446019ac83a6cf02c60f4f3bace8e4e38ed))
+
 ## [5.6.5](https://github.com/CFBD/cfb-api-v2/compare/v5.6.4...v5.6.5) (2025-03-04)
 
 
