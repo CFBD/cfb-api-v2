@@ -399,12 +399,12 @@ FROM team AS t
     gameInfo: {
       homeTeam: homeTeam.team,
       homePoints: homeTeam.points,
-      homeWinProb: homeTeam.win_prob,
+      homeWinProb: Number(homeTeam.win_prob),
       awayTeam: awayTeam.team,
       awayPoints: awayTeam.points,
-      awayWinProb: awayTeam.win_prob,
+      awayWinProb: Number(awayTeam.win_prob),
       homeWinner: homeTeam.winner,
-      excitement: homeTeam.excitement,
+      excitement: Number(homeTeam.excitement),
     },
     teams: {
       ppa: teamResults.map(
@@ -502,22 +502,22 @@ FROM team AS t
       rushing: teamResults.map(
         (t): TeamRushingStats => ({
           team: t.team,
-          powerSuccess: t.power_success,
-          stuffRate: t.stuff_rate,
-          lineYards: t.line_yards,
-          lineYardsAverage: t.line_yards_avg,
-          secondLevelYards: t.second_level_yards,
-          secondLevelYardsAverage: t.second_level_yards_avg,
-          openFieldYards: t.open_field_yards,
-          openFieldYardsAverage: t.open_field_yards_avg,
+          powerSuccess: Number(t.power_success),
+          stuffRate: Number(t.stuff_rate),
+          lineYards: Number(t.line_yards),
+          lineYardsAverage: Number(t.line_yards_avg),
+          secondLevelYards: Number(t.second_level_yards),
+          secondLevelYardsAverage: Number(t.second_level_yards_avg),
+          openFieldYards: Number(t.open_field_yards),
+          openFieldYardsAverage: Number(t.open_field_yards_avg),
         }),
       ),
       havoc: teamResults.map(
         (t): TeamHavoc => ({
           team: teams.find((te) => te != t.team),
-          total: t.total_havoc,
-          frontSeven: t.front_seven_havoc,
-          db: t.db_havoc,
+          total: Number(t.total_havoc),
+          frontSeven: Number(t.front_seven_havoc),
+          db: Number(t.db_havoc),
         }),
       ),
       scoringOpportunities: teamResults.map((t): TeamScoringOpportunities => {
@@ -539,9 +539,10 @@ FROM team AS t
 
         return {
           team: t.team,
-          averageStart: fieldPosition.avg_start_off,
-          averageStartingPredictedPoints:
+          averageStart: Number(fieldPosition.avg_start_off),
+          averageStartingPredictedPoints: Number(
             fieldPosition.avg_predicted_points_off,
+          ),
         };
       }),
     },
