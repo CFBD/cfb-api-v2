@@ -1,3 +1,10 @@
+## [5.6.5](https://github.com/CFBD/cfb-api-v2/compare/v5.6.4...v5.6.5) (2025-03-04)
+
+
+### Bug Fixes
+
+* **box scores:** more validation fixes ([ef6b67d](https://github.com/CFBD/cfb-api-v2/commit/ef6b67d772b03fa244cbb9f290c50cf1918c83a1))
+
 ## [5.6.4](https://github.com/CFBD/cfb-api-v2/compare/v5.6.3...v5.6.4) (2025-03-04)
 
 
