@@ -299,7 +299,6 @@ jobs:
         run: |
           sudo yes | cp -a ./csharp-client/. cfbd-net
           cd cfbd-net
-          rm git_push.sh
           sed -i '36,68d' README.md
           sed -i '36i Install via the dotnet CLI:' README.md
           sed -i '37i ```bash' README.md
