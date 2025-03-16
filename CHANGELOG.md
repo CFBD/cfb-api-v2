@@ -1,3 +1,10 @@
+## [5.6.7](https://github.com/CFBD/cfb-api-v2/compare/v5.6.6...v5.6.7) (2025-03-16)
+
+
+### Bug Fixes
+
+* dotnet package build ([6fd260e](https://github.com/CFBD/cfb-api-v2/commit/6fd260eea4252724938377d8aa32946f0b6d18a5))
+
 ## [5.6.6](https://github.com/CFBD/cfb-api-v2/compare/v5.6.5...v5.6.6) (2025-03-04)
 
 
