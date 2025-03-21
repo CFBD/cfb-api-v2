@@ -4,7 +4,7 @@ import { ApiUser } from 'src/globals';
 
 export const ignoredPaths = [
   '/live/plays',
-  '/games/weather',
+  // '/games/weather',
   '/scoreboard',
   '/auth/graphql',
 ];
