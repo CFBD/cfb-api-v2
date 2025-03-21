@@ -1,3 +1,10 @@
+## [5.6.8](https://github.com/CFBD/cfb-api-v2/compare/v5.6.7...v5.6.8) (2025-03-21)
+
+
+### Bug Fixes
+
+* **quotas:** weather should be included ([df038d6](https://github.com/CFBD/cfb-api-v2/commit/df038d637147061fb310f566663b68b14704a532))
+
 ## [5.6.7](https://github.com/CFBD/cfb-api-v2/compare/v5.6.6...v5.6.7) (2025-03-16)
 
 
