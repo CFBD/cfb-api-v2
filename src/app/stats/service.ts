@@ -561,6 +561,7 @@ export const getTeamStats = async (
         .onRef('conferenceTeam.conferenceId', '=', 'conference.id')
         .on('conference.division', '=', 'fbs'),
     )
+    .where('game.status', '=', 'completed')
     .select(['game.season', 'team.school', 'conference.name as conference'])
     .select(sql.lit('games').as('statType'))
     .select((eb) => eb.fn.countAll().as('stat'))
