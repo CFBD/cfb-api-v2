@@ -1,3 +1,10 @@
+## [5.6.9](https://github.com/CFBD/cfb-api-v2/compare/v5.6.8...v5.6.9) (2025-03-25)
+
+
+### Bug Fixes
+
+* **stats:** show only completed games ([58370d2](https://github.com/CFBD/cfb-api-v2/commit/58370d26d2b20cf8e0016344b0ea11aab80c3888))
+
 ## [5.6.8](https://github.com/CFBD/cfb-api-v2/compare/v5.6.7...v5.6.8) (2025-03-21)
 
 
