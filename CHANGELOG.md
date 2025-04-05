@@ -1,3 +1,10 @@
+## [5.6.11](https://github.com/CFBD/cfb-api-v2/compare/v5.6.10...v5.6.11) (2025-04-05)
+
+
+### Bug Fixes
+
+* **python:** more ratings typing fixes ([7f5c783](https://github.com/CFBD/cfb-api-v2/commit/7f5c783fceecbd25be47c633defc16edaa600b80))
+
 ## [5.6.10](https://github.com/CFBD/cfb-api-v2/compare/v5.6.9...v5.6.10) (2025-04-05)
 
 
