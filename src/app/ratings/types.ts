@@ -9,14 +9,14 @@ export interface TeamSP {
   /**
    * @isInt
    */
-  ranking: number;
+  ranking: number | null;
   secondOrderWins: number | null;
   sos: number | null;
   offense: {
     /**
      * @isInt
      */
-    ranking: number;
+    ranking: number | null;
     rating: number;
     success: number | null;
     explosiveness: number | null;
@@ -31,7 +31,7 @@ export interface TeamSP {
     /**
      * @isInt
      */
-    ranking: number;
+    ranking: number | null;
     rating: number;
     success: number | null;
     explosiveness: number | null;
@@ -101,7 +101,7 @@ export interface TeamSRS {
   /**
    * @isInt
    */
-  ranking: number;
+  ranking: number | null;
 }
 
 export interface TeamElo {
