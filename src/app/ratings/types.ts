@@ -4,7 +4,7 @@ export interface TeamSP {
    */
   year: number;
   team: string;
-  conference: string;
+  conference: string | null;
   rating: number;
   /**
    * @isInt
