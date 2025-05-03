@@ -24,25 +24,11 @@ export const getCoaches = async (
         .onRef('srs.year', '=', 'ratings.year')
         .onRef('srs.teamId', '=', 'ratings.teamId'),
     )
-    .leftJoin('coachTeam', (join) =>
-      join
-        .onRef('coach.id', '=', 'coachTeam.coachId')
-        .onRef('team.id', '=', 'coachTeam.teamId')
-        .on((eb) =>
-          eb(
-            'coachSeason.year',
-            '>=',
-            // @ts-ignore
-            sql`extract(year from coach_team.hire_date)`,
-          ),
-        ),
-    )
     .select([
       'coach.id',
       'coach.firstName',
       'coach.lastName',
       'team.school',
-      'coachTeam.hireDate',
       'coachSeason.year',
       'coachSeason.games',
       'coachSeason.wins',
@@ -55,6 +41,23 @@ export const getCoaches = async (
       'ratings.oRating as spOffense',
       'ratings.dRating as spDefense',
     ])
+    .select((eb) =>
+      eb
+        .selectFrom('coachTeam')
+        .whereRef('coachTeam.coachId', '=', 'coach.id')
+        .whereRef('coachTeam.teamId', '=', 'team.id')
+        .where((eb) =>
+          eb(
+            'coachSeason.year',
+            '>=',
+            sql<number>`extract(year from coach_team.hire_date)`,
+          ),
+        )
+        .orderBy('coachTeam.hireDate', 'desc')
+        .limit(1)
+        .select('coachTeam.hireDate')
+        .as('hireDate'),
+    )
     .orderBy('coach.lastName')
     .orderBy('coach.firstName')
     .orderBy('coachSeason.year');
