@@ -1,3 +1,10 @@
+## [5.6.12](https://github.com/CFBD/cfb-api-v2/compare/v5.6.11...v5.6.12) (2025-05-03)
+
+
+### Bug Fixes
+
+* **coaches:** duplicate records when multiple tenures ([4e68fe3](https://github.com/CFBD/cfb-api-v2/commit/4e68fe3dd1d724c1572e13b7ef1ea0034e239e7f))
+
 ## [5.6.11](https://github.com/CFBD/cfb-api-v2/compare/v5.6.10...v5.6.11) (2025-04-05)
 
 
