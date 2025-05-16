@@ -1,3 +1,10 @@
+## [5.6.15](https://github.com/CFBD/cfb-api-v2/compare/v5.6.14...v5.6.15) (2025-05-16)
+
+
+### Bug Fixes
+
+* **advancedStats:** allow null values for explosiveness ([0d12f6c](https://github.com/CFBD/cfb-api-v2/commit/0d12f6c89ed8c9f0bca111bbfc39d5f1ea51ce3c))
+
 ## [5.6.14](https://github.com/CFBD/cfb-api-v2/compare/v5.6.13...v5.6.14) (2025-05-16)
 
 
