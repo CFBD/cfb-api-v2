@@ -149,7 +149,7 @@ jobs:
           sudo apt install curl -y
       - name: Get API version
         run: |
-          api_version=$(curl https://apinext.collegefootballdata.com/api-docs.json | jq .info.version)
+          api_version=$(curl https://api.collegefootballdata.com/api-docs.json | jq .info.version)
           api_version=${api_version%\"}
           api_version=${api_version#\"}
           echo "api_version=$api_version" >> $GITHUB_ENV
@@ -178,11 +178,11 @@ jobs:
       - name: Generate library
         id: generate
         run: |
-          api_version=$(curl https://apinext.collegefootballdata.com/api-docs.json | jq .info.version)
+          api_version=$(curl https://api.collegefootballdata.com/api-docs.json | jq .info.version)
           api_version=${api_version%\"}
           api_version=${api_version#\"}
           package_version=(${api_version})
-          code=$(curl -X POST -H "content-type:application/json" -d '{"openAPIUrl": "https://apinext.collegefootballdata.com/api-docs.json", "options": { "packageName": "cfbd", "projectName": "cfbd", "packageUrl": "https://github.com/CFBD/cfbd-python", "packageVersion": "'"${package_version}"'"}}' https://api.openapi-generator.tech/api/gen/clients/python-pydantic-v1 | jq '. | .code')
+          code=$(curl -X POST -H "content-type:application/json" -d '{"openAPIUrl": "https://api.collegefootballdata.com/api-docs.json", "options": { "packageName": "cfbd", "projectName": "cfbd", "packageUrl": "https://github.com/CFBD/cfbd-python", "packageVersion": "'"${package_version}"'"}}' https://api.openapi-generator.tech/api/gen/clients/python-pydantic-v1 | jq '. | .code')
           code=${code%\"}
           code=${code#\"}
           wget 'http://api.openapi-generator.tech/api/gen/download/'"${code}"''
@@ -238,7 +238,7 @@ jobs:
           token: ${{ secrets.GH_PAT }}
       - name: Download spec
         run: |
-          wget https://apinext.collegefootballdata.com/api-docs.json
+          wget https://api.collegefootballdata.com/api-docs.json
       - name: Set version number
         run: |
           api_version=$(cat api-docs.json | jq '. | .info.version')
@@ -249,7 +249,7 @@ jobs:
       - name: Generate client
         run: |
           npx @hey-api/openapi-ts -i api-docs.json -o src -c @hey-api/client-fetch
-          sed -i 's/createConfig()/createConfig({ baseUrl: '\''https:\/\/apinext.collegefootballdata.com'\'' })/g' src/sdk.gen.ts
+          sed -i 's/createConfig()/createConfig({ baseUrl: '\''https:\/\/api.collegefootballdata.com'\'' })/g' src/sdk.gen.ts
       - name: Commit and push changes
         run: |
           echo "Configuring git..."
@@ -278,11 +278,11 @@ jobs:
       - name: Generate library
         id: generate
         run: |
-          api_version=$(curl https://apinext.collegefootballdata.com/api-docs.json | jq .info.version)
+          api_version=$(curl https://api.collegefootballdata.com/api-docs.json | jq .info.version)
           api_version=${api_version%\"}
           api_version=${api_version#\"}
           package_version=(${api_version})
-          code=$(curl -X POST -H "content-type:application/json" -d '{"openAPIUrl": "https://apinext.collegefootballdata.com/api-docs.json", "options": { "packageName": "CollegeFootballData", "projectName": "cfbd", "packageUrl": "https://github.com/CFBD/cbbd-csharp", "packageVersion": "'"${package_version}"'", "targetFramework": "net8.0", "packageTags": "CFBD;CFB;NCAAF;NCAA;football"}}' https://api.openapi-generator.tech/api/gen/clients/csharp | jq '. | .code')
+          code=$(curl -X POST -H "content-type:application/json" -d '{"openAPIUrl": "https://api.collegefootballdata.com/api-docs.json", "options": { "packageName": "CollegeFootballData", "projectName": "cfbd", "packageUrl": "https://github.com/CFBD/cbbd-csharp", "packageVersion": "'"${package_version}"'", "targetFramework": "net8.0", "packageTags": "CFBD;CFB;NCAAF;NCAA;football"}}' https://api.openapi-generator.tech/api/gen/clients/csharp | jq '. | .code')
           code=${code%\"}
           code=${code#\"}
           wget 'http://api.openapi-generator.tech/api/gen/download/'"${code}"''

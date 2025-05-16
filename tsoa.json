@@ -5,7 +5,7 @@
   "spec": {
     "outputDirectory": "build",
     "specVersion": 3,
-    "host": "apinext.collegefootballdata.com",
+    "host": "api.collegefootballdata.com",
     "name": "College Football Data API",
     "description": "This is an API for query various college football datasets and analytics. API keys can be acquired from the CollegeFootballData.com website.",
     "license": "",

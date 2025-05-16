@@ -1,6 +1,6 @@
 # CFBD API v2
 
-This is the repository for the CFBD API v2, currently hosted at [APINext.CollegeFootballData.com](https://apinext.collegefootballdata.com). The API is built on NodeJS using TypeScript and Express over a PostgreSQL database.
+This is the repository for the CFBD API v2, currently hosted at [api.CollegeFootballData.com](https://api.collegefootballdata.com). The API is built on NodeJS using TypeScript and Express over a PostgreSQL database.
 
 ## Getting Started
 
