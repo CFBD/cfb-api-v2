@@ -1,3 +1,10 @@
+## [5.6.13](https://github.com/CFBD/cfb-api-v2/compare/v5.6.12...v5.6.13) (2025-05-16)
+
+
+### Bug Fixes
+
+* **advancedStats:** type bindings ([ca53233](https://github.com/CFBD/cfb-api-v2/commit/ca532337abd8d10fc6f0a00fbb61cc1da1dadabf))
+
 ## [5.6.12](https://github.com/CFBD/cfb-api-v2/compare/v5.6.11...v5.6.12) (2025-05-03)
 
 
