@@ -1,3 +1,10 @@
+## [5.6.14](https://github.com/CFBD/cfb-api-v2/compare/v5.6.13...v5.6.14) (2025-05-16)
+
+
+### Bug Fixes
+
+* **advancedStats:** more type fixings) ([5b48d7d](https://github.com/CFBD/cfb-api-v2/commit/5b48d7d5a192f512b361b256be1508ef6688e7fd))
+
 ## [5.6.13](https://github.com/CFBD/cfb-api-v2/compare/v5.6.12...v5.6.13) (2025-05-16)
 
 
