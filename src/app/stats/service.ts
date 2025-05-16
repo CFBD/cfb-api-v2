@@ -1168,7 +1168,7 @@ export const getAdvancedStats = async (
           totalPPA: parseFloat(defense.total_ppa),
           successRate: parseFloat(defense.success_rate),
           explosiveness: parseFloat(defense.explosiveness),
-          powerSuccess: parseFloat(defense.power_success),
+          powerSuccess: defense.power_success ? Number(defense.power_success) : null,
           stuffRate: parseFloat(defense.stuff_rate),
           lineYards: parseFloat(defense.line_yards),
           lineYardsTotal: parseInt(defense.line_yards_sum),

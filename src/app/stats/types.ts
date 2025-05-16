@@ -206,7 +206,7 @@ export interface AdvancedGameStat {
     totalPPA: number;
     successRate: number;
     explosiveness: number;
-    powerSuccess: number;
+    powerSuccess: number | null;
     stuffRate: number;
     lineYards: number;
     /**
@@ -218,7 +218,7 @@ export interface AdvancedGameStat {
      * @isInt
      */
     secondLevelYardsTotal: number;
-    openFieldYards: number;
+    openFieldYards: number | null;
     /**
      * @isInt
      */
@@ -259,7 +259,7 @@ export interface AdvancedGameStat {
     totalPPA: number;
     successRate: number;
     explosiveness: number;
-    powerSuccess: number;
+    powerSuccess: number | null;
     stuffRate: number;
     lineYards: number;
     /**
@@ -275,7 +275,7 @@ export interface AdvancedGameStat {
     /**
      * @isInt
      */
-    openFieldYardsTotal: number;
+    openFieldYardsTotal: number | null;
     standardDowns: {
       ppa: number;
       successRate: number;
