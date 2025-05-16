@@ -1112,7 +1112,9 @@ export const getAdvancedStats = async (
           secondLevelYards: parseFloat(offense.second_level_yards),
           secondLevelYardsTotal: parseInt(offense.second_level_yards_sum),
           openFieldYards: parseFloat(offense.open_field_yards),
-          openFieldYardsTotal: parseInt(offense.open_field_yards_sum),
+          openFieldYardsTotal: offense.open_field_yards_sum
+            ? Number(offense.open_field_yards_sum)
+            : 0,
           totalOpportunies: parseInt(
             scoringOppO ? scoringOppO.opportunities : 0,
           ),
@@ -1173,7 +1175,9 @@ export const getAdvancedStats = async (
           secondLevelYards: parseFloat(defense.second_level_yards),
           secondLevelYardsTotal: parseInt(defense.second_level_yards_sum),
           openFieldYards: parseFloat(defense.open_field_yards),
-          openFieldYardsTotal: parseInt(defense.open_field_yards_sum),
+          openFieldYardsTotal: defense.open_field_yards_total
+            ? Number(defense.open_field_yards_total)
+            : 0,
           totalOpportunies: parseInt(
             scoringOppD ? scoringOppD.opportunities : 0,
           ),

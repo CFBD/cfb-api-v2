@@ -45,8 +45,8 @@ export interface AdvancedSeasonStat {
     ppa: number;
     totalPPA: number;
     successRate: number;
-    explosiveness: number;
-    powerSuccess: number;
+    explosiveness: number | null;
+    powerSuccess: number | null;
     stuffRate: number;
     lineYards: number;
     /**
@@ -116,8 +116,8 @@ export interface AdvancedSeasonStat {
     ppa: number;
     totalPPA: number;
     successRate: number;
-    explosiveness: number;
-    powerSuccess: number;
+    explosiveness: number | null;
+    powerSuccess: number | null;
     stuffRate: number;
     lineYards: number;
     /**
