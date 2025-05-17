@@ -209,8 +209,16 @@ export const getPlayerUsage = async (
             .onRef('play.offenseId', '=', 'team.id')
             .on('play.ppa', 'is not', null),
         )
-        .innerJoin('playStat', 'play.id', 'playStat.playId')
-        .innerJoin('athlete', 'playStat.athleteId', 'athlete.id')
+        .innerJoin(
+          (eb) =>
+            eb
+              .selectFrom('playStat')
+              .select(['playStat.playId', 'playStat.athleteId'])
+              .distinct()
+              .as('playStatAthlete'),
+          (join) => join.onRef('play.id', '=', 'playStatAthlete.playId'),
+        )
+        .innerJoin('athlete', 'playStatAthlete.athleteId', 'athlete.id')
         .innerJoin('athleteTeam', (join) =>
           join
             .onRef('athlete.id', '=', 'athleteTeam.athleteId')
