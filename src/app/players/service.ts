@@ -219,15 +219,16 @@ export const getPlayerUsage = async (
           (join) => join.onRef('play.id', '=', 'playStatAthlete.playId'),
         )
         .innerJoin('athlete', 'playStatAthlete.athleteId', 'athlete.id')
-        .innerJoin('athleteTeam', (join) =>
-          join
-            .onRef('athlete.id', '=', 'athleteTeam.athleteId')
-            .onRef('athleteTeam.startYear', '<=', 'game.season')
-            .onRef('athleteTeam.endYear', '>=', 'game.season')
-            .onRef('athleteTeam.teamId', '=', 'team.id'),
-        )
+        // .innerJoin('athleteTeam', (join) =>
+        //   join
+        //     .onRef('athlete.id', '=', 'athleteTeam.athleteId')
+        //     .onRef('athleteTeam.startYear', '<=', 'game.season')
+        //     .onRef('athleteTeam.endYear', '>=', 'game.season')
+        //     .onRef('athleteTeam.teamId', '=', 'team.id'),
+        // )
         .innerJoin('position', 'athlete.positionId', 'position.id')
         .where('position.abbreviation', 'in', ['QB', 'RB', 'FB', 'TE', 'WR'])
+        .where('game.season', '=', year)
         .groupBy([
           'game.season',
           'athlete.id',
@@ -303,10 +304,6 @@ export const getPlayerUsage = async (
 
       if (excludeGarbageTime) {
         playsQuery = playsQuery.where('play.garbageTime', '=', false);
-      }
-
-      if (year) {
-        playsQuery = playsQuery.where('game.season', '=', year);
       }
 
       if (conference) {
