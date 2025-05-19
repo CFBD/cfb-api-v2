@@ -1,3 +1,10 @@
+## [5.6.17](https://github.com/CFBD/cfb-api-v2/compare/v5.6.16...v5.6.17) (2025-05-19)
+
+
+### Bug Fixes
+
+* **playerUsage:** player usage over 100% ([6735970](https://github.com/CFBD/cfb-api-v2/commit/6735970d3667933ed7ec623dce72907faebc457f))
+
 ## [5.6.16](https://github.com/CFBD/cfb-api-v2/compare/v5.6.15...v5.6.16) (2025-05-17)
 
 
