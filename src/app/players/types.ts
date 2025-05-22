@@ -46,14 +46,14 @@ export interface PlayerUsage {
   team: string;
   conference: string;
   usage: {
-    overall: number;
-    pass: number;
-    rush: number;
-    firstDown: number;
-    secondDown: number;
-    thirdDown: number;
-    standardDowns: number;
-    passingDowns: number;
+    overall: number | null;
+    pass: number | null;
+    rush: number | null;
+    firstDown: number | null;
+    secondDown: number | null;
+    thirdDown: number | null;
+    standardDowns: number | null;
+    passingDowns: number | null;
   };
 }
 
