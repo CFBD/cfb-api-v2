@@ -1099,132 +1099,146 @@ export const getAdvancedStats = async (
         team: t,
         conference: offense.conference,
         offense: {
-          plays: parseInt(offense.plays),
-          drives: parseInt(offense.drives),
-          ppa: parseFloat(offense.ppa),
-          totalPPA: parseFloat(offense.total_ppa),
-          successRate: parseFloat(offense.success_rate),
-          explosiveness: parseFloat(offense.explosiveness),
-          powerSuccess: parseFloat(offense.power_success),
-          stuffRate: parseFloat(offense.stuff_rate),
-          lineYards: parseFloat(offense.line_yards),
-          lineYardsTotal: parseInt(offense.line_yards_sum),
-          secondLevelYards: parseFloat(offense.second_level_yards),
-          secondLevelYardsTotal: parseInt(offense.second_level_yards_sum),
-          openFieldYards: parseFloat(offense.open_field_yards),
+          plays: Number(offense.plays),
+          drives: Number(offense.drives),
+          ppa: Number(offense.ppa),
+          totalPPA: Number(offense.total_ppa),
+          successRate: offense.success_rate ? Number(offense.success_rate) : 0,
+          explosiveness: offense.explosiveness
+            ? Number(offense.explosiveness)
+            : 0,
+          powerSuccess: offense.power_success
+            ? Number(offense.power_success)
+            : 0,
+          stuffRate: offense.stuff_rate ? Number(offense.stuff_rate) : 0,
+          lineYards: offense.line_yards ? Number(offense.line_yards) : 0,
+          lineYardsTotal: offense.line_yards_sum
+            ? Number(offense.line_yards_sum)
+            : 0,
+          secondLevelYards: offense.second_level_yards
+            ? Number(offense.second_level_yards)
+            : 0,
+          secondLevelYardsTotal: offense.second_level_yards_sum
+            ? Number(offense.second_level_yards_sum)
+            : 0,
+          openFieldYards: offense.open_field_yards
+            ? Number(offense.open_field_yards)
+            : 0,
           openFieldYardsTotal: offense.open_field_yards_sum
             ? Number(offense.open_field_yards_sum)
             : 0,
-          totalOpportunies: parseInt(
-            scoringOppO ? scoringOppO.opportunities : 0,
-          ),
-          pointsPerOpportunity: parseFloat(
-            scoringOppO ? scoringOppO.points : 0,
-          ),
+          totalOpportunies: Number(scoringOppO ? scoringOppO.opportunities : 0),
+          pointsPerOpportunity: Number(scoringOppO ? scoringOppO.points : 0),
           fieldPosition: {
             averageStart: fieldPosition
-              ? parseFloat(fieldPosition.avg_start_off)
+              ? Number(fieldPosition.avg_start_off)
               : null,
             averagePredictedPoints: fieldPosition
-              ? parseFloat(fieldPosition.avg_predicted_points_off)
+              ? Number(fieldPosition.avg_predicted_points_off)
               : null,
           },
           havoc: {
-            total: havocO ? parseFloat(havocO.total_havoc) : null,
-            frontSeven: havocO ? parseFloat(havocO.front_seven_havoc) : null,
-            db: havocO ? parseFloat(havocO.db_havoc) : null,
+            total: havocO ? Number(havocO.total_havoc) : null,
+            frontSeven: havocO ? Number(havocO.front_seven_havoc) : null,
+            db: havocO ? Number(havocO.db_havoc) : null,
           },
           standardDowns: {
-            rate: parseFloat(offense.standard_down_rate),
-            ppa: parseFloat(offense.standard_down_ppa),
-            successRate: parseFloat(offense.standard_down_success_rate),
-            explosiveness: parseFloat(offense.standard_down_explosiveness),
+            rate: Number(offense.standard_down_rate),
+            ppa: Number(offense.standard_down_ppa),
+            successRate: Number(offense.standard_down_success_rate),
+            explosiveness: Number(offense.standard_down_explosiveness),
           },
           passingDowns: {
-            rate: parseFloat(offense.passing_down_rate),
-            ppa: parseFloat(offense.passing_down_ppa),
-            successRate: parseFloat(offense.passing_down_success_rate),
-            explosiveness: parseFloat(offense.passing_down_explosiveness),
+            rate: Number(offense.passing_down_rate),
+            ppa: Number(offense.passing_down_ppa),
+            successRate: Number(offense.passing_down_success_rate),
+            explosiveness: Number(offense.passing_down_explosiveness),
           },
           rushingPlays: {
-            rate: parseFloat(offense.rush_rate),
-            ppa: parseFloat(offense.rushing_ppa),
-            totalPPA: parseFloat(offense.total_rushing_ppa),
-            successRate: parseFloat(offense.rush_success_rate),
-            explosiveness: parseFloat(offense.rush_explosiveness),
+            rate: Number(offense.rush_rate),
+            ppa: Number(offense.rushing_ppa),
+            totalPPA: Number(offense.total_rushing_ppa),
+            successRate: Number(offense.rush_success_rate),
+            explosiveness: Number(offense.rush_explosiveness),
           },
           passingPlays: {
-            rate: parseFloat(offense.passing_rate),
-            ppa: parseFloat(offense.passing_ppa),
-            totalPPA: parseFloat(offense.total_passing_ppa),
-            successRate: parseFloat(offense.pass_success_rate),
-            explosiveness: parseFloat(offense.pass_explosiveness),
+            rate: Number(offense.passing_rate),
+            ppa: Number(offense.passing_ppa),
+            totalPPA: Number(offense.total_passing_ppa),
+            successRate: Number(offense.pass_success_rate),
+            explosiveness: Number(offense.pass_explosiveness),
           },
         },
         defense: {
-          plays: parseInt(defense.plays),
-          drives: parseInt(defense.drives),
-          ppa: parseFloat(defense.ppa),
-          totalPPA: parseFloat(defense.total_ppa),
-          successRate: parseFloat(defense.success_rate),
-          explosiveness: parseFloat(defense.explosiveness),
+          plays: Number(defense.plays),
+          drives: Number(defense.drives),
+          ppa: Number(defense.ppa),
+          totalPPA: Number(defense.total_ppa),
+          successRate: defense.success_rate ? Number(defense.success_rate) : 0,
+          explosiveness: defense.explosiveness
+            ? Number(defense.explosiveness)
+            : 0,
           powerSuccess: defense.power_success
             ? Number(defense.power_success)
             : null,
-          stuffRate: parseFloat(defense.stuff_rate),
-          lineYards: parseFloat(defense.line_yards),
-          lineYardsTotal: parseInt(defense.line_yards_sum),
-          secondLevelYards: parseFloat(defense.second_level_yards),
-          secondLevelYardsTotal: parseInt(defense.second_level_yards_sum),
-          openFieldYards: parseFloat(defense.open_field_yards),
+          stuffRate: defense.stuff_rate ? Number(defense.stuff_rate) : 0,
+          lineYards: defense.line_yards ? Number(defense.line_yards) : 0,
+          lineYardsTotal: defense.line_yards_sum
+            ? Number(defense.line_yards_sum)
+            : 0,
+          secondLevelYards: defense.second_level_yards
+            ? Number(defense.second_level_yards)
+            : 0,
+          secondLevelYardsTotal: defense.second_level_yards_sum
+            ? Number(defense.second_level_yards_sum)
+            : 0,
+          openFieldYards: defense.open_field_yards
+            ? Number(defense.open_field_yards)
+            : 0,
           openFieldYardsTotal: defense.open_field_yards_total
             ? Number(defense.open_field_yards_total)
             : 0,
-          totalOpportunies: parseInt(
-            scoringOppD ? scoringOppD.opportunities : 0,
-          ),
-          pointsPerOpportunity: parseFloat(
-            scoringOppD ? scoringOppD.points : 0,
-          ),
+          totalOpportunies: Number(scoringOppD ? scoringOppD.opportunities : 0),
+          pointsPerOpportunity: Number(scoringOppD ? scoringOppD.points : 0),
           fieldPosition: {
             averageStart: fieldPosition
-              ? parseFloat(fieldPosition.avg_start_def)
+              ? Number(fieldPosition.avg_start_def)
               : null,
             averagePredictedPoints: fieldPosition
-              ? parseFloat(fieldPosition.avg_predicted_points_def)
+              ? Number(fieldPosition.avg_predicted_points_def)
               : null,
           },
           havoc: {
-            total: havocD ? parseFloat(havocD.total_havoc) : null,
-            frontSeven: havocD ? parseFloat(havocD.front_seven_havoc) : null,
-            db: havocD ? parseFloat(havocD.db_havoc) : null,
+            total: havocD ? Number(havocD.total_havoc) : null,
+            frontSeven: havocD ? Number(havocD.front_seven_havoc) : null,
+            db: havocD ? Number(havocD.db_havoc) : null,
           },
           standardDowns: {
-            rate: parseFloat(defense.standard_down_rate),
-            ppa: parseFloat(defense.standard_down_ppa),
-            successRate: parseFloat(defense.standard_down_success_rate),
-            explosiveness: parseFloat(defense.standard_down_explosiveness),
+            rate: Number(defense.standard_down_rate),
+            ppa: Number(defense.standard_down_ppa),
+            successRate: Number(defense.standard_down_success_rate),
+            explosiveness: Number(defense.standard_down_explosiveness),
           },
           passingDowns: {
-            rate: parseFloat(defense.passing_down_rate),
-            ppa: parseFloat(defense.passing_down_ppa),
-            totalPPA: parseFloat(defense.total_passing_ppa),
-            successRate: parseFloat(defense.passing_down_success_rate),
-            explosiveness: parseFloat(defense.passing_down_explosiveness),
+            rate: Number(defense.passing_down_rate),
+            ppa: Number(defense.passing_down_ppa),
+            totalPPA: Number(defense.total_passing_ppa),
+            successRate: Number(defense.passing_down_success_rate),
+            explosiveness: Number(defense.passing_down_explosiveness),
           },
           rushingPlays: {
-            rate: parseFloat(defense.rush_rate),
-            ppa: parseFloat(defense.rushing_ppa),
-            totalPPA: parseFloat(defense.total_rushing_ppa),
-            successRate: parseFloat(defense.rush_success_rate),
-            explosiveness: parseFloat(defense.rush_explosiveness),
+            rate: Number(defense.rush_rate),
+            ppa: Number(defense.rushing_ppa),
+            totalPPA: Number(defense.total_rushing_ppa),
+            successRate: Number(defense.rush_success_rate),
+            explosiveness: Number(defense.rush_explosiveness),
           },
           passingPlays: {
-            rate: parseFloat(defense.passing_rate),
-            ppa: parseFloat(defense.passing_ppa),
-            totalPPA: parseFloat(defense.total_passing_ppa),
-            successRate: parseFloat(defense.pass_success_rate),
-            explosiveness: parseFloat(defense.pass_explosiveness),
+            rate: Number(defense.passing_rate),
+            ppa: Number(defense.passing_ppa),
+            totalPPA: Number(defense.total_passing_ppa),
+            successRate: Number(defense.pass_success_rate),
+            explosiveness: Number(defense.pass_explosiveness),
           },
         },
       };

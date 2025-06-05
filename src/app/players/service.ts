@@ -535,21 +535,26 @@ export const getReturningProduction = async (
       season: r.season,
       team: r.school,
       conference: r.conference,
-      totalPPA: r.returningPpa,
-      totalPassingPPA: r.returningPassPpa,
-      totalReceivingPPA: r.returningReceivingPpa,
-      totalRushingPPA: r.returningRushPpa,
-      percentPPA: Math.round((r.returningPpa * 1000) / r.ppa) / 1000,
+      totalPPA: Number(r.returningPpa),
+      totalPassingPPA: Number(r.returningPassPpa),
+      totalReceivingPPA: Number(r.returningReceivingPpa),
+      totalRushingPPA: Number(r.returningRushPpa),
+      percentPPA:
+        Math.round((Number(r.returningPpa) * 1000) / Number(r.ppa)) / 1000,
       percentPassingPPA:
-        Math.round((r.returningPassPpa * 1000) / r.passPpa) / 1000,
+        Math.round((Number(r.returningPassPpa) * 1000) / Number(r.passPpa)) /
+        1000,
       percentReceivingPPA:
-        Math.round((r.returningReceivingPpa * 1000) / r.receivingPpa) / 1000,
+        Math.round(
+          (Number(r.returningReceivingPpa) * 1000) / Number(r.receivingPpa),
+        ) / 1000,
       percentRushingPPA:
-        Math.round((r.returningRushPpa * 1000) / r.rushPpa) / 1000,
-      usage: r.returningUsage,
-      passingUsage: r.returningPassUsage,
-      receivingUsage: r.returningReceivingUsage,
-      rushingUsage: r.returningRushUsage,
+        Math.round((Number(r.returningRushPpa) * 1000) / Number(r.rushPpa)) /
+        1000,
+      usage: Number(r.returningUsage),
+      passingUsage: Number(r.returningPassUsage),
+      receivingUsage: Number(r.returningReceivingUsage),
+      rushingUsage: Number(r.returningRushUsage),
     }),
   );
 };
@@ -587,7 +592,7 @@ export const getTransferPortal = async (
       origin: t.source,
       destination: t.destination,
       transferDate: t.transferDate,
-      rating: t.rating ? parseFloat(t.rating) : null,
+      rating: t.rating ? Number(t.rating) : null,
       stars: t.stars,
       // @ts-ignore
       eligibility: t.eligibility,
