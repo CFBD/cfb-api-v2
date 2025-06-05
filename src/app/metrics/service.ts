@@ -634,6 +634,13 @@ export const getPredictedPointsAddedByPlayerGame = async (
         .innerJoin('playStat', 'play.id', 'playStat.playId')
         .innerJoin('athlete', 'playStat.athleteId', 'athlete.id')
         .innerJoin('position', 'athlete.positionId', 'position.id')
+        .innerJoin('athleteTeam', (join) =>
+          join
+            .onRef('athlete.id', '=', 'athleteTeam.athleteId')
+            .onRef('athleteTeam.startYear', '<=', 'game.season')
+            .onRef('athleteTeam.endYear', '>=', 'game.season')
+            .onRef('athleteTeam.teamId', '=', 't.id'),
+        )
         .leftJoin('conferenceTeam as ct', (join) =>
           join
             .onRef('t.id', '=', 'ct.teamId')
@@ -901,6 +908,13 @@ export const getPredictedPointsAddedByPlayerSeason = async (
         )
         .innerJoin('playStat', 'play.id', 'playStat.playId')
         .innerJoin('athlete', 'playStat.athleteId', 'athlete.id')
+        .innerJoin('athleteTeam', (join) =>
+          join
+            .onRef('athlete.id', '=', 'athleteTeam.athleteId')
+            .onRef('athleteTeam.startYear', '<=', 'game.season')
+            .onRef('athleteTeam.endYear', '>=', 'game.season')
+            .onRef('athleteTeam.teamId', '=', 't.id'),
+        )
         .innerJoin('position', 'athlete.positionId', 'position.id')
         .select([
           't.school',
