@@ -1,3 +1,10 @@
+## [5.6.20](https://github.com/CFBD/cfb-api-v2/compare/v5.6.19...v5.6.20) (2025-06-05)
+
+
+### Bug Fixes
+
+* **playerStats:** remove bad player EPA stats ([34d86d2](https://github.com/CFBD/cfb-api-v2/commit/34d86d2af32383d01c84d30d60b5eba48e7c4259))
+
 ## [5.6.19](https://github.com/CFBD/cfb-api-v2/compare/v5.6.18...v5.6.19) (2025-06-05)
 
 
