@@ -1,3 +1,10 @@
+## [5.6.19](https://github.com/CFBD/cfb-api-v2/compare/v5.6.18...v5.6.19) (2025-06-05)
+
+
+### Bug Fixes
+
+* **python:** pydantic fixes ([3dabeca](https://github.com/CFBD/cfb-api-v2/commit/3dabecac167284af815ea4d395e3f562a6a5b650))
+
 ## [5.6.18](https://github.com/CFBD/cfb-api-v2/compare/v5.6.17...v5.6.18) (2025-05-22)
 
 
