@@ -1,3 +1,10 @@
+## [5.6.21](https://github.com/CFBD/cfb-api-v2/compare/v5.6.20...v5.6.21) (2025-06-27)
+
+
+### Bug Fixes
+
+* **dotnet:** nullable types not being initialized ([a4c66ec](https://github.com/CFBD/cfb-api-v2/commit/a4c66ec1e021e7245cdf151fdf2a71c3de3da0b0))
+
 ## [5.6.20](https://github.com/CFBD/cfb-api-v2/compare/v5.6.19...v5.6.20) (2025-06-05)
 
 
