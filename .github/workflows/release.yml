@@ -299,11 +299,80 @@ jobs:
         run: |
           sudo yes | cp -a ./csharp-client/. cfbd-net
           cd cfbd-net
-          sed -i '36,68d' README.md
-          sed -i '36i Install via the dotnet CLI:' README.md
-          sed -i '37i ```bash' README.md
-          sed -i '38i dotnet add package CollegeFootballData' README.md
-          sed -i '39i ```' README.md
+          find "./src/CollegeFootballData/Model/" -type f -name "*.cs" | while read -r>    echo "Processing $file"
+
+              # Create a temp file
+              tmpfile=$(mktemp)
+
+              awk '
+              {
+                  # If the previous line matched, remove 4 leading spaces from this one
+                  if (fix_next_line) {
+                      sub(/^ {4}/, "", $0)
+                      fix_next_line = 0
+                      print
+                      next
+                  }
+
+                  # Match line containing the target condition, ignoring leading whitespace
+                  if ($0 ~ /^[[:space:]]*if \(utf8JsonReader\.TokenType != JsonTokenType\.Null\)/) {
+                      fix_next_line = 1
+                      next  # Skip (delete) this line
+                  }
+
+                  # Otherwise just print normally
+                  print
+              }
+              ' "$file" > "$tmpfile" && mv "$tmpfile" "$file"
+          done
+          cat <<'EOF' > ./csharp-client/README.md
+          # CollegeFootballData
+
+          ## Installation
+
+          Install via the dotnet CLI:
+          ```
+          dotnet add package CollegeFootballData
+          ```
+
+          ## Sample Script
+          ```csharp
+          using Microsoft.Extensions.Hosting;
+          using Microsoft.Extensions.DependencyInjection;
+          using CollegeFootballData.Api;
+          using CollegeFootballData.Client;
+          using CollegeFootballData.Model;
+          using CollegeFootballData.Extensions;
+
+          static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
+                    .ConfigureApi((context, services, options) =>
+                    {
+                        var token = new BearerToken("<your API key here>");
+                        options.AddTokens(token);
+
+                        options.AddApiHttpClients(builder: builder => builder
+                          .AddRetryPolicy(2)
+                          .AddTimeoutPolicy(TimeSpan.FromSeconds(5))
+                          .AddCircuitBreakerPolicy(10, TimeSpan.FromSeconds(30))
+                          // add whatever middleware you prefer
+                        );
+                    });
+
+          try
+          {
+            var host = CreateHostBuilder([]).Build();
+            var api = host.Services.GetRequiredService<IPlaysApi>();
+            var apiResponse = await api.GetPlaysAsync(year: 2023, week: 1, seasonType: SeasonType.Postseason, team: "Michigan");
+            List<Play> plays = apiResponse.Ok();
+
+            Console.WriteLine($"Plays in 2023: {plays.Count}");
+          } catch (Exception ex)
+          {
+            Console.WriteLine($"Error: {ex.Message}");
+            return;
+          }
+          ```
+          EOF
           sed -i '17d' ./src/CollegeFootballData/CollegeFootballData.csproj
           sed -i '17i \ \ \ \ <RepositoryUrl>https://github.com/cfbd/cfb-net.git</RepositoryUrl>' ./src/CollegeFootballData/CollegeFootballData.csproj
           sed -i '9,12d' ./src/CollegeFootballData/CollegeFootballData.csproj
