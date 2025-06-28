@@ -1,3 +1,10 @@
+## [5.6.22](https://github.com/CFBD/cfb-api-v2/compare/v5.6.21...v5.6.22) (2025-06-28)
+
+
+### Bug Fixes
+
+* **dotnet:** library generation ([52a1b17](https://github.com/CFBD/cfb-api-v2/commit/52a1b1742727a4062b76180e466ba531167bc13a))
+
 ## [5.6.21](https://github.com/CFBD/cfb-api-v2/compare/v5.6.20...v5.6.21) (2025-06-27)
 
 
