@@ -299,8 +299,7 @@ jobs:
         run: |
           sudo yes | cp -a ./csharp-client/. cfbd-net
           cd cfbd-net
-          find "./src/CollegeFootballData/Model/" -type f -name "*.cs" | while read -r>    echo "Processing $file"
-
+          find "./src/CollegeFootballData/Model/" -type f -name "*.cs"  | while read -r file; do
               # Create a temp file
               tmpfile=$(mktemp)
 
@@ -325,7 +324,7 @@ jobs:
               }
               ' "$file" > "$tmpfile" && mv "$tmpfile" "$file"
           done
-          cat <<'EOF' > ./csharp-client/README.md
+          cat <<'EOF' > ./README.md
           # CollegeFootballData
 
           ## Installation
