@@ -783,7 +783,7 @@ export const getTeamStats = async (
             .when(eb('teamStatType.id', '=', 5))
             .then('passCompletionsOpponent')
             .when(eb('teamStatType.id', '=', 6))
-            .then('penalties')
+            .then('penaltiesOpponent')
             .when(eb('teamStatType.id', '=', 14))
             .then('thirdDownConversionsOpponent')
             .when(eb('teamStatType.id', '=', 15))
