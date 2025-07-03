@@ -9,6 +9,7 @@ import {
 } from './types';
 import { sql } from 'kysely';
 import { PASS_PLAY_TYPES, RUSH_PLAY_TYPES } from '../../globals';
+import { join } from 'path';
 
 export const getPlayerSeasonStats = async (
   year: number,
@@ -510,11 +511,48 @@ export const getTeamStats = async (
       'Validation error',
     );
   }
+
   let baseQuery = kdb
     .selectFrom('game')
     .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
     .innerJoin('team', 'gameTeam.teamId', 'team.id')
     .innerJoin('gameTeamStat', 'gameTeam.id', 'gameTeamStat.gameTeamId')
+    .innerJoin('teamStatType', 'gameTeamStat.typeId', 'teamStatType.id')
+    .innerJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .onRef('conferenceTeam.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', 'is', null),
+            eb('conferenceTeam.endYear', '>=', eb.ref('game.season')),
+          ]),
+        ),
+    )
+    .innerJoin('conference', (join) =>
+      join
+        .onRef('conferenceTeam.conferenceId', '=', 'conference.id')
+        .on('conference.division', '=', 'fbs'),
+    )
+    .select(['game.season', 'team.school', 'conference.name as conference'])
+    .groupBy([
+      'game.season',
+      'team.school',
+      'conference.name',
+      'teamStatType.id',
+      'teamStatType.name',
+    ]);
+
+  let baseQueryOpp = kdb
+    .selectFrom('game')
+    .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
+    .innerJoin('team', 'gameTeam.teamId', 'team.id')
+    .innerJoin('gameTeam as gt2', (join) =>
+      join
+        .onRef('game.id', '=', 'gt2.gameId')
+        .onRef('gt2.teamId', '<>', 'gameTeam.teamId'),
+    )
+    .innerJoin('gameTeamStat', 'gt2.id', 'gameTeamStat.gameTeamId')
     .innerJoin('teamStatType', 'gameTeamStat.typeId', 'teamStatType.id')
     .innerJoin('conferenceTeam', (join) =>
       join
@@ -569,11 +607,15 @@ export const getTeamStats = async (
 
   if (year) {
     baseQuery = baseQuery.where('game.season', '=', year);
+    baseQueryOpp = baseQueryOpp.where('game.season', '=', year);
     gamesQuery = gamesQuery.where('game.season', '=', year);
   }
 
   if (team) {
     baseQuery = baseQuery.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
+    baseQueryOpp = baseQueryOpp.where((eb) =>
       eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
     );
     gamesQuery = gamesQuery.where((eb) =>
@@ -583,6 +625,13 @@ export const getTeamStats = async (
 
   if (conference) {
     baseQuery = baseQuery.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
+    );
+    baseQueryOpp = baseQueryOpp.where((eb) =>
       eb(
         eb.fn('lower', ['conference.abbreviation']),
         '=',
@@ -606,6 +655,13 @@ export const getTeamStats = async (
       ]),
     );
 
+    baseQueryOpp = baseQueryOpp.where((eb) =>
+      eb.or([
+        eb('game.week', '>=', startWeek),
+        eb('game.seasonType', '=', 'postseason'),
+      ]),
+    );
+
     gamesQuery = gamesQuery.where((eb) =>
       eb.or([
         eb('game.week', '>=', startWeek),
@@ -616,6 +672,9 @@ export const getTeamStats = async (
 
   if (endWeek) {
     baseQuery = baseQuery
+      .where('game.week', '<=', endWeek)
+      .where('game.seasonType', '<>', 'postseason');
+    baseQueryOpp = baseQueryOpp
       .where('game.week', '<=', endWeek)
       .where('game.seasonType', '<>', 'postseason');
     gamesQuery = gamesQuery
@@ -693,6 +752,81 @@ export const getTeamStats = async (
       baseQuery
         .where('teamStatType.id', '=', 8)
         .select('teamStatType.name as statType')
+        .select(
+          sql<number>`SUM(EXTRACT(epoch FROM CAST('00:' || game_team_stat.stat AS INTERVAL)))`.as(
+            'stat',
+          ),
+        ),
+    )
+    .union(
+      baseQueryOpp
+        .where(
+          'teamStatType.id',
+          'in',
+          [
+            2, 3, 4, 7, 10, 11, 12, 13, 18, 21, 23, 24, 25, 26, 31, 32, 33, 34,
+            35, 36, 37, 38,
+          ],
+        )
+        .select(sql<string>`team_stat_type.name || \'Opponent\'`.as('statType'))
+        .select(
+          sql<number>`FLOOR(SUM(CAST(game_team_stat.stat AS NUMERIC)))`.as(
+            'stat',
+          ),
+        ),
+    )
+    .union(
+      baseQueryOpp
+        .where('teamStatType.id', 'in', [5, 6, 14, 15])
+        .select((eb) =>
+          eb
+            .case()
+            .when(eb('teamStatType.id', '=', 5))
+            .then('passCompletionsOpponent')
+            .when(eb('teamStatType.id', '=', 6))
+            .then('penalties')
+            .when(eb('teamStatType.id', '=', 14))
+            .then('thirdDownConversionsOpponent')
+            .when(eb('teamStatType.id', '=', 15))
+            .then('fourthDownConversionsOpponent')
+            .else('')
+            .end()
+            .as('statType'),
+        )
+        .select(
+          sql<number>`FLOOR(SUM(CAST(split_part(game_team_stat.stat, '-', 1) AS NUMERIC)))`.as(
+            'stat',
+          ),
+        ),
+    )
+    .union(
+      baseQueryOpp
+        .where('teamStatType.id', 'in', [5, 6, 14, 15])
+        .select((eb) =>
+          eb
+            .case()
+            .when(eb('teamStatType.id', '=', 5))
+            .then('passAttemptsOpponent')
+            .when(eb('teamStatType.id', '=', 6))
+            .then('penaltyYardsOpponent')
+            .when(eb('teamStatType.id', '=', 14))
+            .then('thirdDownsOpponent')
+            .when(eb('teamStatType.id', '=', 15))
+            .then('fourthDownsOpponent')
+            .else('')
+            .end()
+            .as('statType'),
+        )
+        .select(
+          sql<number>`FLOOR(SUM(CAST(CASE WHEN split_part(game_team_stat.stat, '-', 2) = '' THEN '0' ELSE split_part(game_team_stat.stat, '-', 2) END AS INT)))`.as(
+            'stat',
+          ),
+        ),
+    )
+    .union(
+      baseQueryOpp
+        .where('teamStatType.id', '=', 8)
+        .select(sql<string>`team_stat_type.name || \'Opponent\'`.as('statType'))
         .select(
           sql<number>`SUM(EXTRACT(epoch FROM CAST('00:' || game_team_stat.stat AS INTERVAL)))`.as(
             'stat',
