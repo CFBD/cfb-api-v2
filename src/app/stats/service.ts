@@ -9,7 +9,6 @@ import {
 } from './types';
 import { sql } from 'kysely';
 import { PASS_PLAY_TYPES, RUSH_PLAY_TYPES } from '../../globals';
-import { join } from 'path';
 
 export const getPlayerSeasonStats = async (
   year: number,
