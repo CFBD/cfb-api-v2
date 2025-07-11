@@ -1,3 +1,10 @@
+## [5.6.24](https://github.com/CFBD/cfb-api-v2/compare/v5.6.23...v5.6.24) (2025-07-11)
+
+
+### Bug Fixes
+
+* **stats:** adding player position to aggregated stats ([86939ab](https://github.com/CFBD/cfb-api-v2/commit/86939ab1a72beb08f2c117101c5ab3ef57004445))
+
 ## [5.6.23](https://github.com/CFBD/cfb-api-v2/compare/v5.6.22...v5.6.23) (2025-07-11)
 
 
