@@ -24,6 +24,7 @@ export const getPlayerSeasonStats = async (
     .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
     .innerJoin('gamePlayerStat', 'gameTeam.id', 'gamePlayerStat.gameTeamId')
     .innerJoin('athlete', 'gamePlayerStat.athleteId', 'athlete.id')
+    .innerJoin('position', 'athlete.positionId', 'position.id')
     .innerJoin('team', 'gameTeam.teamId', 'team.id')
     .innerJoin('conferenceTeam', (join) =>
       join
@@ -47,6 +48,7 @@ export const getPlayerSeasonStats = async (
       'game.season',
       'athlete.id as playerId',
       'athlete.name as player',
+      'position.abbreviation as position',
       'team.school as team',
       'conference.name as conference',
       'playerStatCategory.name as category',
@@ -133,6 +135,7 @@ export const getPlayerSeasonStats = async (
       'game.season',
       'athlete.id',
       'athlete.name',
+      'position.abbreviation',
       'team.school',
       'conference.name',
       'playerStatCategory.name',
@@ -155,6 +158,7 @@ export const getPlayerSeasonStats = async (
           'game.season',
           'athlete.id',
           'athlete.name',
+          'position.abbreviation',
           'team.school',
           'conference.name',
           'playerStatCategory.name',
@@ -219,6 +223,7 @@ export const getPlayerSeasonStats = async (
           'game.season',
           'athlete.id',
           'athlete.name',
+          'position.abbreviation',
           'team.school',
           'conference.name',
           'playerStatCategory.name',
@@ -283,6 +288,7 @@ export const getPlayerSeasonStats = async (
           'game.season',
           'athlete.id',
           'athlete.name',
+          'position.abbreviation',
           'team.school',
           'conference.name',
           'playerStatCategory.name',
@@ -390,6 +396,7 @@ export const getPlayerSeasonStats = async (
           'game.season',
           'athlete.id',
           'athlete.name',
+          'position.abbreviation',
           'team.school',
           'conference.name',
           'playerStatCategory.name',
@@ -466,6 +473,7 @@ export const getPlayerSeasonStats = async (
           'game.season',
           'athlete.id',
           'athlete.name',
+          'position.abbreviation',
           'team.school',
           'conference.name',
           'playerStatCategory.name',
@@ -485,6 +493,7 @@ export const getPlayerSeasonStats = async (
         season: r.season,
         playerId: r.playerId,
         player: r.player,
+        position: r.position,
         team: r.team,
         conference: r.conference,
         category: r.category,
