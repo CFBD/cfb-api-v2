@@ -1,3 +1,10 @@
+## [5.6.23](https://github.com/CFBD/cfb-api-v2/compare/v5.6.22...v5.6.23) (2025-07-11)
+
+
+### Bug Fixes
+
+* **rosters:** filtering out 'team' players and deprecating class year field ([d757639](https://github.com/CFBD/cfb-api-v2/commit/d757639503689def99e33dc2fb42a2928bc2986d))
+
 ## [5.6.22](https://github.com/CFBD/cfb-api-v2/compare/v5.6.21...v5.6.22) (2025-06-28)
 
 
