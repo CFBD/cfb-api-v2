@@ -116,6 +116,7 @@ export interface RosterPlayer {
   jersey: number | null;
   /**
    * @isInt
+   * @deprecated
    */
   year: number;
   position: string | null;

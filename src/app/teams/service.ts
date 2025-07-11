@@ -325,6 +325,10 @@ export const getRoster = async (
     .leftJoin('recruit', 'athlete.id', 'recruit.athleteId')
     .where('athleteTeam.startYear', '<=', year)
     .where('athleteTeam.endYear', '>=', year)
+    .where((eb) => eb.fn('lower', ['athlete.name']), '<>', 'team')
+    .where((eb) => eb.fn('lower', ['athlete.firstName']), '<>', 'team')
+    .where((eb) => eb.fn('lower', ['athlete.lastName']), '<>', 'team')
+    .where('athlete.name', '<>', ' ')
     .groupBy([
       'athlete.id',
       'athlete.firstName',
