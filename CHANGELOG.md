@@ -1,3 +1,10 @@
+# [5.7.0](https://github.com/CFBD/cfb-api-v2/compare/v5.6.24...v5.7.0) (2025-07-12)
+
+
+### Features
+
+* **info:** new user info endpoint ([f8d1119](https://github.com/CFBD/cfb-api-v2/commit/f8d11194d3dc7ebde71df364226bad7a030eb6c5))
+
 ## [5.6.24](https://github.com/CFBD/cfb-api-v2/compare/v5.6.23...v5.6.24) (2025-07-11)
 
 
