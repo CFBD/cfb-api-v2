@@ -7,6 +7,7 @@ export const ignoredPaths = [
   // '/games/weather',
   '/scoreboard',
   '/auth/graphql',
+  '/info',
 ];
 
 export const checkCallQuotas = async (

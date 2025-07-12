@@ -88,6 +88,10 @@
       {
         "name": "adjustedMetrics",
         "description": "Metrics adjusted for opponent strength and other factors"
+      },
+      {
+        "name": "info",
+        "description": "General information about the API and user"
       }
     ]
   },
