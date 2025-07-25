@@ -11,7 +11,7 @@
     "build": "tsoa spec-and-routes && tsc --skipLibCheck",
     "build:db": "pnpm kysely-codegen --camel-case --out-file=db.d.ts",
     "dev": "concurrently \"nodemon\" \"nodemon -x tsoa spec-and-routes\"",
-    "start": "node ./build/app.js",
+    "start": "node ./build/src/app.js",
     "test": "jest",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --ignore-path .gitignore .",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint --ignore-path .gitignore . --fix",
