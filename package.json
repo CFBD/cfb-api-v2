@@ -32,6 +32,7 @@
   "license": "MIT",
   "dependencies": {
     "@sentry/node": "^7.120.3",
+    "@tsoa/runtime": "^6.6.0",
     "axios": "^1.11.0",
     "bluebird": "^3.7.2",
     "body-parser": "^1.20.2",
@@ -52,6 +53,7 @@
     "@babel/preset-env": "^7.28.0",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
+    "@commitlint/types": "^19.8.1",
     "@jest-mock/express": "^2.1.0",
     "@jest/globals": "^29.7.0",
     "@semantic-release/changelog": "^6.0.3",
