@@ -358,20 +358,20 @@ export const getGameTeamStats = async (
   }
 
   const data = await query.execute();
-  let stats = [];
+  const stats = [];
 
-  let ids = Array.from(new Set(data.map((d) => d.id)));
-  for (let id of ids) {
-    let game: GameTeamStats = {
+  const ids = Array.from(new Set(data.map((d) => d.id)));
+  for (const id of ids) {
+    const game: GameTeamStats = {
       id,
       teams: [],
     };
 
-    let gameStats = data.filter((d) => d.id == id);
-    let gameTeams = Array.from(new Set(gameStats.map((gs) => gs.school)));
+    const gameStats = data.filter((d) => d.id == id);
+    const gameTeams = Array.from(new Set(gameStats.map((gs) => gs.school)));
 
-    for (let team of gameTeams) {
-      let teamStats = gameStats.filter((gs) => gs.school == team);
+    for (const team of gameTeams) {
+      const teamStats = gameStats.filter((gs) => gs.school == team);
 
       game.teams.push({
         teamId: teamStats[0].teamId,
@@ -544,18 +544,18 @@ export const getGamePlayerStats = async (
   const stats = [];
 
   const ids: number[] = Array.from(new Set(data.map((d) => d.id)));
-  for (let id of ids) {
-    let game: GamePlayerStats = {
+  for (const id of ids) {
+    const game: GamePlayerStats = {
       id,
       teams: [],
     };
 
-    let gameStats = data.filter((d) => d.id == id);
-    let gameTeams = Array.from(new Set(gameStats.map((gs) => gs.school)));
+    const gameStats = data.filter((d) => d.id == id);
+    const gameTeams = Array.from(new Set(gameStats.map((gs) => gs.school)));
 
-    for (let team of gameTeams) {
-      let teamStats = gameStats.filter((gs) => gs.school == team);
-      let teamRecord: GamePlayerStatsTeam = {
+    for (const team of gameTeams) {
+      const teamStats = gameStats.filter((gs) => gs.school == team);
+      const teamRecord: GamePlayerStatsTeam = {
         team,
         conference: teamStats[0].conference,
         homeAway: teamStats[0].homeAway,
@@ -563,18 +563,18 @@ export const getGamePlayerStats = async (
         categories: [],
       };
 
-      let categories = Array.from(new Set(teamStats.map((gs) => gs.cat)));
+      const categories = Array.from(new Set(teamStats.map((gs) => gs.cat)));
 
-      for (let category of categories) {
-        let categoryStats = teamStats.filter((ts) => ts.cat == category);
-        let categoryRecord: GamePlayerStatCategories = {
+      for (const category of categories) {
+        const categoryStats = teamStats.filter((ts) => ts.cat == category);
+        const categoryRecord: GamePlayerStatCategories = {
           name: categoryStats[0].cat,
           types: [],
         };
 
-        let types = Array.from(new Set(categoryStats.map((gs) => gs.typ)));
-        for (let statType of types) {
-          let typeStats = categoryStats.filter((cs) => cs.typ == statType);
+        const types = Array.from(new Set(categoryStats.map((gs) => gs.typ)));
+        for (const statType of types) {
+          const typeStats = categoryStats.filter((cs) => cs.typ == statType);
           categoryRecord.types.push({
             name: typeStats[0].typ,
             athletes: typeStats.map((ts): GamePlayerStatPlayer => {

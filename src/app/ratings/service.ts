@@ -332,7 +332,7 @@ export const getElo = async (
   team?: string,
   conference?: string,
 ): Promise<TeamElo[]> => {
-  let query = kdb
+  const query = kdb
     .with('elos', (eb) => {
       let cte = eb
         .selectFrom('game')

@@ -15,7 +15,7 @@ export const getDrives = async (
   conference?: string,
   classification?: DivisionClassification,
 ): Promise<Drive[]> => {
-  let query = kdb
+  const query = kdb
     .with('drives', (eb) => {
       let cte = eb
         .selectFrom('game')
@@ -227,9 +227,9 @@ export const getDrives = async (
         .as('endingDefenseScore'),
     );
 
-  let drives = await query.execute();
+  const drives = await query.execute();
 
-  for (let drive of drives) {
+  for (const drive of drives) {
     if (!drive.startTime.minutes) {
       drive.startTime.minutes = 0;
     }

@@ -4,7 +4,7 @@ import cors from 'cors';
 const corsOrigin = process.env.CORS_ORIGIN || 'https://collegefootballdata.com';
 console.log(`CORS Origin: ${corsOrigin}`);
 
-let corsOptions: cors.CorsOptions = {};
+const corsOptions: cors.CorsOptions = {};
 
 // if (env != 'development') {
 //   corsOptions = {

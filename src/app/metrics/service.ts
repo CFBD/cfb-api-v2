@@ -612,7 +612,7 @@ export const getPredictedPointsAddedByPlayerGame = async (
     );
   }
 
-  let query = kdb
+  const query = kdb
     .with('plays', (cte) => {
       let playsQuery = cte
         .selectFrom('game')
@@ -877,7 +877,7 @@ export const getPredictedPointsAddedByPlayerSeason = async (
     );
   }
 
-  let query = kdb
+  const query = kdb
     .with('plays', (cte) => {
       let playsQuery = cte
         .selectFrom('game')

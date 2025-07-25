@@ -94,10 +94,10 @@ export const getCoaches = async (
 
   const results = await query.execute();
 
-  let coaches: Coach[] = [];
-  let ids = Array.from(new Set(results.map((r) => r.id)));
-  for (let id of ids) {
-    let coachSeasons = results.filter((r) => r.id == id);
+  const coaches: Coach[] = [];
+  const ids = Array.from(new Set(results.map((r) => r.id)));
+  for (const id of ids) {
+    const coachSeasons = results.filter((r) => r.id == id);
 
     coaches.push({
       firstName: coachSeasons[0].firstName,

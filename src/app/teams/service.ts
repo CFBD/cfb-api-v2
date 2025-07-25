@@ -268,9 +268,9 @@ export const getMatchup = async (
 
   const results = await query.execute();
 
-  let games = results.map((r): MatchupGame => {
-    let homePoints = (r.homePoints ?? 0) * 1.0;
-    let awayPoints = (r.awayPoints ?? 0) * 1.0;
+  const games = results.map((r): MatchupGame => {
+    const homePoints = (r.homePoints ?? 0) * 1.0;
+    const awayPoints = (r.awayPoints ?? 0) * 1.0;
 
     return {
       season: r.season as number,
@@ -292,13 +292,13 @@ export const getMatchup = async (
     };
   });
 
-  let teams = Array.from(
+  const teams = Array.from(
     new Set([...games.map((g) => g.homeTeam), ...games.map((g) => g.awayTeam)]),
   );
-  let team1Team = teams.find((t) => t.toLowerCase() == team1.toLowerCase());
-  let team2Team = teams.find((t) => t.toLowerCase() == team2.toLowerCase());
+  const team1Team = teams.find((t) => t.toLowerCase() == team1.toLowerCase());
+  const team2Team = teams.find((t) => t.toLowerCase() == team2.toLowerCase());
 
-  let data: Matchup = {
+  const data: Matchup = {
     team1: team1Team as string,
     team2: team2Team as string,
     startYear: minYear,

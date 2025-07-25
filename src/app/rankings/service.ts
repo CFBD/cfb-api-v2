@@ -45,24 +45,24 @@ export const getRankings = async (
     query = query.where('poll.week', '=', week);
   }
 
-  let data = await query.execute();
-  let results = [];
+  const data = await query.execute();
+  const results = [];
 
-  let seasons = Array.from(new Set(data.map((d) => d.season)));
-  for (let season of seasons) {
-    let seasonTypes = Array.from(
+  const seasons = Array.from(new Set(data.map((d) => d.season)));
+  for (const season of seasons) {
+    const seasonTypes = Array.from(
       new Set(data.filter((d) => d.season == season).map((d) => d.seasonType)),
     );
-    for (let seasonType of seasonTypes) {
-      let weeks = Array.from(
+    for (const seasonType of seasonTypes) {
+      const weeks = Array.from(
         new Set(
           data
             .filter((d) => d.season == season && d.seasonType == seasonType)
             .map((d) => d.week),
         ),
       );
-      for (let week of weeks) {
-        let weekRecord: PollWeek = {
+      for (const week of weeks) {
+        const weekRecord: PollWeek = {
           season,
           // @ts-ignore
           seasonType,
@@ -70,7 +70,7 @@ export const getRankings = async (
           polls: [],
         };
 
-        let records = data
+        const records = data
           .filter(
             (d) =>
               d.season == season &&
@@ -78,9 +78,9 @@ export const getRankings = async (
               d.week == week,
           )
           .map((d) => d);
-        let polls = Array.from(new Set(records.map((r) => r.poll)));
+        const polls = Array.from(new Set(records.map((r) => r.poll)));
 
-        for (let poll of polls) {
+        for (const poll of polls) {
           weekRecord.polls.push({
             poll,
             ranks: records

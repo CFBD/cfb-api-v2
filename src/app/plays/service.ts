@@ -212,9 +212,9 @@ export const getPlays = async (
     );
   }
 
-  let plays = await query.execute();
+  const plays = await query.execute();
 
-  for (let play of plays) {
+  for (const play of plays) {
     if (!play.clock.minutes) {
       play.clock.minutes = 0;
     }
@@ -412,7 +412,7 @@ export const getPlayStats = async (
 
   const results = await query.execute();
 
-  for (let play of results) {
+  for (const play of results) {
     if (!play.clock.minutes) {
       play.clock.minutes = 0;
     }

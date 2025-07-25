@@ -1,19 +1,13 @@
-FROM node:20-alpine
+FROM node:20-slim AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+RUN corepack prepare pnpm@10.0.0 --activate
 
-RUN mkdir -p /home/node/cfb-api/node_modules && chown -R node:node /home/node/cfb-api
+FROM base AS build
+COPY . /usr/src/app
+WORKDIR /usr/src/app
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
+RUN pnpm run build
 
-WORKDIR /home/node/cfb-api
-
-COPY package*.json ./
-
-RUN npm install pm2 -g
-RUN yarn install
-
-COPY . .
-COPY --chown=node:node . .
-
-RUN yarn build
-
-USER node
-
-CMD [ "pm2-runtime", "build/src/app.js" ]
+CMD [ "pnpm", "start" ]

@@ -4,18 +4,18 @@ This is the repository for the CFBD API v2, currently hosted at [api.CollegeFoot
 
 ## Getting Started
 
-This repo uses `yarn` for dependency management. Run the following commands to install dependencies and start a dev server with hot reloading:
+This repo uses `pnpm` for dependency management. Run the following commands to install dependencies and start a dev server with hot reloading:
 
 ```bash
-yarn install
-yarn dev
+pnpm install
+pnpm dev
 ```
 ### Code Formatting
 
 This repo uses `prettier` and `eslint` for code formatting. Run the following command to format your code before committing:
 
 ```bash
-yarn prettify
+pnpm prettify
 ```
 
 ### Semantic Versioning

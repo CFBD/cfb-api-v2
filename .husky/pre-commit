@@ -1,3 +1,2 @@
-yarn
-yarn prettify
-yarn test
+pnpm prettify
+pnpm test

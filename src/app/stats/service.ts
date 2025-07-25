@@ -690,7 +690,7 @@ export const getTeamStats = async (
       .where('game.seasonType', '<>', 'postseason');
   }
 
-  let query = gamesQuery
+  const query = gamesQuery
     .union(
       baseQuery
         .where(
@@ -1210,29 +1210,29 @@ export const getAdvancedStats = async (
   const fieldPositionResults = fullResults[4];
 
   let stats: AdvancedSeasonStat[] = [];
-  let years = Array.from(new Set(results.map((r) => r.season)));
+  const years = Array.from(new Set(results.map((r) => r.season)));
 
-  for (let year of years) {
-    let teams = Array.from(
+  for (const year of years) {
+    const teams = Array.from(
       new Set(results.filter((r) => r.season == year).map((r) => r.team)),
     );
 
-    let yearStats = teams.map((t): AdvancedSeasonStat => {
-      let offense = results.find(
+    const yearStats = teams.map((t): AdvancedSeasonStat => {
+      const offense = results.find(
         (r) => r.season == year && r.team == t && r.unit == 'offense',
       );
-      let defense = results.find(
+      const defense = results.find(
         (r) => r.season == year && r.team == t && r.unit == 'defense',
       );
-      let havocD = havocResultsD.find((r) => r.season == year && r.team == t);
-      let havocO = havocResultsO.find((r) => r.season == year && r.team == t);
-      let scoringOppO = scoringOppResults.find(
+      const havocD = havocResultsD.find((r) => r.season == year && r.team == t);
+      const havocO = havocResultsO.find((r) => r.season == year && r.team == t);
+      const scoringOppO = scoringOppResults.find(
         (r) => r.season == year && r.school == t && r.unit == 'offense',
       );
-      let scoringOppD = scoringOppResults.find(
+      const scoringOppD = scoringOppResults.find(
         (r) => r.season == year && r.school == t && r.unit == 'defense',
       );
-      let fieldPosition = fieldPositionResults.find(
+      const fieldPosition = fieldPositionResults.find(
         (r) => r.season == year && r.school == t,
       );
 
@@ -1776,20 +1776,20 @@ export const getAdvancedGameStats = async (
   const results = await query.execute();
 
   let stats: AdvancedGameStat[] = [];
-  let ids = Array.from(new Set(results.map((r) => r.id)));
+  const ids = Array.from(new Set(results.map((r) => r.id)));
 
-  for (let id of ids) {
-    let teams = Array.from(
+  for (const id of ids) {
+    const teams = Array.from(
       new Set(results.filter((r) => r.id == id).map((r) => r.team)),
     );
 
     // @ts-ignore
-    let gameStats: AdvancedGameStat[] = teams
+    const gameStats: AdvancedGameStat[] = teams
       .map((t): AdvancedGameStat | null => {
-        let offense = results.find(
+        const offense = results.find(
           (r) => r.id == id && r.team == t && r.unit == 'offense',
         );
-        let defense = results.find(
+        const defense = results.find(
           (r) => r.id == id && r.team == t && r.unit == 'defense',
         );
 

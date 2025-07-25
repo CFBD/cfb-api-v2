@@ -123,7 +123,7 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
       (t) => t.team.displayName !== offense?.team.displayName,
     );
 
-    let d: LiveGameDrive = {
+    const d: LiveGameDrive = {
       id: drive.id,
       offenseId: Number(offense?.team.id),
       offense: offense?.team.location ?? '',
@@ -189,7 +189,7 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
         d.scoringOpportunity = true;
       }
 
-      let p: LiveGamePlay = {
+      const p: LiveGamePlay = {
         id: play.id,
         homeScore: play.homeScore,
         awayScore: play.awayScore,

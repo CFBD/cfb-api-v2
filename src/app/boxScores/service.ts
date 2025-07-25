@@ -390,7 +390,7 @@ FROM team AS t
   const scoringOppResults = results[2];
   const fieldPositionResults = results[3];
 
-  let teams = Array.from(new Set(teamResults.map((t) => t.team)));
+  const teams = Array.from(new Set(teamResults.map((t) => t.team)));
 
   const homeTeam = teamResults.find((t) => t.home_away == 'home');
   const awayTeam = teamResults.find((t) => t.team != homeTeam.team);
@@ -553,7 +553,7 @@ FROM team AS t
         }),
       ),
       scoringOpportunities: teamResults.map((t): TeamScoringOpportunities => {
-        let scoring = scoringOppResults.find(
+        const scoring = scoringOppResults.find(
           (o) => t.team == o.team && o.unit == 'offense',
         );
 
@@ -565,7 +565,7 @@ FROM team AS t
         };
       }),
       fieldPosition: teamResults.map((t): TeamFieldPosition => {
-        let fieldPosition = fieldPositionResults.find(
+        const fieldPosition = fieldPositionResults.find(
           (o) => t.team == o.school,
         );
 
