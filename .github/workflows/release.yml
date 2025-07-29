@@ -313,22 +313,36 @@ jobs:
 
               awk '
               {
-                  # If the previous line matched, remove 4 leading spaces from this one
-                  if (fix_next_line) {
-                      sub(/^ {4}/, "", $0)
-                      fix_next_line = 0
-                      print
-                      next
-                  }
+                if (in_if_block) {
+                    # Capture the line with the assignment
+                    match($0, /^[[:space:]]*([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*=/, m)
+                    if (m[1] != "") {
+                        varname = m[1]
+                        print $0  # Print the original assignment line
 
-                  # Match line containing the target condition, ignoring leading whitespace
-                  if ($0 ~ /^[[:space:]]*if \(utf8JsonReader\.TokenType != JsonTokenType\.Null\)/) {
-                      fix_next_line = 1
-                      next  # Skip (delete) this line
-                  }
+                        # Get the indentation level of this line
+                        match($0, /^([[:space:]]*)/, ind)
+                        indent = ind[1]
 
-                  # Otherwise just print normally
-                  print
+                        # Print the else block
+                        print indent "else"
+                        print indent "    " varname " = null;"
+                    } else {
+                        # Just in case something unexpected happens
+                        print $0
+                    }
+                    in_if_block = 0
+                    next
+                }
+
+                if ($0 ~ /^[[:space:]]*if \(utf8JsonReader\.TokenType != JsonTokenType\.Null\)/) {
+                    print $0
+                    in_if_block = 1
+                    next
+                }
+
+                # Default: just print the line
+                print
               }
               ' "$file" > "$tmpfile" && mv "$tmpfile" "$file"
           done
