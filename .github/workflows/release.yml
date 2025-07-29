@@ -313,36 +313,34 @@ jobs:
 
               awk '
               {
-                if (in_if_block) {
-                    # Capture the line with the assignment
-                    match($0, /^[[:space:]]*([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*=/, m)
-                    if (m[1] != "") {
-                        varname = m[1]
-                        print $0  # Print the original assignment line
+                  if (in_if_block) {
+                      # Extract variable name from assignment line
+                      match($0, /^[[:space:]]*([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*=/, m)
+                      if (m[1] != "") {
+                          varname = m[1]
+                          print $0  # Print original assignment
 
-                        # Get the indentation level of this line
-                        match($0, /^([[:space:]]*)/, ind)
-                        indent = ind[1]
+                          # Add correctly indented else block
+                          print if_indent "else"
+                          print if_indent "    " varname " = null;"
+                      } else {
+                          print $0  # Fallback
+                      }
+                      in_if_block = 0
+                      next
+                  }
 
-                        # Print the else block
-                        print indent "else"
-                        print indent "    " varname " = null;"
-                    } else {
-                        # Just in case something unexpected happens
-                        print $0
-                    }
-                    in_if_block = 0
-                    next
-                }
+                  # Detect and handle `if` line
+                  if ($0 ~ /^[[:space:]]*if \(utf8JsonReader\.TokenType != JsonTokenType\.Null\)/) {
+                      match($0, /^([[:space:]]*)/, m)
+                      if_indent = m[1]  # ✅ Set the indentation
+                      print $0
+                      in_if_block = 1
+                      next
+                  }
 
-                if ($0 ~ /^[[:space:]]*if \(utf8JsonReader\.TokenType != JsonTokenType\.Null\)/) {
-                    print $0
-                    in_if_block = 1
-                    next
-                }
-
-                # Default: just print the line
-                print
+                  # Print everything else as-is
+                  print
               }
               ' "$file" > "$tmpfile" && mv "$tmpfile" "$file"
           done
