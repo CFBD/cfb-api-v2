@@ -1,3 +1,10 @@
+## [5.7.2](https://github.com/CFBD/cfb-api-v2/compare/v5.7.1...v5.7.2) (2025-07-29)
+
+
+### Bug Fixes
+
+* **dotnet:** workaround fix ([6bf8b44](https://github.com/CFBD/cfb-api-v2/commit/6bf8b44a70f57670f860644e102817b7fbfa51d0))
+
 ## [5.7.1](https://github.com/CFBD/cfb-api-v2/compare/v5.7.0...v5.7.1) (2025-07-29)
 
 

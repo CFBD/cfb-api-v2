@@ -1,6 +1,6 @@
 {
   "name": "cfb-api",
-  "version": "5.7.1",
+  "version": "5.7.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/CFBD/cfb-api-v2.git"
