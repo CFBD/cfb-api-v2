@@ -301,8 +301,10 @@ jobs:
       - uses: microsoft/setup-kiota@v0.5.0
       - name: Copy and push generated code
         run: |
+          cd cfbd-net
           wget https://api.collegefootballdata.com/api-docs.json
           kiota generate --language csharp --openapi api-docs.json --output src/ --namespace-name CollegeFootballData
+          rm api-docs.json
           sed -i "s/<Version>.*<\/Version>/<Version>${{ env.package_version }}<\/Version>/" src/CollegeFootballData.csproj
           echo "Configuring git..."
           git config user.name "github-actions[bot]"
