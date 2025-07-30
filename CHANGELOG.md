@@ -1,3 +1,10 @@
+## [5.8.1](https://github.com/CFBD/cfb-api-v2/compare/v5.8.0...v5.8.1) (2025-07-30)
+
+
+### Bug Fixes
+
+* **packages:** ts and cs fixes ([097b8dd](https://github.com/CFBD/cfb-api-v2/commit/097b8dd0e55f9ab1c8c8b30f59babb37053801db))
+
 # [5.8.0](https://github.com/CFBD/cfb-api-v2/compare/v5.7.2...v5.8.0) (2025-07-30)
 
 
