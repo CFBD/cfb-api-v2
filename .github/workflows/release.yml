@@ -290,11 +290,6 @@ jobs:
           api_version=${api_version%\"}
           api_version=${api_version#\"}
           package_version=(${api_version})
-          code=$(curl -X POST -H "content-type:application/json" -d '{"openAPIUrl": "https://api.collegefootballdata.com/api-docs.json", "options": { "packageName": "CollegeFootballData", "projectName": "cfbd", "packageUrl": "https://github.com/CFBD/cbbd-csharp", "packageVersion": "'"${package_version}"'", "targetFramework": "net8.0", "packageTags": "CFBD;CFB;NCAAF;NCAA;football"}}' https://api.openapi-generator.tech/api/gen/clients/csharp | jq '. | .code')
-          code=${code%\"}
-          code=${code#\"}
-          wget 'http://api.openapi-generator.tech/api/gen/download/'"${code}"''
-          unzip $code
           echo "package_version=$package_version" >> $GITHUB_ENV
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -303,102 +298,12 @@ jobs:
           token: ${{ secrets.GH_PAT }}
           ref: main
           path: cfbd-net
+      - uses: microsoft/setup-kiota@v0.5.0
       - name: Copy and push generated code
         run: |
-          sudo yes | cp -a ./csharp-client/. cfbd-net
-          cd cfbd-net
-          find "./src/CollegeFootballData/Model/" -type f -name "*.cs"  | while read -r file; do
-              # Create a temp file
-              tmpfile=$(mktemp)
-
-              awk '
-              {
-                  if (in_if_block) {
-                      # Extract variable name from assignment line
-                      match($0, /^[[:space:]]*([a-zA-Z_][a-zA-Z0-9_]*)[[:space:]]*=/, m)
-                      if (m[1] != "") {
-                          varname = m[1]
-                          print $0  # Print original assignment
-
-                          # Add correctly indented else block
-                          print if_indent "else"
-                          print if_indent "    " varname " = null;"
-                      } else {
-                          print $0  # Fallback
-                      }
-                      in_if_block = 0
-                      next
-                  }
-
-                  # Detect and handle `if` line
-                  if ($0 ~ /^[[:space:]]*if \(utf8JsonReader\.TokenType != JsonTokenType\.Null\)/) {
-                      match($0, /^([[:space:]]*)/, m)
-                      if_indent = m[1]  # ✅ Set the indentation
-                      print $0
-                      in_if_block = 1
-                      next
-                  }
-
-                  # Print everything else as-is
-                  print
-              }
-              ' "$file" > "$tmpfile" && mv "$tmpfile" "$file"
-          done
-          cat <<'EOF' > ./README.md
-          # CollegeFootballData
-
-          ## Installation
-
-          Install via the dotnet CLI:
-          ```
-          dotnet add package CollegeFootballData
-          ```
-
-          ## Sample Script
-          ```csharp
-          using Microsoft.Extensions.Hosting;
-          using Microsoft.Extensions.DependencyInjection;
-          using CollegeFootballData.Api;
-          using CollegeFootballData.Client;
-          using CollegeFootballData.Model;
-          using CollegeFootballData.Extensions;
-
-          static IHostBuilder CreateHostBuilder(string[] args) => Host.CreateDefaultBuilder(args)
-                    .ConfigureApi((context, services, options) =>
-                    {
-                        var token = new BearerToken("<your API key here>");
-                        options.AddTokens(token);
-
-                        options.AddApiHttpClients(builder: builder => builder
-                          .AddRetryPolicy(2)
-                          .AddTimeoutPolicy(TimeSpan.FromSeconds(5))
-                          .AddCircuitBreakerPolicy(10, TimeSpan.FromSeconds(30))
-                          // add whatever middleware you prefer
-                        );
-                    });
-
-          try
-          {
-            var host = CreateHostBuilder([]).Build();
-            var api = host.Services.GetRequiredService<IPlaysApi>();
-            var apiResponse = await api.GetPlaysAsync(year: 2023, week: 1, seasonType: SeasonType.Postseason, team: "Michigan");
-            List<Play> plays = apiResponse.Ok();
-
-            Console.WriteLine($"Plays in 2023: {plays.Count}");
-          } catch (Exception ex)
-          {
-            Console.WriteLine($"Error: {ex.Message}");
-            return;
-          }
-          ```
-          EOF
-          sed -i '17d' ./src/CollegeFootballData/CollegeFootballData.csproj
-          sed -i '17i \ \ \ \ <RepositoryUrl>https://github.com/cfbd/cfb-net.git</RepositoryUrl>' ./src/CollegeFootballData/CollegeFootballData.csproj
-          sed -i '9,12d' ./src/CollegeFootballData/CollegeFootballData.csproj
-          sed -i '9i \ \ \ \ <Authors>CollegeFootballData.com</Authors>' ./src/CollegeFootballData/CollegeFootballData.csproj
-          sed -i '10i \ \ \ \ <Company>CollegeFootballData.com</Company>' ./src/CollegeFootballData/CollegeFootballData.csproj
-          sed -i '11i \ \ \ \ <AssemblyTitle>CollegeFootballData.com</AssemblyTitle>' ./src/CollegeFootballData/CollegeFootballData.csproj
-          sed -i '12i \ \ \ \ <Description>Official client library for the CollegeFootballData.com API</Description>' ./src/CollegeFootballData/CollegeFootballData.csproj
+          wget https://api.collegefootballdata.com/api-docs.json
+          kiota generate --language csharp --openapi api-docs.json --output src/ --namespace-name CollegeFootballData
+          sed -i "s/<Version>.*<\/Version>/<Version>${{ env.package_version }}<\/Version>/"
           echo "Configuring git..."
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
