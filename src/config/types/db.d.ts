@@ -319,6 +319,29 @@ export interface Game {
   week: number;
 }
 
+export interface GameHavocStats {
+  season: number;
+  seasonType: SeasonType;
+  week: number;
+  gameId: number;
+  teamId: number;
+  team: string;
+  offensivePlays: number;
+  defensivePlays: number;
+  havocEvents: number;
+  frontSevenHavocEvents: number;
+  dbHavocEvents: number;
+  havocEventsAllowed: number;
+  frontSevenHavocEventsAllowed: number;
+  dbHavocEventsAllowed: number;
+  defensiveTotalHavoc: number;
+  defensiveFrontSevenHavoc: number;
+  defensiveDbHavoc: number;
+  offensiveTotalHavoc: number;
+  offensiveFrontSevenHavoc: number;
+  offensiveDbHavoc: number;
+}
+
 export interface GameInfo {
   attendance: number | null;
   awayClassification: Division | null;
@@ -839,6 +862,7 @@ export interface DB {
   fpi: Fpi;
   fumbles: Fumbles;
   game: Game;
+  gameHavocStats: GameHavocStats;
   gameInfo: GameInfo;
   gameLines: GameLines;
   gameMedia: GameMedia;

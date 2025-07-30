@@ -886,28 +886,61 @@ export const getAdvancedStats = async (
   const params = [];
   let index = 1;
 
+  let havocTaskQuery = kdb
+    .selectFrom('gameHavocStats')
+    .groupBy(['season', 'team'])
+    .select(['season', 'team'])
+    .select((eb) => [
+      eb.fn.sum('defensivePlays').as('defensivePlays'),
+      eb.fn.sum('offensivePlays').as('offensivePlays'),
+      eb.fn.sum('havocEvents').as('havocEvents'),
+      eb.fn.sum('frontSevenHavocEvents').as('frontSevenHavocEvents'),
+      eb.fn.sum('dbHavocEvents').as('dbHavocEvents'),
+      eb.fn.sum('havocEventsAllowed').as('havocEventsAllowed'),
+      eb.fn
+        .sum('frontSevenHavocEventsAllowed')
+        .as('frontSevenHavocEventsAllowed'),
+      eb.fn.sum('dbHavocEventsAllowed').as('dbHavocEventsAllowed'),
+    ]);
+
   if (year) {
     filters.push(`g.season = $${index}`);
     params.push(year);
     index++;
+
+    havocTaskQuery = havocTaskQuery.where('season', '=', year);
   }
 
   if (team) {
     filters.push(`LOWER(t.school) = LOWER($${index})`);
     params.push(team);
     index++;
+
+    havocTaskQuery = havocTaskQuery.where(
+      (eb) => eb.fn('lower', ['team']),
+      '=',
+      team.toLowerCase(),
+    );
   }
 
   if (startWeek) {
     filters.push(`(g.week >= $${index} OR g.season_type = 'postseason')`);
     params.push(startWeek);
     index++;
+
+    havocTaskQuery = havocTaskQuery.where((eb) =>
+      eb.or([eb('week', '>=', startWeek), eb('seasonType', '=', 'postseason')]),
+    );
   }
 
   if (endWeek) {
     filters.push(`g.week <= $${index} AND g.season_type <> 'postseason'`);
     params.push(endWeek);
     index++;
+
+    havocTaskQuery = havocTaskQuery
+      .where('week', '<=', endWeek)
+      .where('seasonType', '<>', 'postseason');
   }
 
   const filter = `WHERE ${filters.join(' AND ')}`;
@@ -1007,98 +1040,6 @@ export const getAdvancedStats = async (
     params,
   );
 
-  const havocTask1 = db.any(
-    `
-            WITH havoc_events AS (
-                WITH fumbles AS (
-                    SELECT g.season, t.id AS team_id, COALESCE(SUM(CAST(s.stat AS NUMERIC)), 0) AS fumbles
-                    FROM game AS g
-                        INNER JOIN game_team AS gt ON g.id = gt.game_id
-                        INNER JOIN game_team AS gt2 ON g.id = gt2.game_id AND gt.id <> gt2.id
-                        INNER JOIN team AS t ON gt2.team_id = t.id
-                        INNER JOIN conference_team AS ct ON ct.team_id = t.id AND ct.end_year IS NULL AND ct.start_year IS NOT NULL
-                        LEFT JOIN game_player_stat AS s ON s.game_team_id = gt.id AND s.type_id = 4 AND s.category_id = 10
-                    ${filter}
-                    GROUP BY g.season, t.id
-                )
-                SELECT 	g.season,
-                        t.id AS team_id,
-                        COALESCE(SUM(CAST(s.stat AS NUMERIC)), 0.0) + f.fumbles AS total_havoc,
-                        COALESCE(SUM(CAST(s.stat AS NUMERIC)) FILTER (WHERE s.type_id IN (16,24)), 0.0) AS db_havoc,
-                        COALESCE(SUM(CAST(s.stat AS NUMERIC)) FILTER (WHERE s.type_id = 21), 0.0) + f.fumbles AS front_seven_havoc
-                FROM game AS g
-                    INNER JOIN game_team AS gt ON g.id = gt.game_id
-                    INNER JOIN game_team AS gt2 ON g.id = gt2.game_id AND gt.id <> gt2.id
-                    INNER JOIN team AS t ON gt.team_id = t.id
-                    INNER JOIN conference_team AS ct ON ct.team_id = t.id AND ct.end_year IS NULL AND ct.start_year IS NOT NULL
-                    INNER JOIN game_team_stat AS s ON s.game_team_id = gt.id AND s.type_id IN (16,21,24)
-                    LEFT JOIN fumbles AS f ON f.team_id = t.id
-                ${filter}
-                GROUP BY g.season, t.id, f.fumbles
-            ), plays AS (
-                SELECT g.season, t.id AS team_id, COUNT(p.id) AS total
-                FROM game AS g
-                    INNER JOIN drive AS d ON g.id = d.game_id
-                    INNER JOIN play AS p ON d.id = p.drive_id AND p.ppa IS NOT NULL
-                    INNER JOIN team AS t ON p.defense_id = t.id
-                    INNER JOIN conference_team AS ct ON ct.team_id = t.id AND ct.end_year IS NULL AND ct.start_year IS NOT NULL
-                ${filter}
-                GROUP BY g.season, t.id
-            )
-            SELECT p.season AS season, t.school AS team, (h.total_havoc / p.total) AS total_havoc, (h.front_seven_havoc / p.total) AS front_seven_havoc, (h.db_havoc / p.total) AS db_havoc
-            FROM plays AS p
-                INNER JOIN havoc_events AS h ON p.team_id = h.team_id AND h.season = p.season
-                INNER JOIN team AS t ON t.id = p.team_id
-        `,
-    params,
-  );
-
-  const havocTask2 = await db.any(
-    `
-            WITH havoc_events AS (
-                WITH fumbles AS (
-                    SELECT g.season, t.id AS team_id, COALESCE(SUM(CAST(s.stat AS NUMERIC)), 0) AS fumbles
-                    FROM game AS g
-                        INNER JOIN game_team AS gt ON g.id = gt.game_id
-                        INNER JOIN game_team AS gt2 ON g.id = gt2.game_id AND gt.id <> gt2.id
-                        INNER JOIN team AS t ON gt.team_id = t.id
-                        INNER JOIN conference_team AS ct ON ct.team_id = t.id AND ct.end_year IS NULL AND ct.start_year IS NOT NULL
-                        LEFT JOIN game_player_stat AS s ON s.game_team_id = gt.id AND s.type_id = 4 AND s.category_id = 10
-                    ${filter}
-                    GROUP BY g.season, t.id
-                )
-                SELECT 	g.season,
-                        t.id AS team_id,
-                        COALESCE(SUM(CAST(s.stat AS NUMERIC)), 0.0) + f.fumbles AS total_havoc,
-                        COALESCE(SUM(CAST(s.stat AS NUMERIC)) FILTER (WHERE s.type_id IN (16,24)), 0.0) AS db_havoc,
-                        COALESCE(SUM(CAST(s.stat AS NUMERIC)) FILTER (WHERE s.type_id = 21), 0.0) + f.fumbles AS front_seven_havoc
-                FROM game AS g
-                    INNER JOIN game_team AS gt ON g.id = gt.game_id
-                    INNER JOIN game_team AS gt2 ON g.id = gt2.game_id AND gt.id <> gt2.id
-                    INNER JOIN team AS t ON gt.team_id = t.id
-                    INNER JOIN conference_team AS ct ON ct.team_id = t.id AND ct.end_year IS NULL AND ct.start_year IS NOT NULL
-                    INNER JOIN game_team_stat AS s ON s.game_team_id = gt2.id AND s.type_id IN (16,21,24)
-                    LEFT JOIN fumbles AS f ON f.team_id = t.id
-                ${filter}
-                GROUP BY g.season, t.id, f.fumbles
-            ), plays AS (
-                SELECT g.season, t.id AS team_id, COUNT(p.id) AS total
-                FROM game AS g
-                    INNER JOIN drive AS d ON g.id = d.game_id
-                    INNER JOIN play AS p ON d.id = p.drive_id AND p.ppa IS NOT NULL
-                    INNER JOIN team AS t ON p.offense_id = t.id
-                    INNER JOIN conference_team AS ct ON ct.team_id = t.id AND ct.end_year IS NULL AND ct.start_year IS NOT NULL
-                ${filter}
-                GROUP BY g.season, t.id
-            )
-            SELECT p.season AS season, t.school AS team, (h.total_havoc / p.total) AS total_havoc, (h.front_seven_havoc / p.total) AS front_seven_havoc, (h.db_havoc / p.total) AS db_havoc
-            FROM plays AS p
-                INNER JOIN havoc_events AS h ON p.team_id = h.team_id AND h.season = p.season
-                INNER JOIN team AS t ON t.id = p.team_id
-        `,
-    params,
-  );
-
   const scoringOppTasks = db.any(
     `
             WITH drive_data AS (
@@ -1194,20 +1135,13 @@ export const getAdvancedStats = async (
   );
 
   const fullResults = await db.task(async (t) => {
-    return await t.batch([
-      mainTask,
-      havocTask1,
-      havocTask2,
-      scoringOppTasks,
-      fieldPositionTask,
-    ]);
+    return await t.batch([mainTask, scoringOppTasks, fieldPositionTask]);
   });
 
   const results = fullResults[0];
-  const havocResultsD = fullResults[1];
-  const havocResultsO = fullResults[2];
-  const scoringOppResults = fullResults[3];
-  const fieldPositionResults = fullResults[4];
+  const havocResults = await havocTaskQuery.execute();
+  const scoringOppResults = fullResults[1];
+  const fieldPositionResults = fullResults[2];
 
   let stats: AdvancedSeasonStat[] = [];
   const years = Array.from(new Set(results.map((r) => r.season)));
@@ -1224,8 +1158,7 @@ export const getAdvancedStats = async (
       const defense = results.find(
         (r) => r.season == year && r.team == t && r.unit == 'defense',
       );
-      const havocD = havocResultsD.find((r) => r.season == year && r.team == t);
-      const havocO = havocResultsO.find((r) => r.season == year && r.team == t);
+      const havoc = havocResults.find((r) => r.season == year && r.team == t);
       const scoringOppO = scoringOppResults.find(
         (r) => r.season == year && r.school == t && r.unit == 'offense',
       );
@@ -1280,9 +1213,24 @@ export const getAdvancedStats = async (
               : null,
           },
           havoc: {
-            total: havocO ? Number(havocO.total_havoc) : null,
-            frontSeven: havocO ? Number(havocO.front_seven_havoc) : null,
-            db: havocO ? Number(havocO.db_havoc) : null,
+            total: havoc
+              ? Math.round(
+                  (Number(havoc.havocEventsAllowed) * 1000) /
+                    Number(havoc.offensivePlays),
+                ) / 1000
+              : null,
+            frontSeven: havoc
+              ? Math.round(
+                  (Number(havoc.frontSevenHavocEventsAllowed) * 1000) /
+                    Number(havoc.offensivePlays),
+                ) / 1000
+              : null,
+            db: havoc
+              ? Math.round(
+                  (Number(havoc.dbHavocEventsAllowed) * 1000) /
+                    Number(havoc.offensivePlays),
+                ) / 1000
+              : null,
           },
           standardDowns: {
             rate: Number(offense.standard_down_rate),
@@ -1351,9 +1299,24 @@ export const getAdvancedStats = async (
               : null,
           },
           havoc: {
-            total: havocD ? Number(havocD.total_havoc) : null,
-            frontSeven: havocD ? Number(havocD.front_seven_havoc) : null,
-            db: havocD ? Number(havocD.db_havoc) : null,
+            total: havoc
+              ? Math.round(
+                  (Number(havoc.havocEvents) * 1000) /
+                    Number(havoc.defensivePlays),
+                ) / 1000
+              : null,
+            frontSeven: havoc
+              ? Math.round(
+                  (Number(havoc.frontSevenHavocEvents) * 1000) /
+                    Number(havoc.defensivePlays),
+                ) / 1000
+              : null,
+            db: havoc
+              ? Math.round(
+                  (Number(havoc.dbHavocEvents) * 1000) /
+                    Number(havoc.defensivePlays),
+                ) / 1000
+              : null,
           },
           standardDowns: {
             rate: Number(defense.standard_down_rate),

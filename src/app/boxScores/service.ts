@@ -18,27 +18,9 @@ export const getAdvancedBoxScore = async (
   const teamTask = db.any(
     `
             WITH havoc AS (
-                WITH fumbles AS (
-                    SELECT t.school, COALESCE(SUM(CAST(s.stat AS NUMERIC)), 0.0) AS fumbles
-                    FROM game AS g
-                        INNER JOIN game_team AS gt ON g.id = gt.game_id
-                        INNER JOIN team AS t ON gt.team_id = t.id
-                        LEFT JOIN game_player_stat AS s ON s.game_team_id = gt.id AND s.type_id = 4 AND s.category_id = 10
-                    WHERE g.id = $1
-                    GROUP BY t.school
-                )
-                SELECT 	t.school,
-                        (COALESCE(SUM(CAST(s.stat AS NUMERIC)), 0.0) + fumbles) AS total_havoc,
-                        COALESCE(SUM(CAST(s.stat AS NUMERIC)) FILTER (WHERE s.type_id IN (16,24)), 0.0) AS db_havoc,
-                        (COALESCE(SUM(CAST(s.stat AS NUMERIC)) FILTER (WHERE s.type_id = 21), 0.0) + f.fumbles) AS front_seven_havoc
-                FROM game AS g
-                    INNER JOIN game_team AS gt ON g.id = gt.game_id
-                    INNER JOIN game_team AS gt2 ON g.id = gt2.game_id AND gt.id <> gt2.id
-                    INNER JOIN team AS t ON gt.team_id = t.id
-                    INNER JOIN game_team_stat AS s ON s.game_team_id = gt.id AND s.type_id IN (16,21,24)
-                    LEFT JOIN fumbles AS f ON t.school <> f.school
-                WHERE g.id = $1
-                GROUP BY t.school, f.fumbles
+                SELECT team AS school, havoc_events AS total_havoc, front_seven_havoc_events AS front_seven_havoc, db_havoc_events AS db_havoc
+                FROM game_havoc_stats
+                WHERE game_id = $1
             ), plays AS (
                 SELECT  g.id,
                         g.season,
