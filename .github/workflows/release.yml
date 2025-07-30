@@ -237,13 +237,13 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: latest
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
           repository: cfbd/cfbd-typescript
           token: ${{ secrets.GH_PAT }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
       - name: Download spec
         run: |
           wget https://api.collegefootballdata.com/api-docs.json
@@ -303,7 +303,7 @@ jobs:
         run: |
           wget https://api.collegefootballdata.com/api-docs.json
           kiota generate --language csharp --openapi api-docs.json --output src/ --namespace-name CollegeFootballData
-          sed -i "s/<Version>.*<\/Version>/<Version>${{ env.package_version }}<\/Version>/"
+          sed -i "s/<Version>.*<\/Version>/<Version>${{ env.package_version }}<\/Version>/" src/CollegeFootballData.csproj
           echo "Configuring git..."
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
