@@ -1,3 +1,10 @@
+# [5.8.0](https://github.com/CFBD/cfb-api-v2/compare/v5.7.2...v5.8.0) (2025-07-30)
+
+
+### Features
+
+* **dotnet:** new generator ([250f328](https://github.com/CFBD/cfb-api-v2/commit/250f32896863a317990837d6f6efb0df51704ffd))
+
 ## [5.7.2](https://github.com/CFBD/cfb-api-v2/compare/v5.7.1...v5.7.2) (2025-07-29)
 
 
