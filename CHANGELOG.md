@@ -1,3 +1,10 @@
+## [5.9.1](https://github.com/CFBD/cfb-api-v2/compare/v5.9.0...v5.9.1) (2025-07-31)
+
+
+### Bug Fixes
+
+* **performance:** advanced box score fields ([ac7aacd](https://github.com/CFBD/cfb-api-v2/commit/ac7aacd3ec767918b1bfe90196720f323f2a99e2))
+
 # [5.9.0](https://github.com/CFBD/cfb-api-v2/compare/v5.8.2...v5.9.0) (2025-07-31)
 
 
