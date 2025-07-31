@@ -459,29 +459,29 @@ FROM team AS t
             : 0,
           quarter1: p.plays1
             ? Math.round((Number(p.plays1) * 1000) / Number(p.teamPlays1)) /
-              1000
+            1000
             : null,
           quarter2: p.plays2
             ? Math.round((Number(p.plays2) * 1000) / Number(p.teamPlays2)) /
-              1000
+            1000
             : null,
           quarter3: p.plays3
             ? Math.round((Number(p.plays3) * 1000) / Number(p.teamPlays3)) /
-              1000
+            1000
             : null,
           quarter4: p.plays4
             ? Math.round((Number(p.plays4) * 1000) / Number(p.teamPlays4)) /
-              1000
+            1000
             : null,
           rushing: p.rushPlays
             ? Math.round(
-                (Number(p.rushPlays) * 1000) / Number(p.teamRushPlays),
-              ) / 1000
+              (Number(p.rushPlays) * 1000) / Number(p.teamRushPlays),
+            ) / 1000
             : 0,
           passing: p.passPlays
             ? Math.round(
-                (Number(p.passPlays) * 1000) / Number(p.teamPassPlays),
-              ) / 1000
+              (Number(p.passPlays) * 1000) / Number(p.teamPassPlays),
+            ) / 1000
             : 0,
         }),
       ),
@@ -496,29 +496,29 @@ FROM team AS t
               : 0,
             quarter1: p.totalPpa1
               ? Math.round((Number(p.totalPpa1) * 1000) / Number(p.plays1)) /
-                1000
+              1000
               : null,
             quarter2: p.totalPpa2
               ? Math.round((Number(p.totalPpa2) * 1000) / Number(p.plays2)) /
-                1000
+              1000
               : null,
             quarter3: p.totalPpa3
               ? Math.round((Number(p.totalPpa3) * 1000) / Number(p.plays3)) /
-                1000
+              1000
               : null,
             quarter4: p.totalPpa4
               ? Math.round((Number(p.totalPpa4) * 1000) / Number(p.plays4)) /
-                1000
+              1000
               : null,
-            rushing: p.totalRushPpa
+            rushing: p.rushPpa
               ? Math.round(
-                  (Number(p.totalRushPpa) * 1000) / Number(p.rushPlays),
-                ) / 1000
+                (Number(p.rushPpa) * 1000) / Number(p.rushPlays),
+              ) / 1000
               : 0,
-            passing: p.totalPassPpa
+            passing: p.passPpa
               ? Math.round(
-                  (Number(p.totalPassPpa) * 1000) / Number(p.passPlays),
-                ) / 1000
+                (Number(p.passPpa) * 1000) / Number(p.passPlays),
+              ) / 1000
               : 0,
           },
           cumulative: {
@@ -527,8 +527,8 @@ FROM team AS t
             quarter2: Math.round(Number(p.totalPpa2) * 10) / 10,
             quarter3: Math.round(Number(p.totalPpa3) * 10) / 10,
             quarter4: Math.round(Number(p.totalPpa4) * 10) / 10,
-            rushing: Math.round(Number(p.totalRushPpa) * 10) / 10,
-            passing: Math.round(Number(p.totalPassPpa) * 10) / 10,
+            rushing: Math.round(Number(p.rushPpa) * 10) / 10,
+            passing: Math.round(Number(p.passPpa) * 10) / 10,
           },
         }),
       ),
