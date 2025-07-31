@@ -1,3 +1,11 @@
+# [5.9.0](https://github.com/CFBD/cfb-api-v2/compare/v5.8.2...v5.9.0) (2025-07-31)
+
+
+### Features
+
+* **performance:** havoc queries ([f1bbb2f](https://github.com/CFBD/cfb-api-v2/commit/f1bbb2ff608db547f4e435f660f3163e79c9fdb2))
+* **performance:** player usage queries ([721e2f7](https://github.com/CFBD/cfb-api-v2/commit/721e2f73f397145947340c1f804f3a0a75bf7096))
+
 ## [5.8.2](https://github.com/CFBD/cfb-api-v2/compare/v5.8.1...v5.8.2) (2025-07-30)
 
 
