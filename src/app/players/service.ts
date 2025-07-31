@@ -7,8 +7,9 @@ import {
   PlayerUsage,
   ReturningProduction,
 } from './types';
-import { sql } from 'kysely';
-import { PASS_PLAY_TYPES, RUSH_PLAY_TYPES } from '../../globals';
+import { SelectQueryBuilder, sql } from 'kysely';
+import { PASS_PLAY_TYPES } from '../../globals';
+import { DB, PlayerUsageStats } from 'src/config/types/db';
 
 export const searchPlayers = async (
   searchTerm: string,
@@ -180,316 +181,146 @@ export const getPlayerUsage = async (
   playerId?: number,
   excludeGarbageTime?: boolean,
 ): Promise<PlayerUsage[]> => {
-  const query = kdb
-    .with('plays', (cte) => {
-      let playsQuery = cte
-        .selectFrom('game')
-        .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
-        .innerJoin('team', 'gameTeam.teamId', 'team.id')
-        .innerJoin('conferenceTeam', (join) =>
-          join
-            .onRef('team.id', '=', 'conferenceTeam.teamId')
-            .onRef('conferenceTeam.startYear', '<=', 'game.season')
-            .on((eb) =>
-              eb.or([
-                eb('conferenceTeam.endYear', '>=', eb.ref('game.season')),
-                eb('conferenceTeam.endYear', 'is', null),
-              ]),
-            ),
-        )
-        .innerJoin('conference', (join) =>
-          join
-            .onRef('conferenceTeam.conferenceId', '=', 'conference.id')
-            .on('conference.division', '=', 'fbs'),
-        )
-        .innerJoin('drive', 'game.id', 'drive.gameId')
-        .innerJoin('play', (join) =>
-          join
-            .onRef('drive.id', '=', 'play.driveId')
-            .onRef('play.offenseId', '=', 'team.id')
-            .on('play.ppa', 'is not', null),
-        )
-        .innerJoin(
-          (eb) =>
-            eb
-              .selectFrom('playStat')
-              .select(['playStat.playId', 'playStat.athleteId'])
-              .distinct()
-              .as('playStatAthlete'),
-          (join) => join.onRef('play.id', '=', 'playStatAthlete.playId'),
-        )
-        .innerJoin('athlete', 'playStatAthlete.athleteId', 'athlete.id')
-        // .innerJoin('athleteTeam', (join) =>
-        //   join
-        //     .onRef('athlete.id', '=', 'athleteTeam.athleteId')
-        //     .onRef('athleteTeam.startYear', '<=', 'game.season')
-        //     .onRef('athleteTeam.endYear', '>=', 'game.season')
-        //     .onRef('athleteTeam.teamId', '=', 'team.id'),
-        // )
-        .innerJoin('position', 'athlete.positionId', 'position.id')
-        .where('position.abbreviation', 'in', ['QB', 'RB', 'FB', 'TE', 'WR'])
-        .where('game.season', '=', year)
-        .groupBy([
-          'game.season',
-          'athlete.id',
-          'athlete.name',
-          'position.abbreviation',
-          'team.id',
-          'team.school',
-          'conference.name',
-        ])
-        .select([
-          'game.season',
-          'team.id as teamId',
-          'team.school',
-          'conference.name as conference',
-          'athlete.id',
-          'athlete.name',
-          'position.abbreviation as position',
-        ])
-        .select((eb) => eb.fn.count('play.id').as('plays'))
-        .select((eb) =>
-          eb.fn
-            .count('play.id')
-            .filterWhere('play.playTypeId', 'in', PASS_PLAY_TYPES)
-            .as('passPlays'),
-        )
-        .select((eb) =>
-          eb.fn
-            .count('play.id')
-            .filterWhere('play.playTypeId', 'in', RUSH_PLAY_TYPES)
-            .as('rushPlays'),
-        )
-        .select((eb) =>
-          eb.fn
-            .count('play.id')
-            .filterWhere('play.down', '=', 1)
-            .as('firstDowns'),
-        )
-        .select((eb) =>
-          eb.fn
-            .count('play.id')
-            .filterWhere('play.down', '=', 2)
-            .as('secondDowns'),
-        )
-        .select((eb) =>
-          eb.fn
-            .count('play.id')
-            .filterWhere('play.down', '=', 3)
-            .as('thirdDowns'),
-        )
-        .select((eb) =>
-          eb.fn
-            .count('play.id')
-            .filterWhere((eb) =>
-              eb.or([
-                eb('play.down', '=', 2).and('play.distance', '>=', 8),
-                eb('play.down', 'in', [3, 4]).and('play.distance', '>=', 5),
-              ]),
-            )
-            .as('passingDowns'),
-        )
-        .select((eb) =>
-          eb.fn
-            .count('play.id')
-            .filterWhere((eb) =>
-              eb.or([
-                eb('play.distance', '<', 5),
-                eb('play.down', '=', 2).and('play.distance', '<', 8),
-              ]),
-            )
-            .as('standardDowns'),
-        )
-        .distinct();
+  let baseQuery: SelectQueryBuilder<
+    DB & {
+      usage: PlayerUsageStats;
+    },
+    'usage',
+    {}
+  >;
 
-      if (excludeGarbageTime) {
-        playsQuery = playsQuery.where('play.garbageTime', '=', false);
-      }
+  if (excludeGarbageTime) {
+    baseQuery = kdb.selectFrom('playerUsageStatsFiltered as usage');
+  } else {
+    baseQuery = kdb.selectFrom('playerUsageStats as usage');
+  }
 
-      if (conference) {
-        playsQuery = playsQuery.where((eb) =>
-          eb(
-            eb.fn('lower', ['conference.abbreviation']),
-            '=',
-            conference.toLowerCase(),
-          ),
-        );
-      }
-
-      if (position) {
-        playsQuery = playsQuery.where((eb) =>
-          eb(
-            eb.fn('lower', ['position.abbreviation']),
-            '=',
-            position.toLowerCase(),
-          ),
-        );
-      }
-
-      if (team) {
-        playsQuery = playsQuery.where((eb) =>
-          eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
-        );
-      }
-
-      if (playerId) {
-        playsQuery = playsQuery.where('athlete.id', '=', playerId.toString());
-      }
-
-      return playsQuery;
-    })
-    .with('teamCounts', (cte) => {
-      let teamCountsQuery = cte
-        .selectFrom('game')
-        .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
-        .innerJoin('team', 'gameTeam.teamId', 'team.id')
-        .innerJoin('conferenceTeam', (join) =>
-          join
-            .onRef('team.id', '=', 'conferenceTeam.teamId')
-            .onRef('conferenceTeam.startYear', '<=', 'game.season')
-            .on((eb) =>
-              eb.or([
-                eb('conferenceTeam.endYear', '>=', eb.ref('game.season')),
-                eb('conferenceTeam.endYear', 'is', null),
-              ]),
-            ),
-        )
-        .innerJoin('conference', (join) =>
-          join
-            .onRef('conferenceTeam.conferenceId', '=', 'conference.id')
-            .on('conference.division', '=', 'fbs'),
-        )
-        .innerJoin('drive', 'game.id', 'drive.gameId')
-        .innerJoin('play', (join) =>
-          join
-            .onRef('drive.id', '=', 'play.driveId')
-            .onRef('play.offenseId', '=', 'team.id')
-            .on('play.ppa', 'is not', null),
-        )
-        .where('game.season', '=', year)
-        .groupBy(['game.season', 'team.id', 'team.school'])
-        .select(['game.season', 'team.id as teamId', 'team.school'])
-        .select((eb) => eb.fn.countAll().as('plays'))
-        .select((eb) =>
-          eb.fn
-            .countAll()
-            .filterWhere('play.playTypeId', 'in', PASS_PLAY_TYPES)
-            .as('passPlays'),
-        )
-        .select((eb) =>
-          eb.fn
-            .countAll()
-            .filterWhere('play.playTypeId', 'in', RUSH_PLAY_TYPES)
-            .as('rushPlays'),
-        )
-        .select((eb) =>
-          eb.fn.countAll().filterWhere('play.down', '=', 1).as('firstDowns'),
-        )
-        .select((eb) =>
-          eb.fn.countAll().filterWhere('play.down', '=', 2).as('secondDowns'),
-        )
-        .select((eb) =>
-          eb.fn.countAll().filterWhere('play.down', '=', 3).as('thirdDowns'),
-        )
-        .select((eb) =>
-          eb.fn
-            .countAll()
-            .filterWhere((eb) =>
-              eb.or([
-                eb('play.down', '=', 2).and('play.distance', '>=', 8),
-                eb('play.down', 'in', [3, 4]).and('play.distance', '>=', 5),
-              ]),
-            )
-            .as('passingDowns'),
-        )
-        .select((eb) =>
-          eb.fn
-            .countAll()
-            .filterWhere((eb) =>
-              eb.or([
-                eb('play.distance', '<', 5),
-                eb('play.down', '=', 2).and('play.distance', '<', 8),
-              ]),
-            )
-            .as('standardDowns'),
-        );
-
-      if (excludeGarbageTime) {
-        teamCountsQuery = teamCountsQuery.where('play.garbageTime', '=', false);
-      }
-      return teamCountsQuery;
-    })
-    .selectFrom('plays')
-    .innerJoin('teamCounts', 'plays.teamId', 'teamCounts.teamId')
-    .select([
-      'plays.season',
-      'plays.id',
-      'plays.name',
-      'plays.position',
-      'plays.school',
-      'plays.conference',
+  let query = baseQuery
+    .innerJoin('team', 'usage.school', 'team.school')
+    .leftJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .onRef('conferenceTeam.startYear', '<=', 'usage.season')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', 'is', null),
+            eb('conferenceTeam.endYear', '>=', eb.ref('usage.season')),
+          ]),
+        ),
+    )
+    .leftJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .groupBy([
+      'usage.season',
+      'usage.athleteId',
+      'usage.name',
+      'usage.position',
+      'team.school',
+      'conference.abbreviation',
     ])
-    .select(
-      sql<number>`ROUND(CAST(CAST(plays.plays AS NUMERIC) /  team_counts.plays AS NUMERIC), 4)`.as(
-        'overallUsage',
+    .select([
+      'usage.season',
+      'usage.athleteId',
+      'usage.name',
+      'usage.position',
+      'team.school',
+      'conference.abbreviation as conference',
+    ])
+    .select((eb) => [
+      eb.fn.sum('usage.teamPlays').as('teamPlays'),
+      eb.fn.sum('usage.teamPassPlays').as('teamPassPlays'),
+      eb.fn.sum('usage.teamRushPlays').as('teamRushPlays'),
+      eb.fn.sum('usage.teamFirstDowns').as('teamFirstDowns'),
+      eb.fn.sum('usage.teamSecondDowns').as('teamSecondDowns'),
+      eb.fn.sum('usage.teamThirdDowns').as('teamThirdDowns'),
+      eb.fn.sum('usage.teamStandardDowns').as('teamStandardDowns'),
+      eb.fn.sum('usage.teamPassingDowns').as('teamPassingDowns'),
+      eb.fn.sum('usage.plays').as('plays'),
+      eb.fn.sum('usage.passPlays').as('passPlays'),
+      eb.fn.sum('usage.rushPlays').as('rushPlays'),
+      eb.fn.sum('usage.firstDowns').as('firstDowns'),
+      eb.fn.sum('usage.secondDowns').as('secondDowns'),
+      eb.fn.sum('usage.thirdDowns').as('thirdDowns'),
+      eb.fn.sum('usage.standardDowns').as('standardDowns'),
+      eb.fn.sum('usage.passingDowns').as('passingDowns'),
+    ]);
+
+  if (year) {
+    query = query.where('usage.season', '=', year);
+  }
+
+  if (conference) {
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
       ),
-    )
-    .select(
-      sql<number>`ROUND(CAST(CAST(plays.pass_plays AS NUMERIC) /  team_counts.pass_plays AS NUMERIC), 4)`.as(
-        'passUsage',
-      ),
-    )
-    .select(
-      sql<number>`ROUND(CAST(CAST(plays.rush_plays AS NUMERIC) /  team_counts.rush_plays AS NUMERIC), 4)`.as(
-        'rushUsage',
-      ),
-    )
-    .select(
-      sql<number>`ROUND(CAST(CAST(plays.first_downs AS NUMERIC) /  team_counts.first_downs AS NUMERIC), 4)`.as(
-        'firstDownUsage',
-      ),
-    )
-    .select(
-      sql<number>`ROUND(CAST(CAST(plays.second_downs AS NUMERIC) /  team_counts.second_downs AS NUMERIC), 3)`.as(
-        'secondDownUsage',
-      ),
-    )
-    .select(
-      sql<number>`ROUND(CAST(CAST(plays.third_downs AS NUMERIC) /  team_counts.third_downs AS NUMERIC), 3)`.as(
-        'thirdDownUsage',
-      ),
-    )
-    .select(
-      sql<number>`ROUND(CAST(CAST(plays.standard_downs AS NUMERIC) /  team_counts.standard_downs AS NUMERIC), 3)`.as(
-        'standardDownUsage',
-      ),
-    )
-    .select(
-      sql<number>`ROUND(CAST(CAST(plays.passing_downs AS NUMERIC) /  team_counts.passing_downs AS NUMERIC), 3)`.as(
-        'passingDownUsage',
-      ),
-    )
-    .orderBy('overallUsage', 'desc');
+    );
+  }
+
+  if (position) {
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['usage.position']), '=', position.toLowerCase()),
+    );
+  }
+
+  if (team) {
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
+  }
+
+  if (playerId) {
+    query = query.where('usage.athleteId', '=', String(playerId));
+  }
 
   const results = await query.execute();
 
   return results.map(
     (r): PlayerUsage => ({
       season: r.season,
-      id: r.id,
+      id: r.athleteId,
       name: r.name,
       position: r.position,
       team: r.school,
-      conference: r.conference,
+      conference: r.conference ?? '',
       usage: {
-        overall: r.overallUsage ? Number(r.overallUsage) : null,
-        pass: r.passUsage ? Number(r.passUsage) : null,
-        rush: r.rushUsage ? Number(r.rushUsage) : null,
-        firstDown: r.firstDownUsage ? Number(r.firstDownUsage) : null,
-        secondDown: r.secondDownUsage ? Number(r.secondDownUsage) : null,
-        thirdDown: r.thirdDownUsage ? Number(r.thirdDownUsage) : null,
-        standardDowns: r.standardDownUsage ? Number(r.standardDownUsage) : null,
-        passingDowns: r.passingDownUsage ? Number(r.passingDownUsage) : null,
+        overall: r.plays
+          ? Math.round((Number(r.plays) * 1000) / Number(r.teamPlays)) / 1000
+          : null,
+        pass: r.passPlays
+          ? Math.round((Number(r.passPlays) * 1000) / Number(r.teamPassPlays)) /
+            1000
+          : null,
+        rush: r.rushPlays
+          ? Math.round((Number(r.rushPlays) * 1000) / Number(r.teamRushPlays)) /
+            1000
+          : null,
+        firstDown: r.firstDowns
+          ? Math.round(
+              (Number(r.firstDowns) * 1000) / Number(r.teamFirstDowns),
+            ) / 1000
+          : null,
+        secondDown: r.secondDowns
+          ? Math.round(
+              (Number(r.secondDowns) * 1000) / Number(r.teamSecondDowns),
+            ) / 1000
+          : null,
+        thirdDown: r.thirdDowns
+          ? Math.round(
+              (Number(r.thirdDowns) * 1000) / Number(r.teamThirdDowns),
+            ) / 1000
+          : null,
+        standardDowns: r.standardDowns
+          ? Math.round(
+              (Number(r.standardDowns) * 1000) / Number(r.teamStandardDowns),
+            ) / 1000
+          : null,
+        passingDowns: r.passingDowns
+          ? Math.round(
+              (Number(r.passingDowns) * 1000) / Number(r.teamPassingDowns),
+            ) / 1000
+          : null,
       },
     }),
   );

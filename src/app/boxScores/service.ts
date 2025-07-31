@@ -1,4 +1,4 @@
-import { db } from '../../config/database';
+import { db, kdb } from '../../config/database';
 import {
   AdvancedBoxScore,
   PlayerPPA,
@@ -154,118 +154,10 @@ export const getAdvancedBoxScore = async (
     [id],
   );
 
-  const playerTask = db.any(
-    `
-            WITH plays AS (
-                SELECT DISTINCT t.id AS team_id,
-                                t.school,
-                                a.id,
-                                a.name,
-                                po.abbreviation AS position,
-                                p.id AS play_id,
-                                p.period,
-                                p.down,
-                                CASE
-                                    WHEN p.play_type_id IN (3,4,6,7,24,26,36,51,67) THEN 'Pass'
-                                    WHEN p.play_type_id IN (5,9,29,39,68) THEN 'Rush'
-                                    ELSE 'Other'
-                                END AS play_type,
-                                CASE
-                                    WHEN p.down = 2 AND p.distance >= 8 THEN 'passing'
-                                    WHEN p.down IN (3,4) AND p.distance >= 5 THEN 'passing'
-                                    ELSE 'standard'
-                                END AS down_type,
-                                CASE
-                                    WHEN p.period = 2 AND p.scoring = false AND ABS(p.home_score - p.away_score) > 38 THEN true
-                                    WHEN p.period = 3 AND p.scoring = false AND ABS(p.home_score - p.away_score) > 28 THEN true
-                                    WHEN p.period = 4 AND p.scoring = false AND ABS(p.home_score - p.away_score) > 22 THEN true
-                                    WHEN p.period = 2 AND p.scoring = true AND ABS(p.home_score - p.away_score) > 45 THEN true
-                                    WHEN p.period = 3 AND p.scoring = true AND ABS(p.home_score - p.away_score) > 35 THEN true
-                                    WHEN p.period = 4 AND p.scoring = true AND ABS(p.home_score - p.away_score) > 29 THEN true
-                                    ELSE false
-                                END AS garbage_time,
-                                p.ppa
-                FROM game AS g
-                    INNER JOIN drive AS d ON g.id = d.game_id
-                    INNER JOIN play AS p ON d.id = p.drive_id AND p.ppa IS NOT NULL
-                    INNER JOIN team AS t ON p.offense_id = t.id
-                    INNER JOIN play_stat AS ps ON p.id = ps.play_id
-                    INNER JOIN athlete AS a ON ps.athlete_id = a.id
-                    INNER JOIN athlete_team AS att ON a.id = att.athlete_id AND att.start_year <= g.season AND att.end_year >= g.season AND att.team_id = t.id
-                    INNER JOIN position AS po ON a.position_id = po.id
-                WHERE g.id = $1
-            ), teams AS (
-                SELECT 	t.id,
-                        t.school,
-                        p.period,
-                        CASE
-                            WHEN p.play_type_id IN (3,4,6,7,24,26,36,51,67) THEN 'Pass'
-                            WHEN p.play_type_id IN (5,9,29,39,68) THEN 'Rush'
-                            ELSE 'Other'
-                        END AS play_type,
-                        CASE
-                            WHEN p.period = 2 AND p.scoring = false AND ABS(p.home_score - p.away_score) > 38 THEN true
-                            WHEN p.period = 3 AND p.scoring = false AND ABS(p.home_score - p.away_score) > 28 THEN true
-                            WHEN p.period = 4 AND p.scoring = false AND ABS(p.home_score - p.away_score) > 22 THEN true
-                            WHEN p.period = 2 AND p.scoring = true AND ABS(p.home_score - p.away_score) > 45 THEN true
-                            WHEN p.period = 3 AND p.scoring = true AND ABS(p.home_score - p.away_score) > 35 THEN true
-                            WHEN p.period = 4 AND p.scoring = true AND ABS(p.home_score - p.away_score) > 29 THEN true
-                            ELSE false
-                        END AS garbage_time,
-                        p.ppa
-                FROM game AS g
-                    INNER JOIN drive AS d ON g.id = d.game_id
-                    INNER JOIN play AS p ON d.id = p.drive_id AND p.ppa IS NOT NULL
-                    INNER JOIN team AS t ON p.offense_id = t.id
-                WHERE g.id = $1
-            ), team_counts AS (
-                SELECT 	id,
-                        school,
-                        COALESCE(NULLIF(COUNT(*), 0), 1) AS plays,
-                        COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1) AS rush,
-                        COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Pass'), 0), 1) AS pass,
-                        COALESCE(NULLIF(COUNT(*) FILTER(WHERE period = 1), 0), 1) AS plays_1,
-                        COALESCE(NULLIF(COUNT(*) FILTER(WHERE period = 2), 0), 1) AS plays_2,
-                        COALESCE(NULLIF(COUNT(*) FILTER(WHERE period = 3), 0), 1) AS plays_3,
-                        COALESCE(NULLIF(COUNT(*) FILTER(WHERE period = 4), 0), 1) AS plays_4
-                FROM teams
-                WHERE garbage_time = false
-                GROUP BY id, school
-            )
-            SELECT p.id,
-                p."name",
-                p.position,
-                p.school,
-                COUNT(p.ppa) AS plays,
-                ROUND(CAST(CAST(COUNT(p.ppa) AS NUMERIC) / t.plays AS NUMERIC), 3) AS overall_usage,
-                ROUND(CAST(CAST(COUNT(p.ppa) FILTER(WHERE p.period = 1) AS NUMERIC) / t.plays_1 AS NUMERIC), 3) AS overall_usage_1,
-                ROUND(CAST(CAST(COUNT(p.ppa) FILTER(WHERE p.period = 2) AS NUMERIC) / t.plays_2 AS NUMERIC), 3) AS overall_usage_2,
-                ROUND(CAST(CAST(COUNT(p.ppa) FILTER(WHERE p.period = 3) AS NUMERIC) / t.plays_3 AS NUMERIC), 3) AS overall_usage_3,
-                ROUND(CAST(CAST(COUNT(p.ppa) FILTER(WHERE p.period = 4) AS NUMERIC) / t.plays_4 AS NUMERIC), 3) AS overall_usage_4,
-                ROUND(CAST(CAST(COUNT(p.ppa) FILTER(WHERE p.play_type = 'Pass') AS NUMERIC) / t.pass AS NUMERIC), 3) AS pass_usage,
-                ROUND(CAST(CAST(COUNT(p.ppa) FILTER(WHERE p.play_type = 'Rush') AS NUMERIC) / t.rush AS NUMERIC), 3) AS rush_usage,
-                ROUND(CAST(AVG(p.ppa) AS NUMERIC), 3) AS ppa,
-                COALESCE(ROUND(CAST(AVG(p.ppa) FILTER(WHERE p.period = 1) AS NUMERIC), 3), 0) AS ppa_1,
-                COALESCE(ROUND(CAST(AVG(p.ppa) FILTER(WHERE p.period = 2) AS NUMERIC), 3), 0) AS ppa_2,
-                COALESCE(ROUND(CAST(AVG(p.ppa) FILTER(WHERE p.period = 3) AS NUMERIC), 3), 0) AS ppa_3,
-                COALESCE(ROUND(CAST(AVG(p.ppa) FILTER(WHERE p.period = 4) AS NUMERIC), 3), 0) AS ppa_4,
-                COALESCE(ROUND(CAST(AVG(p.ppa) FILTER(WHERE p.play_type = 'Pass') AS NUMERIC), 3), 0) AS ppa_pass,
-                COALESCE(ROUND(CAST(AVG(p.ppa) FILTER(WHERE p.play_type = 'Rush') AS NUMERIC), 3), 0) AS ppa_rush,
-                ROUND(CAST(SUM(p.ppa) AS NUMERIC), 1) AS cum_ppa,
-                COALESCE(ROUND(CAST(SUM(p.ppa) FILTER(WHERE p.period = 1) AS NUMERIC), 1), 0) AS cum_ppa_1,
-                COALESCE(ROUND(CAST(SUM(p.ppa) FILTER(WHERE p.period = 2) AS NUMERIC), 1), 0) AS cum_ppa_2,
-                COALESCE(ROUND(CAST(SUM(p.ppa) FILTER(WHERE p.period = 3) AS NUMERIC), 1), 0) AS cum_ppa_3,
-                COALESCE(ROUND(CAST(SUM(p.ppa) FILTER(WHERE p.period = 4) AS NUMERIC), 1), 0) AS cum_ppa_4,
-                COALESCE(ROUND(CAST(SUM(p.ppa) FILTER(WHERE p.play_type = 'Pass') AS NUMERIC), 1), 0) AS cum_ppa_pass,
-                COALESCE(ROUND(CAST(SUM(p.ppa) FILTER(WHERE p.play_type = 'Rush') AS NUMERIC), 1), 0) AS cum_ppa_rush
-            FROM plays AS p
-                INNER JOIN team_counts AS t ON p.team_id = t.id
-            WHERE position IN ('QB', 'RB', 'FB', 'TE', 'WR') AND p.garbage_time = false
-            GROUP BY p.id, p."name", p.position, p.school, t.plays, t.pass, t.rush, t.plays_1, t.plays_2, t.plays_3, t.plays_4
-            ORDER BY overall_usage DESC
-        `,
-    [id],
-  );
+  const playerQuery = kdb
+    .selectFrom('playerUsageStatsFiltered')
+    .where('gameId', '=', id)
+    .selectAll();
 
   const scoringOppTask = db.any(
     `
@@ -359,18 +251,14 @@ FROM team AS t
   );
 
   const results = await db.task(async (t) => {
-    return await t.batch([
-      teamTask,
-      playerTask,
-      scoringOppTask,
-      fieldPositionTask,
-    ]);
+    return await t.batch([teamTask, scoringOppTask, fieldPositionTask]);
   });
 
+  const playerResults = await playerQuery.execute();
+
   const teamResults = results[0];
-  const playerResults = results[1];
-  const scoringOppResults = results[2];
-  const fieldPositionResults = results[3];
+  const scoringOppResults = results[1];
+  const fieldPositionResults = results[2];
 
   const teams = Array.from(new Set(teamResults.map((t) => t.team)));
 
@@ -566,13 +454,35 @@ FROM team AS t
           player: p.name,
           team: p.school,
           position: p.position,
-          total: parseFloat(p.overall_usage),
-          quarter1: p.overall_usage_1 ? parseFloat(p.overall_usage_1) : null,
-          quarter2: p.overall_usage_2 ? parseFloat(p.overall_usage_2) : null,
-          quarter3: p.overall_usage_3 ? parseFloat(p.overall_usage_3) : null,
-          quarter4: p.overall_usage_4 ? parseFloat(p.overall_usage_4) : null,
-          rushing: parseFloat(p.rush_usage),
-          passing: parseFloat(p.pass_usage),
+          total: p.plays
+            ? Math.round((Number(p.plays) * 1000) / Number(p.teamPlays)) / 1000
+            : 0,
+          quarter1: p.plays1
+            ? Math.round((Number(p.plays1) * 1000) / Number(p.teamPlays1)) /
+              1000
+            : null,
+          quarter2: p.plays2
+            ? Math.round((Number(p.plays2) * 1000) / Number(p.teamPlays2)) /
+              1000
+            : null,
+          quarter3: p.plays3
+            ? Math.round((Number(p.plays3) * 1000) / Number(p.teamPlays3)) /
+              1000
+            : null,
+          quarter4: p.plays4
+            ? Math.round((Number(p.plays4) * 1000) / Number(p.teamPlays4)) /
+              1000
+            : null,
+          rushing: p.rushPlays
+            ? Math.round(
+                (Number(p.rushPlays) * 1000) / Number(p.teamRushPlays),
+              ) / 1000
+            : 0,
+          passing: p.passPlays
+            ? Math.round(
+                (Number(p.passPlays) * 1000) / Number(p.teamPassPlays),
+              ) / 1000
+            : 0,
         }),
       ),
       ppa: playerResults.map(
@@ -581,22 +491,44 @@ FROM team AS t
           team: p.school,
           position: p.position,
           average: {
-            total: parseFloat(p.ppa),
-            quarter1: p.ppa_1 ? parseFloat(p.ppa_1) : null,
-            quarter2: p.ppa_2 ? parseFloat(p.ppa_2) : null,
-            quarter3: p.ppa_3 ? parseFloat(p.ppa_3) : null,
-            quarter4: p.ppa_4 ? parseFloat(p.ppa_4) : null,
-            rushing: parseFloat(p.ppa_rush),
-            passing: parseFloat(p.ppa_pass),
+            total: p.totalPpa
+              ? Math.round((Number(p.totalPpa) * 1000) / Number(p.plays)) / 1000
+              : 0,
+            quarter1: p.totalPpa1
+              ? Math.round((Number(p.totalPpa1) * 1000) / Number(p.plays1)) /
+                1000
+              : null,
+            quarter2: p.totalPpa2
+              ? Math.round((Number(p.totalPpa2) * 1000) / Number(p.plays2)) /
+                1000
+              : null,
+            quarter3: p.totalPpa3
+              ? Math.round((Number(p.totalPpa3) * 1000) / Number(p.plays3)) /
+                1000
+              : null,
+            quarter4: p.totalPpa4
+              ? Math.round((Number(p.totalPpa4) * 1000) / Number(p.plays4)) /
+                1000
+              : null,
+            rushing: p.totalRushPpa
+              ? Math.round(
+                  (Number(p.totalRushPpa) * 1000) / Number(p.rushPlays),
+                ) / 1000
+              : 0,
+            passing: p.totalPassPpa
+              ? Math.round(
+                  (Number(p.totalPassPpa) * 1000) / Number(p.passPlays),
+                ) / 1000
+              : 0,
           },
           cumulative: {
-            total: parseFloat(p.cum_ppa),
-            quarter1: p.cum_ppa_1 ? parseFloat(p.cum_ppa_1) : null,
-            quarter2: p.cum_ppa_2 ? parseFloat(p.cum_ppa_2) : null,
-            quarter3: p.cum_ppa_3 ? parseFloat(p.cum_ppa_3) : null,
-            quarter4: p.cum_ppa_4 ? parseFloat(p.cum_ppa_4) : null,
-            rushing: parseFloat(p.cum_ppa_rush),
-            passing: parseFloat(p.cum_ppa_pass),
+            total: Math.round(Number(p.totalPpa) * 10) / 10,
+            quarter1: Math.round(Number(p.totalPpa1) * 10) / 10,
+            quarter2: Math.round(Number(p.totalPpa2) * 10) / 10,
+            quarter3: Math.round(Number(p.totalPpa3) * 10) / 10,
+            quarter4: Math.round(Number(p.totalPpa4) * 10) / 10,
+            rushing: Math.round(Number(p.totalRushPpa) * 10) / 10,
+            passing: Math.round(Number(p.totalPassPpa) * 10) / 10,
           },
         }),
       ),

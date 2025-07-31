@@ -508,6 +508,53 @@ export interface PlayerStatType {
   name: string;
 }
 
+export interface PlayerUsageStats {
+  season: number;
+  seasonType: SeasonType;
+  week: number;
+  gameId: number;
+  athleteId: Int8;
+  name: string;
+  position: string;
+  school: string;
+  teamPlays: number;
+  teamPlays1: number;
+  teamPlays2: number;
+  teamPlays3: number;
+  teamPlays4: number;
+  teamPassPlays: number;
+  teamRushPlays: number;
+  teamFirstDowns: number;
+  teamSecondDowns: number;
+  teamThirdDowns: number;
+  teamStandardDowns: number;
+  teamPassingDowns: number;
+  plays: number;
+  plays1: number;
+  plays2: number;
+  plays3: number;
+  plays4: number;
+  passPlays: number;
+  rushPlays: number;
+  firstDowns: number;
+  secondDowns: number;
+  thirdDowns: number;
+  standardDowns: number;
+  passingDowns: number;
+  totalPpa: number;
+  totalPpa1: number;
+  totalPpa2: number;
+  totalPpa3: number;
+  totalPpa4: number;
+  passPpa: number;
+  rushPpa: number;
+  standardDownsPpa: number;
+  passingDownsPpa: number;
+  firstDownsPpa: number;
+  secondDownsPpa: number;
+  thirdDownsPpa: number;
+}
+
 export interface PlayStat {
   athleteId: Int8;
   id: Generated<Int8>;
@@ -876,6 +923,8 @@ export interface DB {
   play: Play;
   playerStatCategory: PlayerStatCategory;
   playerStatType: PlayerStatType;
+  playerUsageStats: PlayerUsageStats;
+  playerUsageStatsFiltered: PlayerUsageStats;
   playStat: PlayStat;
   playStatType: PlayStatType;
   playType: PlayType;
