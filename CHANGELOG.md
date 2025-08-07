@@ -1,3 +1,10 @@
+## [5.9.2](https://github.com/CFBD/cfb-api-v2/compare/v5.9.1...v5.9.2) (2025-08-07)
+
+
+### Bug Fixes
+
+* **players:** mean passing and usage fixes ([7588d0c](https://github.com/CFBD/cfb-api-v2/commit/7588d0c61cb0ed826b50798f6f0290e4d1f968be))
+
 ## [5.9.1](https://github.com/CFBD/cfb-api-v2/compare/v5.9.0...v5.9.1) (2025-07-31)
 
 
