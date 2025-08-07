@@ -7,7 +7,7 @@ import {
   PlayerUsage,
   ReturningProduction,
 } from './types';
-import { SelectQueryBuilder, sql } from 'kysely';
+import { SelectQueryBuilder } from 'kysely';
 import { PASS_PLAY_TYPES } from '../../globals';
 import { DB, PlayerUsageStats } from 'src/config/types/db';
 
@@ -138,6 +138,7 @@ export const generateMeanPassingChart = async (
                 .orderBy('drive.id')
                 .orderBy('play.id'),
             )
+
             .as('row_num'),
         ),
     )
@@ -149,7 +150,11 @@ export const generateMeanPassingChart = async (
             return join
               .onRef('p2.row_num', '<=', 'p1.row_num')
               .on((eb) =>
-                eb(sql`p2.row_num + ${rollingPlays}`, '>', 'p1.row_num'),
+                eb(
+                  eb.ref('p2.row_num'),
+                  '>',
+                  eb('p1.row_num', '-', rollingPlays),
+                ),
               );
           } else {
             return join.onRef('p2.row_num', '<=', 'p1.row_num');
@@ -180,6 +185,7 @@ export const getPlayerUsage = async (
   team?: string,
   playerId?: number,
   excludeGarbageTime?: boolean,
+  threshold?: number,
 ): Promise<PlayerUsage[]> => {
   let baseQuery: SelectQueryBuilder<
     DB & {
@@ -272,6 +278,10 @@ export const getPlayerUsage = async (
 
   if (playerId) {
     query = query.where('usage.athleteId', '=', String(playerId));
+  }
+
+  if (threshold) {
+    query = query.having('plays', '>=', threshold);
   }
 
   const results = await query.execute();
