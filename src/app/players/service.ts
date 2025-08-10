@@ -381,17 +381,27 @@ export const getReturningProduction = async (
       totalReceivingPPA: Number(r.returningReceivingPpa),
       totalRushingPPA: Number(r.returningRushPpa),
       percentPPA:
-        Math.round((Number(r.returningPpa) * 1000) / Number(r.ppa)) / 1000,
+        Number(r.ppa) !== 0
+          ? Math.round((Number(r.returningPpa) * 1000) / Number(r.ppa)) / 1000
+          : 0,
       percentPassingPPA:
-        Math.round((Number(r.returningPassPpa) * 1000) / Number(r.passPpa)) /
-        1000,
+        Number(r.passPpa) !== 0
+          ? Math.round(
+              (Number(r.returningPassPpa) * 1000) / Number(r.passPpa),
+            ) / 1000
+          : 0,
       percentReceivingPPA:
-        Math.round(
-          (Number(r.returningReceivingPpa) * 1000) / Number(r.receivingPpa),
-        ) / 1000,
+        Number(r.receivingPpa) !== 0
+          ? Math.round(
+              (Number(r.returningReceivingPpa) * 1000) / Number(r.receivingPpa),
+            ) / 1000
+          : 0,
       percentRushingPPA:
-        Math.round((Number(r.returningRushPpa) * 1000) / Number(r.rushPpa)) /
-        1000,
+        Number(r.rushPpa) !== 0
+          ? Math.round(
+              (Number(r.returningRushPpa) * 1000) / Number(r.rushPpa),
+            ) / 1000
+          : 0,
       usage: Number(r.returningUsage),
       passingUsage: Number(r.returningPassUsage),
       receivingUsage: Number(r.returningReceivingUsage),
