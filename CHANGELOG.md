@@ -1,3 +1,10 @@
+## [5.9.3](https://github.com/CFBD/cfb-api-v2/compare/v5.9.2...v5.9.3) (2025-08-10)
+
+
+### Bug Fixes
+
+* **returningProduction:** divide by zerofix ([b9cf49f](https://github.com/CFBD/cfb-api-v2/commit/b9cf49fc0e25b06fbb98c2b95e19a40432c373a0))
+
 ## [5.9.2](https://github.com/CFBD/cfb-api-v2/compare/v5.9.1...v5.9.2) (2025-08-07)
 
 
