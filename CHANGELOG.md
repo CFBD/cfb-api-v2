@@ -1,3 +1,10 @@
+## [5.9.4](https://github.com/CFBD/cfb-api-v2/compare/v5.9.3...v5.9.4) (2025-08-11)
+
+
+### Bug Fixes
+
+* **ppa:** duplicate player season entries ([7ece855](https://github.com/CFBD/cfb-api-v2/commit/7ece855fa8df5fbcbd88feda4ec20982dae545c3))
+
 ## [5.9.3](https://github.com/CFBD/cfb-api-v2/compare/v5.9.2...v5.9.3) (2025-08-10)
 
 
