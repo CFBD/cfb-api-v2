@@ -764,7 +764,6 @@ export const getPredictedPointsAddedByPlayerSeason = async (
     .leftJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
     .groupBy([
       'usage.season',
-      'usage.seasonType',
       'usage.athleteId',
       'usage.name',
       'usage.position',
@@ -773,7 +772,6 @@ export const getPredictedPointsAddedByPlayerSeason = async (
     ])
     .select([
       'usage.season',
-      'usage.seasonType',
       'usage.athleteId',
       'usage.name',
       'usage.position',
