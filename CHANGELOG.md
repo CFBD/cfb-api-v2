@@ -1,3 +1,10 @@
+## [5.9.5](https://github.com/CFBD/cfb-api-v2/compare/v5.9.4...v5.9.5) (2025-08-16)
+
+
+### Bug Fixes
+
+* **sp:** defensive ratings order ([f2d0b34](https://github.com/CFBD/cfb-api-v2/commit/f2d0b34e82d0f71f8b214b97ec2749369d29eb1b))
+
 ## [5.9.4](https://github.com/CFBD/cfb-api-v2/compare/v5.9.3...v5.9.4) (2025-08-11)
 
 
