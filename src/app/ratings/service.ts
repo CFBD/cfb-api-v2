@@ -43,7 +43,7 @@ export const getSP = async (
     .select((eb) =>
       eb.fn
         .agg<number>('rank')
-        .over((ob) => ob.orderBy('ratings.dRating', 'desc'))
+        .over((ob) => ob.orderBy('ratings.dRating', 'asc'))
         .as('defenseRank'),
     )
     .selectAll('ratings');
