@@ -19,9 +19,6 @@ export interface Recruit {
   school: string | null;
   committedTo: string | null;
   position: string | null;
-  /**
-   * @isInt
-   */
   height: number | null;
   /**
    * @isInt

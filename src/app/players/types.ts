@@ -13,9 +13,6 @@ export interface PlayerSearchResult {
    * @isInt
    */
   weight: number | null;
-  /**
-   * @isInt
-   */
   height: number | null;
   /**
    * @isInt

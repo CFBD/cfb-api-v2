@@ -102,9 +102,6 @@ export interface RosterPlayer {
   firstName: string;
   lastName: string;
   team: string;
-  /**
-   * @isInt
-   */
   height: number | null;
   /**
    * @isInt

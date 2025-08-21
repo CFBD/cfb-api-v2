@@ -48,9 +48,6 @@ export interface DraftPick {
   pick: number;
   name: string;
   position: string;
-  /**
-   * @isInt
-   */
   height: number | null;
   /**
    * @isInt
