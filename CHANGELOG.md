@@ -1,3 +1,10 @@
+## [5.9.6](https://github.com/CFBD/cfb-api-v2/compare/v5.9.5...v5.9.6) (2025-08-21)
+
+
+### Bug Fixes
+
+* changing height attributes from int to numeric ([9c9dbb8](https://github.com/CFBD/cfb-api-v2/commit/9c9dbb89da9dac0a1ca440338419ae3f67b79368))
+
 ## [5.9.5](https://github.com/CFBD/cfb-api-v2/compare/v5.9.4...v5.9.5) (2025-08-16)
 
 
