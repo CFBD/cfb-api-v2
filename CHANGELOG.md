@@ -1,3 +1,10 @@
+## [5.9.7](https://github.com/CFBD/cfb-api-v2/compare/v5.9.6...v5.9.7) (2025-08-24)
+
+
+### Bug Fixes
+
+* **livePlays:** rush-pass typo ([fc6e3a0](https://github.com/CFBD/cfb-api-v2/commit/fc6e3a0f786de516f898dfd48713b5453933b9cb))
+
 ## [5.9.6](https://github.com/CFBD/cfb-api-v2/compare/v5.9.5...v5.9.6) (2025-08-21)
 
 
