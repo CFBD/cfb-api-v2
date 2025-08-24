@@ -207,7 +207,7 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
         epa,
         garbageTime: getGarbageTime(play),
         success: getPlaySuccess(play),
-        rushPash: getPlayType(play),
+        rushPass: getPlayType(play),
         downType: getDownType(play),
         playText: play.text,
       };
@@ -234,8 +234,8 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
     const scoringOpps = teamDrives.filter((d) => d.scoringOpportunity);
     const teamPlays = plays.filter((p) => p.teamId === Number(t.team.id));
     const epaPlays = plays.filter((p) => p.epa !== null);
-    const rushingPlays = teamPlays.filter((p) => p.rushPash === 'rush');
-    const passingPlays = teamPlays.filter((p) => p.rushPash === 'pass');
+    const rushingPlays = teamPlays.filter((p) => p.rushPass === 'rush');
+    const passingPlays = teamPlays.filter((p) => p.rushPass === 'pass');
     const standardDowns = teamPlays.filter((p) => p.downType === 'standard');
     const passingDowns = teamPlays.filter((p) => p.downType === 'passing');
     const successfulPlays = teamPlays.filter((p) => p.success);

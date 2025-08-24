@@ -165,7 +165,7 @@ export interface LiveGamePlay {
   epa: number | null;
   garbageTime: boolean;
   success: boolean;
-  rushPash: 'rush' | 'pass' | 'other';
+  rushPass: 'rush' | 'pass' | 'other';
   downType: 'passing' | 'standard';
   playText: string;
 }
