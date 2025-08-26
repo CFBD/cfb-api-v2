@@ -1,3 +1,10 @@
+## [5.9.8](https://github.com/CFBD/cfb-api-v2/compare/v5.9.7...v5.9.8) (2025-08-26)
+
+
+### Bug Fixes
+
+* updating default year ([c3d64d8](https://github.com/CFBD/cfb-api-v2/commit/c3d64d86b703e15447623c3fc8fdb36007f3ce07))
+
 ## [5.9.7](https://github.com/CFBD/cfb-api-v2/compare/v5.9.6...v5.9.7) (2025-08-24)
 
 
