@@ -96,7 +96,7 @@ export const generateMeanPassingChart = async (
   year?: number,
   rollingPlays?: number,
 ): Promise<PlayerPPAChartItem[]> => {
-  const season = year ? year : 2023;
+  const season = year ? year : 2025;
   const query = kdb
     .with('plays', (cte) =>
       cte

@@ -314,7 +314,7 @@ export const getMatchup = async (
 
 export const getRoster = async (
   team?: string,
-  year: number = 2023,
+  year: number = 2025,
 ): Promise<RosterPlayer[]> => {
   let query = kdb
     .selectFrom('team')

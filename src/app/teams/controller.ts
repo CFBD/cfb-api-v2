@@ -75,7 +75,7 @@ export class RosterController extends Controller {
   /**
    * Retrieves historical roster data
    * @param team Optional team filter
-   * @param year Optional year filter, defaults to 2023
+   * @param year Optional year filter, defaults to 2025
    * @isInt year
    */
   @Get()
