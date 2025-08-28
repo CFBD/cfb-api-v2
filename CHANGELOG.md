@@ -1,3 +1,10 @@
+## [5.9.9](https://github.com/CFBD/cfb-api-v2/compare/v5.9.8...v5.9.9) (2025-08-28)
+
+
+### Bug Fixes
+
+* **live:** refactor live plays ([0c5cd90](https://github.com/CFBD/cfb-api-v2/commit/0c5cd90293fcaccc3e543c8a25671e71cce371a6))
+
 ## [5.9.8](https://github.com/CFBD/cfb-api-v2/compare/v5.9.7...v5.9.8) (2025-08-26)
 
 
