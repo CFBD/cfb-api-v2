@@ -305,6 +305,7 @@ export interface Game {
   currentSituation: string | null;
   excitement: Numeric | null;
   highlights: string | null;
+  homeWinProbability: Numeric | null;
   id: number;
   neutralSite: boolean;
   notes: string | null;

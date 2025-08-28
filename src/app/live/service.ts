@@ -1,12 +1,12 @@
 import axios from 'axios';
 import { kdb } from '../../config/database';
 import {
-  LiveGame,
-  GamePackagePlay,
   PlayByPlayGameResponse,
+  GamePlay,
   LiveGameDrive,
   LiveGamePlay,
   LiveGameTeam,
+  LiveGame,
 } from './types';
 import { UserMessageError } from '../../globals';
 
@@ -32,7 +32,7 @@ const loadPpas = async () => {
     .execute();
 };
 
-const getPlaySuccess = (play: GamePackagePlay): boolean => {
+const getPlaySuccess = (play: GamePlay): boolean => {
   const typeId = parseInt(play.type.id);
   return (
     !unsuccessfulTypes.includes(typeId) &&
@@ -43,7 +43,7 @@ const getPlaySuccess = (play: GamePackagePlay): boolean => {
   );
 };
 
-const getPlayType = (play: GamePackagePlay): 'pass' | 'rush' | 'other' => {
+const getPlayType = (play: GamePlay): 'pass' | 'rush' | 'other' => {
   const typeId = parseInt(play.type.id);
   if (passTypes.includes(typeId)) {
     return 'pass';
@@ -56,19 +56,19 @@ const getPlayType = (play: GamePackagePlay): 'pass' | 'rush' | 'other' => {
   return 'other';
 };
 
-const getDownType = (play: GamePackagePlay): 'passing' | 'standard' => {
+const getDownType = (play: GamePlay): 'passing' | 'standard' => {
   return (play.start.down == 2 && play.start.distance >= 7) ||
     (play.start.down > 2 && play.start.distance >= 5)
     ? 'passing'
     : 'standard';
 };
 
-const getGarbageTime = (play: GamePackagePlay): boolean => {
+const getGarbageTime = (play: GamePlay): boolean => {
   let score = Math.abs(play.homeScore - play.awayScore);
 
-  if (play.scoringPlay && play.scoringType?.abbreviation == 'TD') {
+  if (play.scoringPlay && play.scoreValue === 7) {
     score -= 7;
-  } else if (play.scoringPlay && play.scoringType?.abbreviation == 'FG') {
+  } else if (play.scoringPlay && play.scoreValue === 3) {
     score -= 3;
   }
 
@@ -86,33 +86,27 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
 
   const response = await axios.get<PlayByPlayGameResponse>(PLAYS_URL, {
     params: {
-      gameId,
-      xhr: 1,
-      render: false,
+      event: gameId,
     },
   });
 
-  const comp = response.data.gamepackageJSON.header.competitions[0];
+  const comp = response.data.header.competitions[0];
   const teams = comp.competitors;
 
-  if (!response.data.gamepackageJSON?.drives?.previous?.length) {
+  if (!response.data?.drives?.previous?.length) {
     throw new UserMessageError('No plays found for game.');
   }
 
-  const driveData = response.data.gamepackageJSON.drives.previous.filter(
-    (p) => p.team,
-  );
+  const driveData = response.data.drives.previous.filter((p) => p.team);
 
   const drives: LiveGameDrive[] = [];
   const plays: LiveGamePlay[] = [];
 
   if (
-    response.data.gamepackageJSON.drives.current &&
-    !driveData.find(
-      (d) => d.id === response.data.gamepackageJSON.drives.current.id,
-    )
+    response.data.drives.current &&
+    !driveData.find((d) => d.id === response.data.drives.current.id)
   ) {
-    driveData.push(response.data.gamepackageJSON.drives.current);
+    driveData.push(response.data.drives.current);
   }
 
   for (const drive of driveData) {
@@ -147,7 +141,7 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
       duration: drive.timeElapsed?.displayValue ?? null,
       scoringOpportunity: false,
       plays: [],
-      result: drive.displayResult,
+      result: drive.displayResult ?? '',
       pointsGained: 0,
     };
 
@@ -165,10 +159,10 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
         let endingEP = null;
 
         if (play.scoringPlay) {
-          if (play.scoringType?.abbreviation == 'TD') {
+          if (play.scoreValue === 6) {
             endingEP =
               play.end.team.id === offense?.team.id ? { ppa: 6 } : { ppa: -6 };
-          } else if (play.scoringType?.abbreviation == 'FG') {
+          } else if (play.scoreValue === 3) {
             endingEP = { ppa: 3 };
           }
         } else {
@@ -195,7 +189,7 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
         awayScore: play.awayScore,
         period: play.period.number,
         clock: play.clock?.displayValue ?? null,
-        wallClock: play.wallclock,
+        wallClock: new Date(play.wallclock),
         teamId: Number(playTeam?.id),
         team: playTeam?.location ?? '',
         down: play.start.down,
@@ -279,7 +273,7 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
     return {
       teamId: Number(t.team.id),
       team: t.team.location,
-      homeAway: t.homeAway,
+      homeAway: t.homeAway === 'home' ? 'home' : 'away',
       lineScores: t.linescores.map((l) => Number(l.displayValue)),
       points: Number(t.score),
       drives: teamDrives.length,
@@ -377,13 +371,13 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
     };
   });
 
-  const currentDrive = response.data.gamepackageJSON.drives.current;
+  const currentDrive = response.data.drives.current;
   const currentPlay = currentDrive?.plays?.length
     ? currentDrive.plays[currentDrive.plays.length - 1]
     : null;
 
   return {
-    id: response.data.gameId,
+    id: Number(response.data.header.id),
     status: comp.status.type.description,
     period: comp.status.period ?? null,
     clock: comp.status.displayClock ?? '',

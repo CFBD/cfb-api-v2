@@ -171,509 +171,1073 @@ export interface LiveGamePlay {
 }
 
 export interface PlayByPlayGameResponse {
-  gameId: number;
-  gamepackageJSON: GamepackageJSON;
-  type: string;
-}
-
-interface GamePackageCompetitor {
-  uid: string;
-  homeAway: HomeAway;
-  score: string;
-  winner: boolean;
-  record: Record[];
-  possession: boolean;
-  id: string;
-  team: GamePackageTeam;
-  linescores: GamePackageLinescore[];
-  order: number;
-  rank?: number;
-}
-
-export enum HomeAway {
-  Away = 'away',
-  Home = 'home',
-}
-
-interface GamePackageLinescore {
-  displayValue: string;
-}
-
-interface Record {
-  summary: string;
-  displayValue: string;
-  type: string;
-}
-
-interface GamePackageTeam {
-  uid: string;
-  alternateColor: string;
-  color: string;
-  displayName: string;
-  name: string;
-  nickname: string;
-  location: string;
-  links: AthleteLink[];
-  id: string;
-  abbreviation: string;
-  logos: Logo[];
-}
-
-interface AthleteLink {
-  rel: RelElement[];
-  href: string;
-  text: ItemText;
-}
-
-export enum RelElement {
-  App = 'app',
-  Athlete = 'athlete',
-  Clubhouse = 'clubhouse',
-  Desktop = 'desktop',
-  Index = 'index',
-  League = 'league',
-  Playercard = 'playercard',
-  Rankings = 'rankings',
-  Schedule = 'schedule',
-  Scores = 'scores',
-  Sportscenter = 'sportscenter',
-  Standings = 'standings',
-  Stats = 'stats',
-  Team = 'team',
-  Teams = 'teams',
-}
-
-export enum ItemText {
-  Clubhouse = 'Clubhouse',
-  Index = 'Index',
-  PlayerCard = 'Player Card',
-  Rankings = 'Rankings',
-  Schedule = 'Schedule',
-  Scores = 'Scores',
-  Standings = 'Standings',
-  Stats = 'Stats',
-  Teams = 'Teams',
-}
-
-interface Logo {
-  lastUpdated: string;
-  width: number;
-  alt: string;
-  rel: SiteType[];
-  href: string;
-  height: number;
-}
-
-export enum SiteType {
-  Dark = 'dark',
-  Default = 'default',
-  Full = 'full',
-}
-
-interface AthleteJSON {
-  athlete: GamePackageJSONAthlete;
-  stats: string[];
-}
-
-interface GamePackageJSONAthlete {
-  uid: string;
-  firstName: string;
-  lastName: string;
-  displayName: string;
-  links: AthleteLink[];
-  id: string;
-  jersey?: string;
-  guid?: string;
-}
-
-interface GamepackageJSON {
-  drives: Drives;
-  scoringPlays: ScoringPlay[];
-  winprobability: any[];
-  boxscore: GamePackageBoxscore;
-  header: GamePackageHeader;
+  boxscore: Boxscore;
+  format: Format;
+  gameInfo: GameInfo;
+  drives: GameDrives;
+  leaders: Leader[];
   broadcasts: any[];
-  standings: GamepackageJSONStandings;
+  pickcenter: Pickcenter[];
+  againstTheSpread: AgainstTheSpread[];
+  odds: any[];
+  header: Header2;
+  videos: any[];
+  wallclockAvailable: boolean;
+  news: News;
+  winprobability: any[];
+  meta: Meta;
+  standings: Standings;
 }
 
-interface GamePackageBoxscore {
-  teams: TeamElement[];
-  players: GamePackagePlayer[];
+export interface Boxscore {
+  teams: Team[];
+  players: Player[];
 }
 
-interface GamePackagePlayer {
+export interface Team {
+  team: Team2;
+  statistics: Statistic[];
   displayOrder: number;
-  team: GamePackagePlayerTeam;
-  statistics: GamePackagePlayerStatistic[];
+  homeAway: string;
 }
 
-interface GamePackagePlayerStatistic {
-  keys: string[];
-  name: string;
-  athletes: AthleteJSON[];
-  text: string;
-  totals: string[];
-  descriptions: string[];
-  labels: string[];
-}
-
-interface GamePackagePlayerTeam {
-  shortDisplayName: string;
-  uid: string;
-  alternateColor: string;
-  color: string;
-  displayName: string;
-  name: string;
-  logo: string;
-  location: string;
+export interface Team2 {
   id: string;
-  abbreviation: string;
+  uid: string;
   slug: string;
-}
-
-interface TeamElement {
-  homeAway: HomeAway;
-  displayOrder: number;
-  team: GamePackagePlayerTeam;
-  statistics: TeamStatistic[];
-}
-
-interface TeamStatistic {
-  displayValue: string;
+  location: string;
   name: string;
+  abbreviation: string;
+  displayName: string;
+  shortDisplayName: string;
+  color: string;
+  alternateColor: string;
+  logo: string;
+}
+
+export interface Statistic {
+  name: string;
+  displayValue: string;
+  value: any;
   label: string;
 }
 
-interface Drives {
-  previous: Drive[];
-  current: Drive;
+export interface Player {
+  team: Team3;
+  statistics: Statistic2[];
+  displayOrder: number;
 }
 
-interface Drive {
-  displayResult: string;
-  isScore: boolean;
-  plays: GamePackagePlay[];
-  start: PreviousEnd;
-  description: string;
-  team: PreviousTeam;
-  yards: number;
-  timeElapsed: GamePackageLinescore;
-  result: string;
-  offensivePlays: number;
-  end: PreviousEnd;
+export interface Team3 {
   id: string;
-  shortDisplayResult: string;
-}
-
-interface PreviousEnd {
-  period: EndPeriod;
-  yardLine: number;
-  clock?: GamePackageLinescore;
-  text: string;
-}
-
-interface EndPeriod {
-  number: number;
-  type: PeriodType;
-}
-
-export enum PeriodType {
-  Quarter = 'quarter',
-}
-
-export interface GamePackagePlay {
-  sequenceNumber: string;
-  period: PlayPeriod;
-  homeScore: number;
-  start: PlayEnd;
-  scoringPlay: boolean;
-  clock: GamePackageLinescore;
-  type: PlayType;
-  priority: boolean;
-  statYardage: number;
-  awayScore: number;
-  wallclock: Date;
-  modified: string;
-  end: PlayEnd;
-  id: string;
-  text: string;
-  scoringType?: ScoringType;
-  pointAfterAttempt?: PointAfterAttempt;
-}
-
-interface PlayEnd {
-  shortDownDistanceText?: string;
-  possessionText?: string;
-  downDistanceText?: string;
-  distance: number;
-  yardLine: number;
-  team: EndTeam;
-  down: number;
-  yardsToEndzone: number;
-}
-
-interface EndTeam {
-  id: string;
-}
-
-interface PlayPeriod {
-  number: number;
-}
-
-interface PointAfterAttempt {
-  id: number;
-  text: string;
-  abbreviation: string;
-  value: number;
-}
-
-interface ScoringType {
-  displayName: ScoringTypeDisplayName;
-  name: ScoringTypeName;
-  abbreviation: ScoringTypeAbbreviation;
-}
-
-export enum ScoringTypeAbbreviation {
-  Eg = 'EG',
-  Eh = 'EH',
-  Ep = 'EP',
-  Fg = 'FG',
-  Int = 'INT',
-  K = 'K',
-  Pen = 'PEN',
-  Punt = 'PUNT',
-  Rec = 'REC',
-  Rush = 'RUSH',
-  Td = 'TD',
-  To = 'TO',
-}
-
-export enum ScoringTypeDisplayName {
-  FieldGoal = 'Field Goal',
-  Touchdown = 'Touchdown',
-}
-
-export enum ScoringTypeName {
-  FieldGoal = 'field-goal',
-  Touchdown = 'touchdown',
-}
-
-interface PlayType {
-  id: string;
-  text: string;
-  abbreviation?: ScoringTypeAbbreviation;
-}
-
-interface PreviousTeam {
-  shortDisplayName: string;
-  displayName: string;
+  uid: string;
+  slug: string;
+  location: string;
   name: string;
   abbreviation: string;
+  displayName: string;
+  shortDisplayName: string;
+  color: string;
+  alternateColor: string;
+  logo: string;
+}
+
+export interface Statistic2 {
+  name: string;
+  keys: string[];
+  text: string;
+  labels: string[];
+  descriptions: string[];
+  athletes: Athlete[];
+  totals: string[];
+}
+
+export interface Athlete {
+  athlete: Athlete2;
+  stats: string[];
+}
+
+export interface Athlete2 {
+  id: string;
+  uid: string;
+  guid: string;
+  firstName: string;
+  lastName: string;
+  displayName: string;
+  links: Link[];
+  headshot: Headshot;
+  jersey: string;
+}
+
+export interface Link {
+  rel: string[];
+  href: string;
+  text: string;
+}
+
+export interface Headshot {
+  href: string;
+  alt: string;
+}
+
+export interface Format {
+  regulation: Regulation;
+  overtime: Overtime;
+}
+
+export interface Regulation {
+  periods: number;
+  displayName: string;
+  slug: string;
+  clock: number;
+}
+
+export interface Overtime {
+  periods: number;
+  displayName: string;
+  slug: string;
+}
+
+export interface GameInfo {
+  venue: Venue;
+  weather: Weather;
+}
+
+export interface Venue {
+  id: string;
+  guid: string;
+  fullName: string;
+  address: Address;
+  grass: boolean;
+  images: Image[];
+}
+
+export interface Address {
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+}
+
+export interface Image {
+  href: string;
+  width: number;
+  height: number;
+  alt: string;
+  rel: string[];
+}
+
+export interface Weather {
+  temperature: number;
+  highTemperature: number;
+  lowTemperature: number;
+  conditionId: string;
+  gust: number;
+  precipitation: number;
+  link: Link2;
+}
+
+export interface Link2 {
+  language: string;
+  rel: string[];
+  href: string;
+  text: string;
+  shortText: string;
+  isExternal: boolean;
+  isPremium: boolean;
+}
+
+export interface GameDrives {
+  current: CurrentGameDrive;
+  previous: PreviousGameDrive[];
+}
+
+export interface CurrentGameDrive {
+  id: string;
+  description: string;
+  team: Team4;
+  start: Start;
+  timeElapsed: TimeElapsed;
+  yards: number;
+  isScore: boolean;
+  offensivePlays: number;
+  plays: GamePlay[];
+}
+
+export interface Team4 {
+  id: string;
+  name: string;
+  abbreviation: string;
+  displayName: string;
+  shortDisplayName: string;
   logos: Logo[];
 }
 
-interface GamePackageHeader {
-  uid: string;
-  week: number;
-  timeValid: boolean;
-  league: HeaderLeague;
-  competitions: GamePackageCompetition[];
-  season: Season;
-  links: HeaderLink[];
+export interface Logo {
+  href: string;
+  width: number;
+  height: number;
+  alt: string;
+  rel: string[];
+  lastUpdated: string;
+}
+
+export interface Start {
+  period: Period;
+  clock: Clock;
+  yardLine: number;
+  text: string;
+}
+
+export interface Period {
+  type: string;
+  number: number;
+}
+
+export interface Clock {
+  displayValue: string;
+}
+
+export interface TimeElapsed {
+  displayValue: string;
+}
+
+export interface Type {
+  id: string;
+  text: string;
+  abbreviation?: string;
+}
+
+export interface Period2 {
+  number: number;
+}
+
+export interface Clock2 {
+  displayValue: string;
+}
+
+export interface Start2 {
+  down: number;
+  distance: number;
+  yardLine: number;
+  yardsToEndzone: number;
+  downDistanceText: string;
+  shortDownDistanceText: string;
+  possessionText: string;
+  team: Team5;
+}
+
+export interface Team5 {
   id: string;
 }
 
-interface GamePackageCompetition {
-  date: string;
-  commentaryAvailable: boolean;
-  conferenceCompetition: boolean;
-  liveAvailable: boolean;
-  broadcasts: GamePackageBroadcast[];
-  groups: Groups;
-  playByPlaySource: SiteType;
-  uid: string;
-  competitors: GamePackageCompetitor[];
-  onWatchESPN: boolean;
-  boxscoreAvailable: boolean;
-  id: string;
-  neutralSite: boolean;
-  recent: boolean;
-  boxscoreSource: SiteType;
-  status: Status;
+export interface End {
+  down: number;
+  distance: number;
+  yardLine: number;
+  yardsToEndzone: number;
+  downDistanceText: string;
+  shortDownDistanceText: string;
+  possessionText: string;
+  team: Team6;
 }
 
-interface GamePackageBroadcast {
-  market: Market;
-  media: Media;
-  type: BroadcastType;
-  lang: string;
-  region: string;
+export interface Team6 {
+  id: string;
 }
 
-interface Market {
-  id: string;
+export interface Participant {
+  athlete: Athlete3;
+  stats: Stat[];
   type: string;
 }
 
-interface Media {
-  shortName: string;
-}
-
-interface BroadcastType {
+export interface Athlete3 {
   id: string;
+  uid: string;
+  guid: string;
+  lastName: string;
+  fullName: string;
+  displayName: string;
   shortName: string;
+  links: Link3[];
+  headshot: Headshot2;
+  jersey: string;
+  position: Position;
+  team: Team7;
+  status: Status;
 }
 
-interface Groups {
-  midsizeName: string;
+export interface Link3 {
+  rel: string[];
+  href: string;
+  text: string;
+}
+
+export interface Headshot2 {
+  href: string;
+  alt: string;
+}
+
+export interface Position {
   name: string;
-  id: string;
+  displayName: string;
   abbreviation: string;
-  shortName: string;
 }
 
-interface Status {
-  isTBDFlex: boolean;
-  type: StatusType;
-  period?: number;
-  displayClock?: string;
+export interface Team7 {
+  abbreviation: string;
 }
 
-interface StatusType {
-  name: string;
-  description: string;
+export interface Status {
   id: string;
+  name: string;
+  type: string;
+  abbreviation: string;
+}
+
+export interface Stat {
+  name: string;
+  displayValue: string;
+}
+
+export interface PreviousGameDrive {
+  id: string;
+  description: string;
+  team: Team8;
+  start: Start3;
+  end?: End2;
+  timeElapsed: TimeElapsed2;
+  yards: number;
+  isScore: boolean;
+  offensivePlays: number;
+  result?: string;
+  shortDisplayResult?: string;
+  displayResult?: string;
+  plays: GamePlay[];
+}
+
+export interface Team8 {
+  id: string;
+  name: string;
+  abbreviation: string;
+  displayName: string;
+  shortDisplayName: string;
+  logos: Logo2[];
+}
+
+export interface Logo2 {
+  href: string;
+  width: number;
+  height: number;
+  alt: string;
+  rel: string[];
+  lastUpdated: string;
+}
+
+export interface Start3 {
+  period: Period3;
+  clock: Clock3;
+  yardLine: number;
+  text: string;
+}
+
+export interface Period3 {
+  type: string;
+  number: number;
+}
+
+export interface Clock3 {
+  displayValue: string;
+}
+
+export interface End2 {
+  period: Period4;
+  clock: Clock4;
+  yardLine: number;
+  text: string;
+}
+
+export interface Period4 {
+  type: string;
+  number: number;
+}
+
+export interface Clock4 {
+  displayValue: string;
+}
+
+export interface TimeElapsed2 {
+  displayValue: string;
+}
+
+export interface GamePlay {
+  id: string;
+  sequenceNumber: string;
+  type: Type2;
+  text: string;
+  awayScore: number;
+  homeScore: number;
+  period: Period5;
+  clock: Clock5;
+  scoringPlay: boolean;
+  priority: boolean;
+  modified: string;
+  wallclock: string;
+  start: Start4;
+  end: End3;
+  statYardage: number;
+  scoreValue?: number;
+  participants?: Participant[];
+}
+
+export interface Type2 {
+  id: string;
+  text: string;
+  abbreviation?: string;
+}
+
+export interface Period5 {
+  number: number;
+}
+
+export interface Clock5 {
+  displayValue: string;
+}
+
+export interface Start4 {
+  down: number;
+  distance: number;
+  yardLine: number;
+  yardsToEndzone: number;
+  team: Team9;
+  downDistanceText?: string;
+  shortDownDistanceText?: string;
+  possessionText?: string;
+}
+
+export interface Team9 {
+  id: string;
+}
+
+export interface End3 {
+  down: number;
+  distance: number;
+  yardLine: number;
+  yardsToEndzone: number;
+  downDistanceText: string;
+  shortDownDistanceText: string;
+  possessionText: string;
+  team: Team10;
+}
+
+export interface Team10 {
+  id: string;
+}
+
+export interface Leader {
+  team: Team11;
+  leaders: Leader2[];
+}
+
+export interface Team11 {
+  id: string;
+  uid: string;
+  displayName: string;
+  abbreviation: string;
+  links: Link4[];
+  logo: string;
+  logos: Logo3[];
+}
+
+export interface Link4 {
+  href: string;
+  text: string;
+}
+
+export interface Logo3 {
+  href: string;
+  width: number;
+  height: number;
+  alt: string;
+  rel: string[];
+  lastUpdated: string;
+}
+
+export interface Leader2 {
+  name: string;
+  displayName: string;
+  leaders?: Leader3[];
+}
+
+export interface Leader3 {
+  displayValue: string;
+  athlete: Athlete4;
+  mainStat: MainStat;
+  summary: string;
+}
+
+export interface Athlete4 {
+  id: string;
+  uid: string;
+  guid: string;
+  lastName: string;
+  fullName: string;
+  displayName: string;
+  shortName: string;
+  links: Link5[];
+  headshot: Headshot3;
+  jersey: string;
+  position: Position2;
+  status: Status2;
+}
+
+export interface Link5 {
+  rel: string[];
+  href: string;
+  text: string;
+}
+
+export interface Headshot3 {
+  href: string;
+  alt: string;
+}
+
+export interface Position2 {
+  abbreviation: string;
+}
+
+export interface Status2 {
+  id: string;
+  name: string;
+  type: string;
+  abbreviation: string;
+}
+
+export interface MainStat {
+  value: string;
+  label: string;
+}
+
+export interface Pickcenter {
+  provider: Provider;
+  details: string;
+  overUnder: number;
+  spread: number;
+  overOdds: number;
+  underOdds: number;
+  awayTeamOdds: AwayTeamOdds;
+  homeTeamOdds: HomeTeamOdds;
+  links: Link6[];
+  header: Header;
+}
+
+export interface Provider {
+  id: string;
+  name: string;
+  priority: number;
+  logos: Logo4[];
+}
+
+export interface Logo4 {
+  href: string;
+  rel: string[];
+}
+
+export interface AwayTeamOdds {
+  favorite: boolean;
+  underdog: boolean;
+  moneyLine: number;
+  spreadOdds: number;
+  team: Team12;
+  teamId: string;
+  favoriteAtOpen: boolean;
+}
+
+export interface Team12 {
+  $ref: string;
+}
+
+export interface HomeTeamOdds {
+  favorite: boolean;
+  underdog: boolean;
+  moneyLine: number;
+  spreadOdds: number;
+  team: Team13;
+  teamId: string;
+  favoriteAtOpen: boolean;
+}
+
+export interface Team13 {
+  $ref: string;
+}
+
+export interface Link6 {
+  language: string;
+  rel: string[];
+  href: string;
+  text: string;
+  shortText: string;
+  isExternal: boolean;
+  isPremium: boolean;
+  tracking?: Tracking;
+}
+
+export interface Tracking {
+  campaign: string;
+  tags: Tags;
+}
+
+export interface Tags {
+  league: string;
+  sport: string;
+  gameId: number;
+  betSide: string;
+  betType: string;
+  betDetails?: string;
+}
+
+export interface Header {
+  logo: Logo5;
+  text: string;
+}
+
+export interface Logo5 {
+  dark: string;
+  light: string;
+  exclusivesLogoDark: string;
+  exclusivesLogoLight: string;
+}
+
+export interface AgainstTheSpread {
+  team: Team14;
+  records: any[];
+}
+
+export interface Team14 {
+  id: string;
+  uid: string;
+  displayName: string;
+  abbreviation: string;
+  links: Link7[];
+  logo: string;
+  logos: Logo6[];
+}
+
+export interface Link7 {
+  href: string;
+  text: string;
+}
+
+export interface Logo6 {
+  href: string;
+  width: number;
+  height: number;
+  alt: string;
+  rel: string[];
+  lastUpdated: string;
+}
+
+export interface Header2 {
+  id: string;
+  uid: string;
+  season: Season;
+  timeValid: boolean;
+  competitions: Competition[];
+  links: Link9[];
+  week: number;
+  league: League;
+}
+
+export interface Season {
+  year: number;
+  current: boolean;
+  type: number;
+}
+
+export interface Competition {
+  id: string;
+  uid: string;
+  date: string;
+  dateValid: boolean;
+  neutralSite: boolean;
+  conferenceCompetition: boolean;
+  boxscoreAvailable: boolean;
+  commentaryAvailable: boolean;
+  liveAvailable: boolean;
+  onWatchESPN: boolean;
+  recent: boolean;
+  wallclockAvailable: boolean;
+  boxscoreSource: string;
+  playByPlaySource: string;
+  competitors: Competitor[];
+  status: Status3;
+  broadcasts: Broadcast[];
+  boxscoreMinutes: boolean;
+}
+
+export interface Competitor {
+  id: string;
+  uid: string;
+  order: number;
+  homeAway: string;
+  team: Team15;
+  score: string;
+  linescores: Linescore[];
+  record: Record[];
+  timeoutsUsed: number;
+  possession: boolean;
+  rank?: number;
+}
+
+export interface Team15 {
+  id: string;
+  guid: string;
+  uid: string;
+  location: string;
+  name: string;
+  nickname: string;
+  abbreviation: string;
+  displayName: string;
+  color: string;
+  alternateColor: string;
+  logos: Logo7[];
+  groups: Groups;
+  links: Link8[];
+}
+
+export interface Logo7 {
+  href: string;
+  width: number;
+  height: number;
+  alt: string;
+  rel: string[];
+  lastUpdated: string;
+}
+
+export interface Groups {
+  id: string;
+}
+
+export interface Link8 {
+  rel: string[];
+  href: string;
+  text: string;
+}
+
+export interface Linescore {
+  displayValue: string;
+}
+
+export interface Record {
+  type: string;
+  summary: string;
+  displayValue: string;
+}
+
+export interface Status3 {
+  displayClock: string;
+  period: number;
+  type: Type3;
+  displayPeriod: string;
+}
+
+export interface Type3 {
+  id: string;
+  name: string;
   state: string;
   completed: boolean;
+  description: string;
   detail: string;
   shortDetail: string;
 }
 
-interface HeaderLeague {
-  uid: string;
-  midsizeName: string;
-  name: string;
-  links: AthleteLink[];
-  id: string;
-  abbreviation: string;
-  slug: string;
-  isTournament: boolean;
+export interface Broadcast {
+  type: Type4;
+  market: Market;
+  media: Media;
+  lang: string;
+  region: string;
+  isNational: boolean;
 }
 
-interface HeaderLink {
-  isExternal: boolean;
-  shortText: string;
-  rel?: string[];
+export interface Type4 {
+  id: string;
+  shortName: string;
+}
+
+export interface Market {
+  id: string;
+  type: string;
+}
+
+export interface Media {
+  shortName: string;
+}
+
+export interface Link9 {
+  rel: string[];
   href: string;
   text: string;
+  shortText: string;
+  isExternal: boolean;
   isPremium: boolean;
-  language?: string;
-  attributes?: LinkAttributes;
 }
 
-interface LinkAttributes {
-  mobile?: string;
-  route?: string;
-  icon?: string;
-  breakpoints?: string;
-  placeholder?: string;
-}
-
-interface Season {
-  year: number;
-  type: number;
-}
-
-interface ScoringPlay {
-  period: PlayPeriod;
-  homeScore: number;
-  awayScore: number;
-  scoringType: ScoringType;
+export interface League {
   id: string;
-  text: string;
-  clock: Clock;
-  team: ScoringPlayTeam;
-  type: PlayType;
-}
-
-interface Clock {
-  displayValue: string;
-  value: number;
-}
-
-interface ScoringPlayTeam {
   uid: string;
-  displayName: string;
-  logo: string;
-  id: string;
+  name: string;
   abbreviation: string;
-  logos: Logo[];
+  midsizeName: string;
+  slug: string;
+  isTournament: boolean;
+  links: Link10[];
 }
 
-interface GamepackageJSONStandings {
-  groups: Group[];
+export interface Link10 {
+  rel: string[];
+  href: string;
+  text: string;
 }
 
-interface Group {
+export interface News {
   header: string;
-  standings: GroupStandings;
+  link: Link11;
+  articles: Article[];
 }
 
-interface GroupStandings {
+export interface Link11 {
+  language: string;
+  rel: string[];
+  href: string;
+  text: string;
+  shortText: string;
+  isExternal: boolean;
+  isPremium: boolean;
+}
+
+export interface Article {
+  id: number;
+  nowId: string;
+  contentKey: string;
+  dataSourceIdentifier: string;
+  type: string;
+  headline: string;
+  description: string;
+  lastModified: string;
+  published: string;
+  images: Image2[];
+  categories: Category[];
+  premium: boolean;
+  links: Links3;
+}
+
+export interface Image2 {
+  type?: string;
+  name: string;
+  url: string;
+  ratio?: string;
+  height?: number;
+  width?: number;
+  caption?: string;
+  alt?: string;
+}
+
+export interface Category {
+  type: string;
+  uid?: string;
+  guid: string;
+  description?: string;
+  eventId?: number;
+  event?: Event;
+  id?: number;
+  sportId?: number;
+  teamId?: number;
+  team?: Team16;
+  leagueId?: number;
+  league?: League2;
+}
+
+export interface Event {
+  id: number;
+  sport: string;
+  league: string;
+  description: string;
+}
+
+export interface Team16 {
+  id: number;
+  description: string;
+  links?: Links;
+}
+
+export interface Links {
+  web: Web;
+  mobile: Mobile;
+}
+
+export interface Web {
+  teams: Teams;
+}
+
+export interface Teams {
+  href: string;
+}
+
+export interface Mobile {
+  teams: Teams2;
+}
+
+export interface Teams2 {
+  href: string;
+}
+
+export interface League2 {
+  id: number;
+  description: string;
+  abbreviation: string;
+  links: Links2;
+}
+
+export interface Links2 {
+  web: Web2;
+  mobile: Mobile2;
+}
+
+export interface Web2 {
+  leagues: Leagues;
+}
+
+export interface Leagues {
+  href: string;
+}
+
+export interface Mobile2 {
+  leagues: Leagues2;
+}
+
+export interface Leagues2 {
+  href: string;
+}
+
+export interface Links3 {
+  web: Web3;
+  mobile?: Mobile3;
+  api: Api;
+  app?: App;
+  sportscenter?: Sportscenter2;
+}
+
+export interface Web3 {
+  href: string;
+  self?: Self;
+  seo?: Seo;
+}
+
+export interface Self {
+  href: string;
+  dsi: Dsi;
+}
+
+export interface Dsi {
+  href: string;
+}
+
+export interface Seo {
+  href: string;
+}
+
+export interface Mobile3 {
+  href: string;
+}
+
+export interface Api {
+  self: Self2;
+  artwork?: Artwork;
+}
+
+export interface Self2 {
+  href: string;
+}
+
+export interface Artwork {
+  href: string;
+}
+
+export interface App {
+  sportscenter: Sportscenter;
+}
+
+export interface Sportscenter {
+  href: string;
+}
+
+export interface Sportscenter2 {
+  href: string;
+}
+
+export interface Meta {
+  gp_topic: string;
+  gameSwitcherEnabled: boolean;
+  picker_topic: string;
+  lastUpdatedAt: string;
+  firstPlayWallClock: string;
+  lastPlayWallClock: string;
+  gameState: string;
+  syncUrl: string;
+}
+
+export interface Standings {
+  fullViewLink: FullViewLink;
+  header: string;
+  groups: Group[];
+  isSameConference: boolean;
+}
+
+export interface FullViewLink {
+  text: string;
+  href: string;
+}
+
+export interface Group {
+  standings: Standings2;
+  header: string;
+  conferenceHeader: string;
+  divisionHeader: string;
+  shortDivisionHeader: string;
+}
+
+export interface Standings2 {
   entries: Entry[];
 }
 
-interface Entry {
-  uid: string;
-  stats: Stat[];
-  link: string;
-  logo: Logo[];
+export interface Entry {
   team: string;
+  link: string;
   id: string;
+  uid: string;
+  stats: Stat2[];
+  logo: Logo8[];
 }
 
-interface Stat {
-  shortDisplayName: ShortDisplayName;
-  summary: DisplayValue;
-  displayValue: DisplayValue;
-  displayName: StatDisplayName;
-  name: StatName;
-  description: Description;
+export interface Stat2 {
   id: string;
-  abbreviation: StatAbbreviation;
-  type: StatType;
+  name: string;
+  abbreviation: string;
+  displayName: string;
+  shortDisplayName: string;
+  description: string;
+  type: string;
+  summary: string;
+  displayValue: string;
 }
 
-export enum StatAbbreviation {
-  Conf = 'CONF',
-  Overall = 'overall',
-}
-
-export enum Description {
-  ConferenceRecord = 'Conference Record',
-  OverallRecord = 'Overall Record',
-}
-
-export enum StatDisplayName {
-  Overall = 'Overall',
-  VsConference = 'vs. Conference',
-}
-
-export enum DisplayValue {
-  The00 = '0-0',
-}
-
-export enum StatName {
-  Overall = 'overall',
-  VsConf = 'vs. Conf.',
-}
-
-export enum ShortDisplayName {
-  Conf = 'CONF',
-  Over = 'OVER',
-}
-
-export enum StatType {
-  Total = 'total',
-  Vsconf = 'vsconf',
+export interface Logo8 {
+  href: string;
+  width: number;
+  height: number;
+  alt: string;
+  rel: string[];
+  lastUpdated: string;
 }
