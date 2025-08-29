@@ -732,6 +732,7 @@ export interface Scoreboard {
   homeLineScores: number[] | null;
   homePoints: number | null;
   homeTeam: string;
+  homeWinProbability: Numeric | null;
   id: number;
   lastPlay: string | null;
   moneylineAway: number | null;

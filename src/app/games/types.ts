@@ -328,6 +328,7 @@ export interface ScoreboardGame {
      * @isInt
      */
     lineScores: number[] | null;
+    winProbability: number | null;
   };
   awayTeam: {
     /**
@@ -345,6 +346,7 @@ export interface ScoreboardGame {
      * @isInt
      */
     lineScores: number[] | null;
+    winProbability: number | null;
   };
   weather: {
     temperature: number | null;

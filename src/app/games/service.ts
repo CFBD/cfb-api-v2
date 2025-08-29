@@ -1393,6 +1393,10 @@ export const getScoreboard = async (
         classification: s.homeClassification,
         points: s.homePoints,
         lineScores: s.homeLineScores,
+        winProbability:
+          s.homeWinProbability && s.status === 'in_progress'
+            ? Math.round(Number(s.homeWinProbability) * 1000) / 1000
+            : null,
       },
       awayTeam: {
         id: s.awayId,
@@ -1402,6 +1406,10 @@ export const getScoreboard = async (
         classification: s.awayClassification,
         points: s.awayPoints,
         lineScores: s.awayLineScores,
+        winProbability:
+          s.homeWinProbability && s.status === 'in_progress'
+            ? Math.round((1 - Number(s.homeWinProbability)) * 1000) / 1000
+            : null,
       },
       weather: {
         temperature: s.temperature ? parseFloat(s.temperature) : null,
