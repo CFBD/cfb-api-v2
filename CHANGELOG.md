@@ -1,3 +1,10 @@
+# [5.10.0](https://github.com/CFBD/cfb-api-v2/compare/v5.9.9...v5.10.0) (2025-08-29)
+
+
+### Features
+
+* **scoreboard:** live win probability ([6d46729](https://github.com/CFBD/cfb-api-v2/commit/6d46729729076edb492669b1eb8fd54ef39c9532))
+
 ## [5.9.9](https://github.com/CFBD/cfb-api-v2/compare/v5.9.8...v5.9.9) (2025-08-28)
 
 
