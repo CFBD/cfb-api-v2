@@ -11,6 +11,7 @@ import {
 import { UserMessageError } from '../../globals';
 
 const PLAYS_URL: string = process.env.PLAYS_URL || '';
+const ML_URL: string | undefined = process.env.ML_API_URL;
 
 const epaTypes = [
   3, 4, 6, 7, 24, 26, 36, 51, 67, 5, 9, 29, 39, 68, 18, 38, 40, 41, 59, 60,
@@ -270,6 +271,12 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
       })
       .reduce((p, v) => p + v, 0);
 
+    const averageStart =
+      teamDrives.length === 0
+        ? null
+        : teamDrives.map((d) => d.startYardsToGoal).reduce((p, v) => p + v, 0) /
+          (teamDrives.length || 1);
+
     return {
       teamId: Number(t.team.id),
       team: t.team.location,
@@ -285,6 +292,9 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
               10,
           ) / 10
         : 0,
+      averageStartYardLine: averageStart
+        ? Math.round(averageStart * 10) / 10
+        : null,
       plays: teamPlays.length,
       lineYards,
       lineYardsPerRush:
@@ -376,6 +386,75 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
     ? currentDrive.plays[currentDrive.plays.length - 1]
     : null;
 
+  // Attempt to fetch "deserve to win" (PGWE) from internal ML API
+  let deserveToWinByTeam: { [teamId: string]: number } | undefined = undefined;
+  try {
+    if (ML_URL) {
+      // Identify home/away teams and build flat payload per API docs
+      const home = teamStats.find((t) => t.homeAway === 'home');
+      const away = teamStats.find((t) => t.homeAway === 'away');
+
+      if (
+        home &&
+        away &&
+        home.averageStartYardLine !== null &&
+        away.averageStartYardLine !== null
+      ) {
+        const totalHomePlays =
+          plays.filter((p) => p.teamId === home.teamId).length || 1;
+        const totalAwayPlays =
+          plays.filter((p) => p.teamId === away.teamId).length || 1;
+        const passHome = plays.filter(
+          (p) => p.teamId === home.teamId && p.rushPass === 'pass',
+        ).length;
+        const passAway = plays.filter(
+          (p) => p.teamId === away.teamId && p.rushPass === 'pass',
+        ).length;
+
+        const payload = {
+          ppa: home.epaPerPlay,
+          total_ppa: home.totalEpa,
+          passing_ppa: home.epaPerPass,
+          rushing_ppa: home.epaPerRush,
+          success_rate: home.successRate,
+          standard_success_rate: home.standardDownSuccessRate,
+          passing_success_rate: home.passingDownSuccessRate,
+          explosiveness: home.explosiveness,
+          pass_rate: passHome / totalHomePlays,
+          ppa_away: away.epaPerPlay,
+          total_ppa_away: away.totalEpa,
+          passing_ppa_away: away.epaPerPass,
+          rushing_ppa_away: away.epaPerRush,
+          success_rate_away: away.successRate,
+          standard_success_rate_away: away.standardDownSuccessRate,
+          passing_success_rate_away: away.passingDownSuccessRate,
+          explosiveness_away: away.explosiveness,
+          pass_rate_away: passAway / totalAwayPlays,
+          avg_start: home.averageStartYardLine,
+          avg_start_away: away.averageStartYardLine,
+        };
+
+        const mlResp = await axios.post(`${ML_URL}/predict/pgwe`, payload);
+        if (mlResp?.data && typeof mlResp.data.prediction === 'number') {
+          const pred: number = Math.round(mlResp.data.prediction * 1000) / 1000;
+          deserveToWinByTeam = {
+            [String(home.teamId)]: pred,
+            [String(away.teamId)]: 1 - pred,
+          };
+        }
+      }
+    }
+  } catch (_e) {
+    // Swallow eML API errors to avoid breaking base response
+    // eslint-disable-next-line no-empty
+  }
+
+  // Attach deserveToWin to each team if available
+  const teamsWithDtW = teamStats.map((ts) => ({
+    ...ts,
+    deserveToWin: deserveToWinByTeam?.[String(ts.teamId)],
+  }));
+
   return {
     id: Number(response.data.header.id),
     status: comp.status.type.description,
@@ -388,7 +467,7 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
     down: currentPlay?.end?.down ?? null,
     distance: currentPlay?.end?.distance ?? null,
     yardsToGoal: currentPlay?.end?.yardsToEndzone ?? null,
-    teams: teamStats,
+    teams: teamsWithDtW,
     drives,
   };
 };

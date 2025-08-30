@@ -50,6 +50,7 @@ export interface LiveGameTeam {
    */
   scoringOpportunities: number;
   pointsPerOpportunity: number;
+  averageStartYardLine: number | null;
   /**
    * @isInt
    */
@@ -70,6 +71,10 @@ export interface LiveGameTeam {
   standardDownSuccessRate: number;
   passingDownSuccessRate: number;
   explosiveness: number;
+  /**
+   * Deserve-to-win metric for this team
+   */
+  deserveToWin?: number;
 }
 
 export interface LiveGameDrive {
