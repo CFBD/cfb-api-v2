@@ -20,7 +20,7 @@ const passTypes = [3, 4, 6, 7, 24, 26, 36, 37, 38, 39, 51, 67];
 const rushTypes = [5, 9, 29, 39, 68];
 const unsuccessfulTypes = [20, 26, 34, 36, 37, 38, 39, 63];
 let ppas:
-  | { yardLine: number; distance: number; down: number; ppa: number }[]
+  | { yardLine: number; distance: number; down: number; ppa: number; }[]
   | null = null;
 
 const loadPpas = async () => {
@@ -228,7 +228,7 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
     const teamDrives = drives.filter((d) => d.offenseId === Number(t.team.id));
     const scoringOpps = teamDrives.filter((d) => d.scoringOpportunity);
     const teamPlays = plays.filter((p) => p.teamId === Number(t.team.id));
-    const epaPlays = plays.filter((p) => p.epa !== null);
+    const epaPlays = teamPlays.filter((p) => p.epa !== null);
     const rushingPlays = teamPlays.filter((p) => p.rushPass === 'rush');
     const passingPlays = teamPlays.filter((p) => p.rushPass === 'pass');
     const standardDowns = teamPlays.filter((p) => p.downType === 'standard');
@@ -275,7 +275,7 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
       teamDrives.length === 0
         ? null
         : teamDrives.map((d) => d.startYardsToGoal).reduce((p, v) => p + v, 0) /
-          (teamDrives.length || 1);
+        (teamDrives.length || 1);
 
     return {
       teamId: Number(t.team.id),
@@ -287,10 +287,10 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
       scoringOpportunities: scoringOpps.length,
       pointsPerOpportunity: scoringOpps.length
         ? Math.round(
-            (scoringOpps.map((o) => o.pointsGained).reduce((p, v) => p + v, 0) /
-              scoringOpps.length) *
-              10,
-          ) / 10
+          (scoringOpps.map((o) => o.pointsGained).reduce((p, v) => p + v, 0) /
+            scoringOpps.length) *
+          10,
+        ) / 10
         : 0,
       averageStartYardLine: averageStart
         ? Math.round(averageStart * 10) / 10
@@ -313,10 +313,10 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
           : 0,
       epaPerPlay: epaPlays.length
         ? Math.round(
-            (epaPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) /
-              epaPlays.length) *
-              1000,
-          ) / 1000
+          (epaPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) /
+            epaPlays.length) *
+          1000,
+        ) / 1000
         : 0,
       totalEpa:
         Math.round(
@@ -328,10 +328,10 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
         ) / 10,
       epaPerPass: passingPlays.length
         ? Math.round(
-            (passingPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) /
-              passingPlays.length) *
-              1000,
-          ) / 1000
+          (passingPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) /
+            passingPlays.length) *
+          1000,
+        ) / 1000
         : 0,
       rushingEpa:
         Math.round(
@@ -339,44 +339,44 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
         ) / 10,
       epaPerRush: rushingPlays.length
         ? Math.round(
-            (rushingPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) /
-              rushingPlays.length) *
-              1000,
-          ) / 1000
+          (rushingPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) /
+            rushingPlays.length) *
+          1000,
+        ) / 1000
         : 0,
       successRate: teamPlays.length
         ? Math.round(
-            (teamPlays
-              .map((t): number => (t.success ? 1 : 0))
-              .reduce((p, v) => p + v, 0) /
-              teamPlays.length) *
-              1000,
-          ) / 1000
+          (teamPlays
+            .map((t): number => (t.success ? 1 : 0))
+            .reduce((p, v) => p + v, 0) /
+            teamPlays.length) *
+          1000,
+        ) / 1000
         : 0,
       standardDownSuccessRate: standardDowns.length
         ? Math.round(
-            (standardDowns
-              .map((t): number => (t.success ? 1 : 0))
-              .reduce((p, v) => p + v, 0) /
-              standardDowns.length) *
-              1000,
-          ) / 1000
+          (standardDowns
+            .map((t): number => (t.success ? 1 : 0))
+            .reduce((p, v) => p + v, 0) /
+            standardDowns.length) *
+          1000,
+        ) / 1000
         : 0,
       passingDownSuccessRate: passingDowns.length
         ? Math.round(
-            (passingDowns
-              .map((t): number => (t.success ? 1 : 0))
-              .reduce((p, v) => p + v, 0) /
-              passingDowns.length) *
-              1000,
-          ) / 1000
+          (passingDowns
+            .map((t): number => (t.success ? 1 : 0))
+            .reduce((p, v) => p + v, 0) /
+            passingDowns.length) *
+          1000,
+        ) / 1000
         : 0,
       explosiveness: successfulPlays.length
         ? Math.round(
-            (successfulPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) /
-              successfulPlays.length) *
-              1000,
-          ) / 1000
+          (successfulPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) /
+            successfulPlays.length) *
+          1000,
+        ) / 1000
         : 0,
     };
   });
@@ -387,7 +387,7 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
     : null;
 
   // Attempt to fetch "deserve to win" (PGWE) from internal ML API
-  let deserveToWinByTeam: { [teamId: string]: number } | undefined = undefined;
+  let deserveToWinByTeam: { [teamId: string]: number; } | undefined = undefined;
   try {
     if (ML_URL) {
       // Identify home/away teams and build flat payload per API docs
@@ -462,7 +462,7 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
     clock: comp.status.displayClock ?? '',
     possession: currentDrive
       ? (teams.find((t) => t.team.displayName === currentDrive.team.displayName)
-          ?.team.location ?? '')
+        ?.team.location ?? '')
       : '',
     down: currentPlay?.end?.down ?? null,
     distance: currentPlay?.end?.distance ?? null,
