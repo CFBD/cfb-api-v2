@@ -1,3 +1,11 @@
+## [5.11.1](https://github.com/CFBD/cfb-api-v2/compare/v5.11.0...v5.11.1) (2025-08-30)
+
+
+### Bug Fixes
+
+* **livePlays:** total EPA fix ([83b623f](https://github.com/CFBD/cfb-api-v2/commit/83b623f3209d616d38ffe2efd1a2715b73bcbfe9))
+* **livePlays:** total EPA fix ([dc9d92f](https://github.com/CFBD/cfb-api-v2/commit/dc9d92f9f4e133111cad6f7b9c7c833cdfb01445))
+
 # [5.11.0](https://github.com/CFBD/cfb-api-v2/compare/v5.10.0...v5.11.0) (2025-08-30)
 
 
