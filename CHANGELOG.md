@@ -1,3 +1,10 @@
+# [5.11.0](https://github.com/CFBD/cfb-api-v2/compare/v5.10.0...v5.11.0) (2025-08-30)
+
+
+### Features
+
+* **livePlays:** deserveToWin metric ([b823e24](https://github.com/CFBD/cfb-api-v2/commit/b823e242d71884125a0ed9e5b522b1904b935ab6))
+
 # [5.10.0](https://github.com/CFBD/cfb-api-v2/compare/v5.9.9...v5.10.0) (2025-08-29)
 
 
