@@ -1,3 +1,10 @@
+## [5.11.2](https://github.com/CFBD/cfb-api-v2/compare/v5.11.1...v5.11.2) (2025-08-31)
+
+
+### Bug Fixes
+
+* **drives:** bringing back elapsed field ([f6cd29e](https://github.com/CFBD/cfb-api-v2/commit/f6cd29ec9929755f291b2770829191b580017b0a))
+
 ## [5.11.1](https://github.com/CFBD/cfb-api-v2/compare/v5.11.0...v5.11.1) (2025-08-30)
 
 
