@@ -279,6 +279,10 @@ export const getDrives = async (
         minutes: d.endTime?.minutes ?? null,
         seconds: d.endTime?.seconds ?? null,
       },
+      elapsed: {
+        minutes: d.elapsed?.minutes ?? null,
+        seconds: d.elapsed?.seconds ?? null,
+      },
       plays: d.plays,
       yards: d.yards,
       driveResult: d.driveResult,

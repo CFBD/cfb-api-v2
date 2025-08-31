@@ -57,6 +57,16 @@ export interface Drive {
      */
     seconds: number | null;
   };
+  elapsed: {
+    /**
+     * @isInt
+     */
+    minutes: number | null;
+    /**
+     * @isInt
+     */
+    seconds: number | null;
+  };
   /**
    * @isInt
    */
