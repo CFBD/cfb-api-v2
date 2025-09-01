@@ -169,7 +169,11 @@ export const getAggregatedPlayerRatings = async (
     .innerJoin('conferenceTeam', (join) =>
       join
         .onRef('team.id', '=', 'conferenceTeam.teamId')
-        .on('conferenceTeam.startYear', '<=', startYear ?? 2000)
+        .on(
+          'conferenceTeam.startYear',
+          '<=',
+          endYear ?? new Date().getFullYear(),
+        )
         .on((eb) =>
           eb.or([
             eb('conferenceTeam.endYear', 'is', null),
@@ -213,7 +217,11 @@ export const getAggregatedPlayerRatings = async (
     .innerJoin('conferenceTeam', (join) =>
       join
         .onRef('team.id', '=', 'conferenceTeam.teamId')
-        .on('conferenceTeam.startYear', '<=', startYear ?? 2000)
+        .on(
+          'conferenceTeam.startYear',
+          '<=',
+          endYear ?? new Date().getFullYear(),
+        )
         .on((eb) =>
           eb.or([
             eb('conferenceTeam.endYear', 'is', null),
