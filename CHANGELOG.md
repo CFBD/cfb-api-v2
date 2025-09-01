@@ -1,3 +1,10 @@
+## [5.11.3](https://github.com/CFBD/cfb-api-v2/compare/v5.11.2...v5.11.3) (2025-09-01)
+
+
+### Bug Fixes
+
+* **recruiting:** aggregated metrics not showing all teams ([af7f3cc](https://github.com/CFBD/cfb-api-v2/commit/af7f3ccb8f19955222d6f7b4d0cc66b2d8431b68))
+
 ## [5.11.2](https://github.com/CFBD/cfb-api-v2/compare/v5.11.1...v5.11.2) (2025-08-31)
 
 
