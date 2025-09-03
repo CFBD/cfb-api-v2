@@ -368,6 +368,7 @@ export const getPlayStats = async (
         .end()
         .as('yardsToGoal'),
     )
+    .distinct()
     .limit(2000);
 
   if (year) {
