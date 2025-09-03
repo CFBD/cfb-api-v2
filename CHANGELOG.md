@@ -1,3 +1,10 @@
+## [5.11.4](https://github.com/CFBD/cfb-api-v2/compare/v5.11.3...v5.11.4) (2025-09-03)
+
+
+### Bug Fixes
+
+* **playStats:** remove duplicate records ([c4aaf7d](https://github.com/CFBD/cfb-api-v2/commit/c4aaf7dbcba9a733fb6189581f72b504544e78c6))
+
 ## [5.11.3](https://github.com/CFBD/cfb-api-v2/compare/v5.11.2...v5.11.3) (2025-09-01)
 
 
