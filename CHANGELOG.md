@@ -1,3 +1,10 @@
+## [5.11.5](https://github.com/CFBD/cfb-api-v2/compare/v5.11.4...v5.11.5) (2025-09-09)
+
+
+### Bug Fixes
+
+* **rankings:** adding teamId ([e1a79de](https://github.com/CFBD/cfb-api-v2/commit/e1a79de22aad7277031bb9503aa8e98091581cfc))
+
 ## [5.11.4](https://github.com/CFBD/cfb-api-v2/compare/v5.11.3...v5.11.4) (2025-09-03)
 
 
