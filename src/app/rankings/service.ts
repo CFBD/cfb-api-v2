@@ -31,6 +31,7 @@ export const getRankings = async (
       'poll.week',
       'pollType.name as poll',
       'pollRank.rank',
+      'team.id as teamId',
       'team.school',
       'conference.name as conference',
       'pollRank.firstPlaceVotes',
@@ -88,6 +89,7 @@ export const getRankings = async (
               .map((r) => {
                 return {
                   rank: r.rank,
+                  teamId: r.teamId,
                   school: r.school,
                   conference: r.conference,
                   firstPlaceVotes: r.firstPlaceVotes,

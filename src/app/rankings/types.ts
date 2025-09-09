@@ -23,6 +23,10 @@ export interface PollRank {
    * @isInt
    */
   rank: number | null;
+  /**
+   * @isInt
+   */
+  teamId: number;
   school: string;
   conference: string | null;
   /**
