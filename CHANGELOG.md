@@ -1,3 +1,10 @@
+## [5.12.1](https://github.com/CFBD/cfb-api-v2/compare/v5.12.0...v5.12.1) (2025-09-18)
+
+
+### Bug Fixes
+
+* **betting:** adding team ids to lines endpoint ([e2bcde7](https://github.com/CFBD/cfb-api-v2/commit/e2bcde73b9fc4bbd7bde0f6085a4103e70b74fd0))
+
 # [5.12.0](https://github.com/CFBD/cfb-api-v2/compare/v5.11.5...v5.12.0) (2025-09-18)
 
 
