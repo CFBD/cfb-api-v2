@@ -1,3 +1,10 @@
+# [5.12.0](https://github.com/CFBD/cfb-api-v2/compare/v5.11.5...v5.12.0) (2025-09-18)
+
+
+### Features
+
+* **betting:** teams ATS stats endpoint ([088321a](https://github.com/CFBD/cfb-api-v2/commit/088321a49cf81dfe6664e93ca5f6132acb0cf52a))
+
 ## [5.11.5](https://github.com/CFBD/cfb-api-v2/compare/v5.11.4...v5.11.5) (2025-09-09)
 
 
