@@ -18,6 +18,10 @@ export interface BettingGame {
    * @isDateTime
    */
   startDate: Date;
+  /**
+   * @isInt
+   */
+  homeTeamId: number;
   homeTeam: string;
   homeConference: string | null;
   homeClassification: DivisionClassification | null;
@@ -25,6 +29,10 @@ export interface BettingGame {
    * @isInt
    */
   homeScore: number | null;
+  /**
+   * @isInt
+   */
+  awayTeamId: number;
   awayTeam: string;
   awayConference: string | null;
   awayClassification: DivisionClassification | null;
