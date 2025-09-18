@@ -6,6 +6,7 @@ import {
   MatchupGame,
   RosterPlayer,
   Team,
+  TeamATS,
   TeamTalent,
   Venue,
 } from './types';
@@ -470,6 +471,184 @@ export const getVenues = async (): Promise<Venue[]> => {
       longitude: v.location ? v.location.y : null,
       elevation: v.elevation,
       constructionYear: v.yearConstructed,
+    }),
+  );
+};
+
+export const getTeamsATS = async (
+  year: number,
+  conference?: string,
+  team?: string,
+): Promise<TeamATS[]> => {
+  const games = await kdb
+    .with('gamesCte', (qb) => {
+      let gamesQuery = qb
+        .selectFrom('team')
+        .innerJoin('gameTeam as gt', 'team.id', 'gt.teamId')
+        .innerJoin('game', 'gt.gameId', 'game.id')
+        .innerJoin('gameTeam as gt2', (join) =>
+          join
+            .onRef('game.id', '=', 'gt2.gameId')
+            .onRef('gt2.teamId', '<>', 'gt.teamId'),
+        )
+        .leftJoin('conferenceTeam as ct', (join) =>
+          join
+            .onRef('team.id', '=', 'ct.teamId')
+            .on('ct.startYear', '<=', year)
+            .on((eb) =>
+              eb.or([
+                eb('ct.endYear', 'is', null),
+                eb('ct.endYear', '>=', year),
+              ]),
+            ),
+        )
+        .leftJoin('conference', 'ct.conferenceId', 'conference.id')
+        .leftJoin('gameLines as gl', (join) =>
+          join
+            .onRef('game.id', '=', 'gl.gameId')
+            .on('gl.linesProviderId', '=', 58),
+        )
+        .leftJoin('gameLines as gl2', (join) =>
+          join
+            .onRef('game.id', '=', 'gl2.gameId')
+            .on('gl2.linesProviderId', '=', 999999),
+        )
+        .leftJoin('gameLines as gl3', (join) =>
+          join
+            .onRef('game.id', '=', 'gl3.gameId')
+            .on('gl3.linesProviderId', '=', 888888),
+        )
+        .where('game.season', '=', year)
+        .where('game.status', '=', 'completed')
+        .where('gt.points', 'is not', null)
+        .where('gt2.points', 'is not', null)
+        .where((eb) =>
+          eb.or([
+            eb('gl.spread', 'is not', null),
+            eb('gl2.spread', 'is not', null),
+            eb('gl3.spread', 'is not', null),
+          ]),
+        )
+        .select([
+          'game.id',
+          'game.season',
+          'team.id as teamId',
+          'team.school as team',
+          'conference.abbreviation as conference',
+          'gt.homeAway',
+        ])
+        .select((eb) => eb('gt2.points', '-', eb.ref('gt.points')).as('margin'))
+        .select((eb) =>
+          eb.fn.coalesce('gl.spread', 'gl2.spread', 'gl3.spread').as('spread'),
+        );
+
+      if (conference) {
+        gamesQuery = gamesQuery.where(
+          (eb) => eb.fn('lower', ['conference.abbreviation']),
+          '=',
+          conference.toLowerCase(),
+        );
+      }
+
+      if (team) {
+        gamesQuery = gamesQuery.where(
+          (eb) => eb.fn('lower', ['team.school']),
+          '=',
+          team.toLowerCase(),
+        );
+      }
+
+      return gamesQuery;
+    })
+    .selectFrom('gamesCte')
+    .select(['season', 'teamId', 'team', 'conference'])
+    .select((eb) => eb.fn.count('id').as('games'))
+    .select((eb) =>
+      eb.fn
+        .count('id')
+        .filterWhere(
+          eb.or([
+            eb.and([
+              eb('homeAway', '=', 'home'),
+              // @ts-ignore
+              eb('margin', '<', eb.ref('spread')),
+            ]),
+            eb.and([
+              eb('homeAway', '=', 'away'),
+              // @ts-ignore
+              eb(eb('margin', '*', -1), '>', eb.ref('spread')),
+            ]),
+          ]),
+        )
+        .as('atsWins'),
+    )
+    .select((eb) =>
+      eb.fn
+        .count('id')
+        .filterWhere(
+          eb.or([
+            eb.and([
+              eb('homeAway', '=', 'home'),
+              // @ts-ignore
+              eb('margin', '>', eb.ref('spread')),
+            ]),
+            eb.and([
+              eb('homeAway', '=', 'away'),
+              // @ts-ignore
+              eb(eb('margin', '*', -1), '<', eb.ref('spread')),
+            ]),
+          ]),
+        )
+        .as('atsLosses'),
+    )
+    .select((eb) =>
+      eb.fn
+        .count('id')
+        .filterWhere(
+          eb.or([
+            eb.and([
+              eb('homeAway', '=', 'home'),
+              // @ts-ignore
+              eb('margin', '=', eb.ref('spread')),
+            ]),
+            eb.and([
+              eb('homeAway', '=', 'away'),
+              // @ts-ignore
+              eb(eb('margin', '*', -1), '=', eb.ref('spread')),
+            ]),
+          ]),
+        )
+        .as('atsPushes'),
+    )
+    .select((eb) =>
+      eb.fn
+        .avg((qb) =>
+          qb
+            .case()
+            .when('homeAway', '=', 'home')
+            // @ts-ignore
+            .then(eb('spread', '-', eb.ref('margin')))
+            // @ts-ignore
+            .else(eb(eb('spread', '*', -1), '-', eb.ref('margin')))
+            .end(),
+        )
+        .as('coverMean'),
+    )
+    .groupBy(['season', 'teamId', 'team', 'conference'])
+    .orderBy('team')
+    .execute();
+
+  return games.map(
+    (g): TeamATS => ({
+      year: g.season,
+      teamId: g.teamId,
+      team: g.team,
+      conference: g.conference,
+      games: Number(g.games),
+      atsWins: Number(g.atsWins),
+      atsLosses: Number(g.atsLosses),
+      atsPushes: Number(g.atsPushes),
+      avgCoverMargin: Math.round(Number(g.coverMean) * 100) / 100,
     }),
   );
 };

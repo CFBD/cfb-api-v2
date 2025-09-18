@@ -10,12 +10,14 @@ import {
   getConferences,
   getTalent,
   getVenues,
+  getTeamsATS,
 } from './service';
 import {
   Conference,
   Matchup,
   RosterPlayer,
   Team,
+  TeamATS,
   TeamTalent,
   Venue,
 } from './types';
@@ -65,6 +67,22 @@ export class TeamsController extends Controller {
     @Query() maxYear?: number,
   ): Promise<Matchup> {
     return await getMatchup(team1, team2, minYear, maxYear);
+  }
+
+  /**
+   * Retrieves against-the-spread (ATS) summary by team
+   * @param year Required year filter
+   * @param conference Optional conference filter
+   * @param team Optional team filter
+   * @isInt year
+   */
+  @Get('ats')
+  public async getTeamsATS(
+    @Query() year: number,
+    @Query() conference?: string,
+    @Query() team?: string,
+  ): Promise<TeamATS[]> {
+    return await getTeamsATS(year, conference, team);
   }
 }
 

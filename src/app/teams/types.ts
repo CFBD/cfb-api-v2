@@ -148,3 +148,33 @@ export interface TeamTalent {
   team: string;
   talent: number;
 }
+
+export interface TeamATS {
+  /**
+   * @isInt
+   */
+  year: number;
+  /**
+   * @isInt
+   */
+  teamId: number;
+  team: string;
+  conference: string | null;
+  /**
+   * @isInt
+   */
+  games: number;
+  /**
+   * @isInt
+   */
+  atsWins: number;
+  /**
+   * @isInt
+   */
+  atsLosses: number;
+  /**
+   * @isInt
+   */
+  atsPushes: number;
+  avgCoverMargin: number | null;
+}
