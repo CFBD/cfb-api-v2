@@ -17,7 +17,7 @@ import {
 } from './service';
 
 @Route('stats')
-@Middlewares(middlewares.standard)
+@Middlewares([middlewares.rejectBadParam('playerId'), ...middlewares.standard])
 @Tags('stats')
 export class StatsController extends Controller {
   /**

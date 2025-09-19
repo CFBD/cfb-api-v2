@@ -1,5 +1,6 @@
 import { default as cors } from './cors';
 import { checkCallQuotas } from './quotas';
+import { rejectBadParam } from './rejectBadParams';
 import { createRateSlowdown } from './slowdown';
 
 const rateSlowdown = createRateSlowdown([
@@ -18,4 +19,5 @@ export default {
   cors,
   checkCallQuotas,
   rateSlowdown,
+  rejectBadParam,
 };
