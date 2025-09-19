@@ -9,5 +9,6 @@ export const rejectBadParam = (paramName = 'badParam'): RequestHandler => {
       });
     }
     next();
+    return;
   };
 };
