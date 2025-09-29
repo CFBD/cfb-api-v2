@@ -1,3 +1,10 @@
+# [5.13.0](https://github.com/CFBD/cfb-api-v2/compare/v5.12.1...v5.13.0) (2025-09-29)
+
+
+### Features
+
+* **stats:** new game havoc endpoint ([e37f5d8](https://github.com/CFBD/cfb-api-v2/commit/e37f5d82409bd14cb5dd58d41d26d0901e3613ed))
+
 ## [5.12.1](https://github.com/CFBD/cfb-api-v2/compare/v5.12.0...v5.12.1) (2025-09-18)
 
 
