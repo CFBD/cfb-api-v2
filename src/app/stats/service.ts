@@ -4,11 +4,11 @@ import { SeasonType } from '../enums';
 import {
   AdvancedGameStat,
   AdvancedSeasonStat,
+  GameHavocStats,
   PlayerStat,
   TeamStat,
 } from './types';
 import { sql } from 'kysely';
-import { PASS_PLAY_TYPES, RUSH_PLAY_TYPES } from '../../globals';
 
 export const getPlayerSeasonStats = async (
   year: number,
@@ -1394,6 +1394,7 @@ export const getAdvancedGameStats = async (
         .select([
           'game.id',
           'game.season',
+          'game.seasonType',
           'game.week',
           't.school',
           't2.school as opponent',
@@ -1402,6 +1403,10 @@ export const getAdvancedGameStats = async (
           'play.distance',
           'play.yardsGained',
           'play.ppa',
+          'play.downType',
+          'play.success',
+          'play.playCall as playType',
+          'play.garbageTime',
         ])
         .select((eb) =>
           eb
@@ -1411,154 +1416,6 @@ export const getAdvancedGameStats = async (
             .else('defense')
             .end()
             .as('oD'),
-        )
-        .select((eb) =>
-          eb
-            .case()
-            .when(
-              eb.and([eb('play.down', '=', 2), eb('play.distance', '>=', 8)]),
-            )
-            .then('passing')
-            .when(
-              eb.and([
-                eb('play.down', 'in', [3, 4]),
-                eb('play.distance', '>=', 5),
-              ]),
-            )
-            .then('passing')
-            .else('standard')
-            .end()
-            .as('downType'),
-        )
-        .select((eb) =>
-          eb
-            .case()
-            .when(eb('play.playTypeId', 'in', [20, 26, 34, 36, 37, 38, 39, 63]))
-            .then(false)
-            .when(eb('play.scoring', '=', true))
-            .then(true)
-            .when(
-              eb.and([
-                eb('play.down', '=', 1),
-                eb(
-                  sql<number>`(CAST(play.yards_gained AS NUMERIC) / play.distance)`,
-                  '>=',
-                  0.5,
-                ),
-              ]),
-            )
-            .then(true)
-            .when(
-              eb.and([
-                eb('play.down', '=', 2),
-                eb(
-                  sql<number>`(CAST(play.yards_gained AS NUMERIC) / play.distance)`,
-                  '>=',
-                  0.7,
-                ),
-              ]),
-            )
-            .then(true)
-            .when(
-              eb.and([
-                eb('play.down', 'in', [3, 4]),
-                eb('play.yardsGained', '>=', eb.ref('play.distance')),
-              ]),
-            )
-            .then(true)
-            .else(false)
-            .end()
-            .as('success'),
-        )
-        .select((eb) =>
-          eb
-            .case()
-            .when(eb('play.playTypeId', 'in', PASS_PLAY_TYPES))
-            .then('Pass')
-            .when(eb('play.playTypeId', 'in', RUSH_PLAY_TYPES))
-            .then('Rush')
-            .else('Other')
-            .end()
-            .as('playType'),
-        )
-        .select((eb) =>
-          eb
-            .case()
-            .when(
-              eb.and([
-                eb('play.period', '=', 2),
-                eb('play.scoring', '=', false),
-                eb(
-                  sql<number>`ABS(play.home_score - play.away_score)`,
-                  '>',
-                  38,
-                ),
-              ]),
-            )
-            .then(true)
-            .when(
-              eb.and([
-                eb('play.period', '=', 3),
-                eb('play.scoring', '=', false),
-                eb(
-                  sql<number>`ABS(play.home_score - play.away_score)`,
-                  '>',
-                  28,
-                ),
-              ]),
-            )
-            .then(true)
-            .when(
-              eb.and([
-                eb('play.period', '=', 4),
-                eb('play.scoring', '=', false),
-                eb(
-                  sql<number>`ABS(play.home_score - play.away_score)`,
-                  '>',
-                  22,
-                ),
-              ]),
-            )
-            .then(true)
-            .when(
-              eb.and([
-                eb('play.period', '=', 2),
-                eb('play.scoring', '=', true),
-                eb(
-                  sql<number>`ABS(play.home_score - play.away_score)`,
-                  '>',
-                  45,
-                ),
-              ]),
-            )
-            .then(true)
-            .when(
-              eb.and([
-                eb('play.period', '=', 3),
-                eb('play.scoring', '=', true),
-                eb(
-                  sql<number>`ABS(play.home_score - play.away_score)`,
-                  '>',
-                  35,
-                ),
-              ]),
-            )
-            .then(true)
-            .when(
-              eb.and([
-                eb('play.period', '=', 4),
-                eb('play.scoring', '=', true),
-                eb(
-                  sql<number>`ABS(play.home_score - play.away_score)`,
-                  '>',
-                  29,
-                ),
-              ]),
-            )
-            .then(true)
-            .else(false)
-            .end()
-            .as('garbageTime'),
         );
 
       if (year) {
@@ -1592,10 +1449,11 @@ export const getAdvancedGameStats = async (
       return withClause;
     })
     .selectFrom('plays')
-    .groupBy(['id', 'season', 'week', 'school', 'opponent', 'oD'])
+    .groupBy(['id', 'season', 'seasonType', 'week', 'school', 'opponent', 'oD'])
     .select([
       'id',
       'season as year',
+      'seasonType',
       'week',
       'school as team',
       'opponent',
@@ -1618,21 +1476,21 @@ export const getAdvancedGameStats = async (
         .as('passingDownPpa'),
     )
     .select((eb) =>
-      eb.fn.avg('ppa').filterWhere('playType', '=', 'Pass').as('passingPpa'),
+      eb.fn.avg('ppa').filterWhere('playType', '=', 'pass').as('passingPpa'),
     )
     .select((eb) =>
-      eb.fn.avg('ppa').filterWhere('playType', '=', 'Rush').as('rushingPpa'),
+      eb.fn.avg('ppa').filterWhere('playType', '=', 'rush').as('rushingPpa'),
     )
     .select((eb) =>
       eb.fn
         .sum('ppa')
-        .filterWhere('playType', '=', 'Pass')
+        .filterWhere('playType', '=', 'pass')
         .as('totalPassingPpa'),
     )
     .select((eb) =>
       eb.fn
         .sum('ppa')
-        .filterWhere('playType', '=', 'Rush')
+        .filterWhere('playType', '=', 'rush')
         .as('totalRushingPpa'),
     )
     .select(
@@ -1668,7 +1526,7 @@ export const getAdvancedGameStats = async (
         .as('passingDownExplosiveness'),
     )
     .select(
-      sql<number>`CAST((COUNT(*) FILTER(WHERE success = true AND play_type = 'Rush')) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1)`.as(
+      sql<number>`CAST((COUNT(*) FILTER(WHERE success = true AND play_type = 'rush')) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'rush'), 0), 1)`.as(
         'rushSuccessRate',
       ),
     )
@@ -1676,11 +1534,11 @@ export const getAdvancedGameStats = async (
       eb.fn
         .avg('ppa')
         .filterWhere('success', '=', true)
-        .filterWhere('playType', '=', 'Rush')
+        .filterWhere('playType', '=', 'rush')
         .as('rushExplosiveness'),
     )
     .select(
-      sql<number>`CAST((COUNT(*) FILTER(WHERE success = true AND play_type = 'Pass')) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Pass'), 0), 1)`.as(
+      sql<number>`CAST((COUNT(*) FILTER(WHERE success = true AND play_type = 'pass')) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'pass'), 0), 1)`.as(
         'passSuccessRate',
       ),
     )
@@ -1688,46 +1546,46 @@ export const getAdvancedGameStats = async (
       eb.fn
         .avg('ppa')
         .filterWhere('success', '=', true)
-        .filterWhere('playType', '=', 'Pass')
+        .filterWhere('playType', '=', 'pass')
         .as('passExplosiveness'),
     )
     .select(
-      sql<number>`CAST(COUNT(*) FILTER(WHERE distance <= 2 AND play_type = 'Rush' AND success = true) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE distance <= 2 AND play_type = 'Rush'), 0), 1)`.as(
+      sql<number>`CAST(COUNT(*) FILTER(WHERE distance <= 2 AND play_type = 'rush' AND success = true) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE distance <= 2 AND play_type = 'rush'), 0), 1)`.as(
         'powerSuccess',
       ),
     )
     .select(
-      sql<number>`CAST(COUNT(*) FILTER(WHERE play_type = 'Rush' AND yards_gained <= 0) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1)`.as(
+      sql<number>`CAST(COUNT(*) FILTER(WHERE play_type = 'rush' AND yards_gained <= 0) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'rush'), 0), 1)`.as(
         'stuffRate',
       ),
     )
     .select(
-      sql<number>`COALESCE(CAST(SUM(CASE WHEN yards_gained <= 0 THEN yards_gained * 1.2 WHEN yards_gained < 5 THEN yards_gained WHEN yards_gained < 11 THEN 4 + (yards_gained - 4) * .5 ELSE 7 END) FILTER (WHERE play_type = 'Rush') AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1), 0)`.as(
+      sql<number>`COALESCE(CAST(SUM(CASE WHEN yards_gained <= 0 THEN yards_gained * 1.2 WHEN yards_gained < 5 THEN yards_gained WHEN yards_gained < 11 THEN 4 + (yards_gained - 4) * .5 ELSE 7 END) FILTER (WHERE play_type = 'rush') AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'rush'), 0), 1), 0)`.as(
         'lineYards',
       ),
     )
     .select(
-      sql<number>`ROUND(COALESCE(CAST(SUM(CASE WHEN yards_gained <= 0 THEN yards_gained * 1.2 WHEN yards_gained < 5 THEN yards_gained WHEN yards_gained < 11 THEN 4 + (yards_gained - 4) * .5 ELSE 7 END) FILTER (WHERE play_type = 'Rush') AS NUMERIC), 0), 0)`.as(
+      sql<number>`ROUND(COALESCE(CAST(SUM(CASE WHEN yards_gained <= 0 THEN yards_gained * 1.2 WHEN yards_gained < 5 THEN yards_gained WHEN yards_gained < 11 THEN 4 + (yards_gained - 4) * .5 ELSE 7 END) FILTER (WHERE play_type = 'rush') AS NUMERIC), 0), 0)`.as(
         'lineYardsSum',
       ),
     )
     .select(
-      sql<number>`CAST(SUM(CASE WHEN yards_gained >= 10 THEN 5 ELSE (yards_gained - 5) END) FILTER(WHERE yards_gained >= 5 AND play_type = 'Rush') AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1)`.as(
+      sql<number>`CAST(SUM(CASE WHEN yards_gained >= 10 THEN 5 ELSE (yards_gained - 5) END) FILTER(WHERE yards_gained >= 5 AND play_type = 'rush') AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'rush'), 0), 1)`.as(
         'secondLevelYards',
       ),
     )
     .select(
-      sql<number>`CAST(SUM(CASE WHEN yards_gained >= 10 THEN 5 ELSE (yards_gained - 5) END) FILTER(WHERE yards_gained >= 5 AND play_type = 'Rush') AS NUMERIC)`.as(
+      sql<number>`CAST(SUM(CASE WHEN yards_gained >= 10 THEN 5 ELSE (yards_gained - 5) END) FILTER(WHERE yards_gained >= 5 AND play_type = 'rush') AS NUMERIC)`.as(
         'secondLevelYardsSum',
       ),
     )
     .select(
-      sql<number>`CAST(SUM(yards_gained - 10) FILTER(WHERE play_type = 'Rush' AND yards_gained >= 10) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'Rush'), 0), 1)`.as(
+      sql<number>`CAST(SUM(yards_gained - 10) FILTER(WHERE play_type = 'rush' AND yards_gained >= 10) AS NUMERIC) / COALESCE(NULLIF(COUNT(*) FILTER(WHERE play_type = 'rush'), 0), 1)`.as(
         'openFieldYards',
       ),
     )
     .select(
-      sql<number>`CAST(SUM(yards_gained - 10) FILTER(WHERE play_type = 'Rush' AND yards_gained >= 10) AS NUMERIC)`.as(
+      sql<number>`CAST(SUM(yards_gained - 10) FILTER(WHERE play_type = 'rush' AND yards_gained >= 10) AS NUMERIC)`.as(
         'openFieldYardsSum',
       ),
     );
@@ -1763,6 +1621,7 @@ export const getAdvancedGameStats = async (
         return {
           gameId: id,
           season: offense.year,
+          seasonType: offense.seasonType,
           week: offense.week,
           team: t,
           opponent: offense.opponent,
@@ -1850,4 +1709,149 @@ export const getAdvancedGameStats = async (
   }
 
   return stats;
+};
+
+export const getGameHavocStats = async (
+  year?: number,
+  team?: string,
+  week?: number,
+  opponent?: string,
+  seasonType?: SeasonType,
+): Promise<GameHavocStats[]> => {
+  if (!year && !team) {
+    throw new ValidateError(
+      {
+        year: { value: year, message: 'year required when team not specified' },
+        team: { value: team, message: 'team required when year not specified' },
+      },
+      'Validation error',
+    );
+  }
+
+  let query = kdb
+    .selectFrom('game')
+    .innerJoin('gameTeam as gt', 'game.id', 'gt.gameId')
+    .innerJoin('team as t', 'gt.teamId', 't.id')
+    .innerJoin('gameTeam as gt2', (join) =>
+      join.onRef('game.id', '=', 'gt2.gameId').onRef('gt.id', '<>', 'gt2.id'),
+    )
+    .innerJoin('team as t2', 'gt2.teamId', 't2.id')
+    .innerJoin('gameHavocStats', (join) =>
+      join
+        .onRef('game.id', '=', 'gameHavocStats.gameId')
+        .onRef('gt.teamId', '=', 'gameHavocStats.teamId'),
+    )
+    .leftJoin('conferenceTeam as ct', (join) =>
+      join
+        .onRef('t.id', '=', 'ct.teamId')
+        .onRef('ct.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('ct.endYear', 'is', null),
+            eb('ct.endYear', '>=', eb.ref('game.season')),
+          ]),
+        ),
+    )
+    .leftJoin('conference as c', 'ct.conferenceId', 'c.id')
+    .leftJoin('conferenceTeam as ct2', (join) =>
+      join
+        .onRef('t2.id', '=', 'ct2.teamId')
+        .onRef('ct2.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('ct2.endYear', 'is', null),
+            eb('ct2.endYear', '>=', eb.ref('game.season')),
+          ]),
+        ),
+    )
+    .leftJoin('conference as c2', 'ct2.conferenceId', 'c2.id')
+    .select([
+      'game.id',
+      'game.season as year',
+      'game.seasonType',
+      'game.week',
+      't.school as team',
+      'c.abbreviation as conference',
+      't2.school as opponent',
+      'c2.abbreviation as opponentConference',
+      'gameHavocStats.offensivePlays',
+      'gameHavocStats.defensivePlays',
+      'gameHavocStats.havocEvents',
+      'gameHavocStats.havocEventsAllowed',
+      'gameHavocStats.frontSevenHavocEvents',
+      'gameHavocStats.frontSevenHavocEventsAllowed',
+      'gameHavocStats.dbHavocEvents',
+      'gameHavocStats.dbHavocEventsAllowed',
+      'gameHavocStats.offensiveTotalHavoc',
+      'gameHavocStats.offensiveFrontSevenHavoc',
+      'gameHavocStats.offensiveDbHavoc',
+      'gameHavocStats.defensiveTotalHavoc',
+      'gameHavocStats.defensiveFrontSevenHavoc',
+      'gameHavocStats.defensiveDbHavoc',
+    ]);
+
+  if (year) {
+    query = query.where('game.season', '=', year);
+  }
+
+  if (week) {
+    query = query.where('game.week', '=', week);
+  }
+
+  if (team) {
+    query = query.where(
+      (eb) => eb.fn('LOWER', ['t.school']),
+      '=',
+      team.toLowerCase(),
+    );
+  }
+
+  if (opponent) {
+    query = query.where(
+      (eb) => eb.fn('LOWER', ['t2.school']),
+      '=',
+      opponent.toLowerCase(),
+    );
+  }
+
+  if (seasonType && seasonType !== SeasonType.Both) {
+    query = query.where('game.seasonType', '=', seasonType);
+  }
+
+  const results = await query.execute();
+
+  return results.map(
+    (r): GameHavocStats => ({
+      gameId: r.id,
+      season: r.year,
+      seasonType: r.seasonType,
+      week: r.week,
+      team: r.team,
+      conference: r.conference,
+      opponent: r.opponent,
+      opponentConference: r.opponentConference,
+      offense: {
+        totalPlays: Number(r.offensivePlays),
+        totalHavocEvents: Number(r.havocEventsAllowed),
+        frontSevenHavocEvents: Number(r.frontSevenHavocEventsAllowed),
+        dbHavocEvents: Number(r.dbHavocEventsAllowed),
+        havocRate: r.offensiveTotalHavoc ? Number(r.offensiveTotalHavoc) : 0,
+        frontSevenHavocRate: r.offensiveFrontSevenHavoc
+          ? Number(r.offensiveFrontSevenHavoc)
+          : 0,
+        dbHavocRate: r.offensiveDbHavoc ? Number(r.offensiveDbHavoc) : 0,
+      },
+      defense: {
+        totalPlays: Number(r.defensivePlays),
+        totalHavocEvents: Number(r.havocEvents),
+        frontSevenHavocEvents: Number(r.frontSevenHavocEvents),
+        dbHavocEvents: Number(r.dbHavocEvents),
+        havocRate: r.defensiveTotalHavoc ? Number(r.defensiveTotalHavoc) : 0,
+        frontSevenHavocRate: r.defensiveFrontSevenHavoc
+          ? Number(r.defensiveFrontSevenHavoc)
+          : 0,
+        dbHavocRate: r.defensiveDbHavoc ? Number(r.defensiveDbHavoc) : 0,
+      },
+    }),
+  );
 };

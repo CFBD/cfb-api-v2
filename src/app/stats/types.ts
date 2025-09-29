@@ -1,3 +1,5 @@
+import { SeasonType as SeasonTypeDB } from '../../config/types/db';
+
 export interface PlayerStat {
   /**
    * @isInt
@@ -188,6 +190,7 @@ export interface AdvancedGameStat {
    * @isInt
    */
   season: number;
+  seasonType: SeasonTypeDB;
   /**
    * @isInt
    */
@@ -299,5 +302,43 @@ export interface AdvancedGameStat {
       successRate: number;
       explosiveness: number | null;
     };
+  };
+}
+
+export interface GameHavocStats {
+  /**
+   * @isInt
+   */
+  gameId: number;
+  /**
+   * @isInt
+   */
+  season: number;
+  seasonType: SeasonTypeDB;
+  /**
+   * @isInt
+   */
+  week: number;
+  team: string;
+  conference: string | null;
+  opponent: string;
+  opponentConference: string | null;
+  offense: {
+    totalPlays: number;
+    totalHavocEvents: number;
+    frontSevenHavocEvents: number;
+    dbHavocEvents: number;
+    havocRate: number;
+    frontSevenHavocRate: number;
+    dbHavocRate: number;
+  };
+  defense: {
+    totalPlays: number;
+    totalHavocEvents: number;
+    frontSevenHavocEvents: number;
+    dbHavocEvents: number;
+    havocRate: number;
+    frontSevenHavocRate: number;
+    dbHavocRate: number;
   };
 }

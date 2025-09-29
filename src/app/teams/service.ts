@@ -10,6 +10,7 @@ import {
   TeamTalent,
   Venue,
 } from './types';
+import { DivisionClassification } from '../enums';
 
 export const getTeams = async (
   conference?: string,
@@ -316,6 +317,7 @@ export const getMatchup = async (
 export const getRoster = async (
   team?: string,
   year: number = 2025,
+  classification?: DivisionClassification,
 ): Promise<RosterPlayer[]> => {
   let query = kdb
     .selectFrom('team')
@@ -375,6 +377,17 @@ export const getRoster = async (
     query = query.where((eb) =>
       eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
     );
+  }
+
+  if (classification) {
+    query = query
+      .innerJoin('conferenceTeam as ct', 'team.id', 'ct.teamId')
+      .innerJoin('conference as c', 'ct.conferenceId', 'c.id')
+      .where('ct.startYear', '<=', year)
+      .where((eb) =>
+        eb.or([eb('ct.endYear', 'is', null), eb('ct.endYear', '>=', year)]),
+      )
+      .where('c.division', '=', classification);
   }
 
   const roster = await query.execute();

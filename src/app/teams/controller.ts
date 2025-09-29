@@ -21,6 +21,7 @@ import {
   TeamTalent,
   Venue,
 } from './types';
+import { DivisionClassification } from '../enums';
 
 @Route('teams')
 @Middlewares(middlewares.standard)
@@ -94,14 +95,16 @@ export class RosterController extends Controller {
    * Retrieves historical roster data
    * @param team Optional team filter
    * @param year Optional year filter, defaults to 2025
+   * @param classification Optional filter to only include players from FBS or FCS teams
    * @isInt year
    */
   @Get()
   public async getRoster(
     @Query() team?: string,
     @Query() year?: number,
+    @Query() classification?: DivisionClassification,
   ): Promise<RosterPlayer[]> {
-    return await getRoster(team, year);
+    return await getRoster(team, year, classification);
   }
 }
 

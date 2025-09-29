@@ -4,6 +4,7 @@ import middlewares from '../../config/middleware';
 import {
   AdvancedGameStat,
   AdvancedSeasonStat,
+  GameHavocStats,
   PlayerStat,
   TeamStat,
 } from './types';
@@ -12,6 +13,7 @@ import {
   getAdvancedGameStats,
   getAdvancedStats,
   getCategories,
+  getGameHavocStats,
   getPlayerSeasonStats,
   getTeamStats,
 } from './service';
@@ -139,5 +141,25 @@ export class StatsController extends Controller {
       excludeGarbageTime,
       seasonType,
     );
+  }
+
+  /**
+   * Retrieves havoc statistics aggregated by game
+   * @param year Year filter, required if team not specified
+   * @param team Team filter, required if year not specified
+   * @param week Optional week filter
+   * @param opponent Optional opponent filter
+   * @param seasonType Optional season type filter
+   * @isInt year
+   */
+  @Get('game/havoc')
+  public async getGameHavocStats(
+    @Query() year?: number,
+    @Query() team?: string,
+    @Query() week?: number,
+    @Query() opponent?: string,
+    @Query() seasonType?: SeasonType,
+  ): Promise<GameHavocStats[]> {
+    return await getGameHavocStats(year, team, week, opponent, seasonType);
   }
 }
