@@ -1,3 +1,10 @@
+## [5.13.1](https://github.com/CFBD/cfb-api-v2/compare/v5.13.0...v5.13.1) (2025-10-07)
+
+
+### Bug Fixes
+
+* **plays:** live play error on some games ([5fe69d3](https://github.com/CFBD/cfb-api-v2/commit/5fe69d307a4ba2c2ea6e645b62b8ad37ddaceb72))
+
 # [5.13.0](https://github.com/CFBD/cfb-api-v2/compare/v5.12.1...v5.13.0) (2025-09-29)
 
 
