@@ -6,7 +6,7 @@ const emailPattern =
 const endpoint = process.env.AUTH_URL;
 
 export const generateApiKey = async (email: string) => {
-  if (!emailPattern.test(email)) {
+  if (!emailPattern.test(email.toLowerCase())) {
     return Promise.reject(new Error('Invalid email address'));
   }
 
