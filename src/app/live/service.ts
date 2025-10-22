@@ -146,7 +146,7 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
       pointsGained: 0,
     };
 
-    for (const play of drive.plays.filter((p) => p.type)) {
+    for (const play of drive.plays.filter((p) => p.type && p.start.team)) {
       const playTeam =
         play.start.team.id === offense?.team.id ? offense.team : defense?.team;
       let epa = null;
