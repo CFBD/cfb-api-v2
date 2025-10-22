@@ -1,3 +1,10 @@
+## [5.13.2](https://github.com/CFBD/cfb-api-v2/compare/v5.13.1...v5.13.2) (2025-10-22)
+
+
+### Bug Fixes
+
+* **livePlays:** fixing server error ([2431f6f](https://github.com/CFBD/cfb-api-v2/commit/2431f6f0e811e999a5d714be9dbaf1fb3e4550f6))
+
 ## [5.13.1](https://github.com/CFBD/cfb-api-v2/compare/v5.13.0...v5.13.1) (2025-10-07)
 
 
