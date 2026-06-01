@@ -39,7 +39,7 @@ jobs:
       - name: Install dependencies
         env:
           HUSKY: 0 # skip husky install to avoid running git hooks during CI
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Validate current commit
         run: npx commitlint --last --verbose
       - name: Run tests
