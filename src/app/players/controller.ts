@@ -3,6 +3,7 @@ import { Controller, Get, Hidden, Middlewares, Query, Route, Tags } from 'tsoa';
 import middlewares from '../../config/middleware';
 import {
   generateMeanPassingChart,
+  getPlayerSeasonOverview,
   getPlayerUsage,
   getReturningProduction,
   getTransferPortal,
@@ -11,6 +12,7 @@ import {
 import {
   PlayerPPAChartItem,
   PlayerSearchResult,
+  PlayerSeasonOverview,
   PlayerTransfer,
   PlayerUsage,
   ReturningProduction,
@@ -76,6 +78,21 @@ export class PlayersController extends Controller {
       playerId,
       excludeGarbageTime,
     );
+  }
+
+  /**
+   * Retrieves a player season overview with box score, usage, and PPA data
+   * @param year Required year filter
+   * @param playerId Required player id filter
+   * @isInt year
+   * @isInt playerId
+   */
+  @Get('season/overview')
+  public async getPlayerSeasonOverview(
+    @Query() year: number,
+    @Query() playerId: number,
+  ): Promise<PlayerSeasonOverview> {
+    return await getPlayerSeasonOverview(year, playerId);
   }
 
   /**

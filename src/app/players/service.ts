@@ -3,13 +3,53 @@ import { kdb } from '../../config/database';
 import {
   PlayerPPAChartItem,
   PlayerSearchResult,
+  PlayerSeasonOverview,
+  PlayerSeasonOverviewCategory,
   PlayerTransfer,
   PlayerUsage,
   ReturningProduction,
 } from './types';
-import { SelectQueryBuilder } from 'kysely';
+import { SelectQueryBuilder, sql } from 'kysely';
 import { PASS_PLAY_TYPES } from '../../globals';
 import { DB, PlayerUsageStats } from 'src/config/types/db';
+import { getPredictedPointsAddedByPlayerSeason } from '../metrics/service';
+import { getPlayerSeasonStats } from '../stats/service';
+import { PlayerStat } from '../stats/types';
+
+interface PlayerSeasonOverviewGameCount {
+  season: number;
+  id: string;
+  name: string;
+  position: string;
+  team: string;
+  conference: string;
+  games: number;
+}
+
+const getOverviewKey = (season: number, id: string, team: string): string =>
+  `${season}:${id}:${team}`;
+
+export const mapPlayerSeasonOverviewCategories = (
+  stats: PlayerStat[],
+): PlayerSeasonOverviewCategory[] => {
+  const categoryMap = new Map<string, PlayerSeasonOverviewCategory>();
+
+  for (const stat of stats) {
+    const category = categoryMap.get(stat.category) ?? {
+      name: stat.category,
+      stats: [],
+    };
+
+    category.stats.push({
+      name: stat.statType,
+      value: stat.stat,
+    });
+
+    categoryMap.set(stat.category, category);
+  }
+
+  return Array.from(categoryMap.values());
+};
 
 export const searchPlayers = async (
   searchTerm: string,
@@ -334,6 +374,194 @@ export const getPlayerUsage = async (
       },
     }),
   );
+};
+
+const getPlayerSeasonOverviewGameCounts = async (
+  year: number,
+  playerId: number,
+): Promise<PlayerSeasonOverviewGameCount[]> => {
+  const results = await kdb
+    .selectFrom('game')
+    .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
+    .innerJoin('gamePlayerStat', 'gameTeam.id', 'gamePlayerStat.gameTeamId')
+    .innerJoin('athlete', 'gamePlayerStat.athleteId', 'athlete.id')
+    .innerJoin('position', 'athlete.positionId', 'position.id')
+    .innerJoin('team', 'gameTeam.teamId', 'team.id')
+    .innerJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .onRef('conferenceTeam.startYear', '<=', 'game.season')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', 'is', null),
+            eb('conferenceTeam.endYear', '>=', eb.ref('game.season')),
+          ]),
+        ),
+    )
+    .innerJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .where('game.season', '=', year)
+    .where('athlete.id', '=', String(playerId))
+    .select([
+      'game.season',
+      'athlete.id',
+      'athlete.name',
+      'position.abbreviation as position',
+      'team.school as team',
+      'conference.name as conference',
+      sql<number>`COUNT(DISTINCT game.id)`.as('games'),
+    ])
+    .groupBy([
+      'game.season',
+      'athlete.id',
+      'athlete.name',
+      'position.abbreviation',
+      'team.school',
+      'conference.name',
+    ])
+    .execute();
+
+  return results.map(
+    (r): PlayerSeasonOverviewGameCount => ({
+      season: r.season,
+      id: r.id,
+      name: r.name,
+      position: r.position,
+      team: r.team,
+      conference: r.conference,
+      games: Number(r.games),
+    }),
+  );
+};
+
+export const getPlayerSeasonOverview = async (
+  year: number,
+  playerId: number,
+): Promise<PlayerSeasonOverview> => {
+  const [stats, usage, ppa, gameCounts] = await Promise.all([
+    getPlayerSeasonStats(
+      year,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      playerId,
+    ),
+    getPlayerUsage(year, undefined, undefined, undefined, playerId),
+    getPredictedPointsAddedByPlayerSeason(
+      year,
+      undefined,
+      undefined,
+      undefined,
+      String(playerId),
+    ),
+    getPlayerSeasonOverviewGameCounts(year, playerId),
+  ]);
+
+  const overviewMap = new Map<string, PlayerSeasonOverview>();
+
+  const upsertOverview = (
+    season: number,
+    id: string,
+    name: string,
+    position: string,
+    team: string,
+    conference: string,
+  ): PlayerSeasonOverview => {
+    const key = getOverviewKey(season, id, team);
+    const existing = overviewMap.get(key);
+
+    if (existing) {
+      return existing;
+    }
+
+    const overview: PlayerSeasonOverview = {
+      season,
+      id,
+      name,
+      position,
+      team,
+      conference,
+      games: 0,
+      boxScoreStats: {
+        categories: [],
+      },
+    };
+
+    overviewMap.set(key, overview);
+    return overview;
+  };
+
+  for (const gameCount of gameCounts) {
+    const overview = upsertOverview(
+      gameCount.season,
+      gameCount.id,
+      gameCount.name,
+      gameCount.position,
+      gameCount.team,
+      gameCount.conference,
+    );
+
+    overview.games = gameCount.games;
+  }
+
+  const statsByPlayer = new Map<string, PlayerStat[]>();
+  for (const stat of stats) {
+    const key = getOverviewKey(stat.season, stat.playerId, stat.team);
+    const playerStats = statsByPlayer.get(key) ?? [];
+    playerStats.push(stat);
+    statsByPlayer.set(key, playerStats);
+
+    upsertOverview(
+      stat.season,
+      stat.playerId,
+      stat.player,
+      stat.position,
+      stat.team,
+      stat.conference,
+    );
+  }
+
+  for (const [key, playerStats] of statsByPlayer.entries()) {
+    const overview = overviewMap.get(key);
+
+    if (overview) {
+      overview.boxScoreStats.categories =
+        mapPlayerSeasonOverviewCategories(playerStats);
+    }
+  }
+
+  for (const playerUsage of usage) {
+    const overview = upsertOverview(
+      playerUsage.season,
+      playerUsage.id,
+      playerUsage.name,
+      playerUsage.position,
+      playerUsage.team,
+      playerUsage.conference,
+    );
+
+    overview.usage = playerUsage.usage;
+  }
+
+  for (const playerPpa of ppa) {
+    const overview = upsertOverview(
+      playerPpa.season,
+      playerPpa.id,
+      playerPpa.name,
+      playerPpa.position,
+      playerPpa.team,
+      playerPpa.conference,
+    );
+
+    overview.ppa = {
+      average: playerPpa.averagePPA,
+      total: playerPpa.totalPPA,
+    };
+  }
+
+  return Array.from(overviewMap.values())[0];
 };
 
 export const getReturningProduction = async (

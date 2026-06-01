@@ -54,6 +54,63 @@ export interface PlayerUsage {
   };
 }
 
+export interface PlayerSeasonOverviewStat {
+  name: string;
+  value: string;
+}
+
+export interface PlayerSeasonOverviewCategory {
+  name: string;
+  stats: PlayerSeasonOverviewStat[];
+}
+
+export interface PlayerSeasonOverviewPPA {
+  average: {
+    all: number;
+    pass?: number;
+    rush?: number;
+    firstDown?: number;
+    secondDown?: number;
+    thirdDown?: number;
+    standardDowns?: number;
+    passingDowns?: number;
+  };
+  total: {
+    all: number;
+    pass?: number;
+    rush?: number;
+    firstDown?: number;
+    secondDown?: number;
+    thirdDown?: number;
+    standardDowns?: number;
+    passingDowns?: number;
+  };
+}
+
+export interface PlayerSeasonOverview {
+  /**
+   * @isInt
+   */
+  season: number;
+  /**
+   * @isInt
+   */
+  id: string;
+  name: string;
+  position: string;
+  team: string;
+  conference: string;
+  /**
+   * @isInt
+   */
+  games: number;
+  boxScoreStats: {
+    categories: PlayerSeasonOverviewCategory[];
+  };
+  usage?: PlayerUsage['usage'];
+  ppa?: PlayerSeasonOverviewPPA;
+}
+
 export interface ReturningProduction {
   /**
    * @isInt

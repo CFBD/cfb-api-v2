@@ -18,6 +18,7 @@ export const getPlayerSeasonStats = async (
   endWeek?: number,
   seasonType?: SeasonType,
   category?: string,
+  playerId?: number,
 ): Promise<PlayerStat[]> => {
   let baseQuery = kdb
     .selectFrom('game')
@@ -91,6 +92,10 @@ export const getPlayerSeasonStats = async (
         category.toLowerCase(),
       ),
     );
+  }
+
+  if (playerId) {
+    baseQuery = baseQuery.where('athlete.id', '=', String(playerId));
   }
 
   let query = baseQuery
