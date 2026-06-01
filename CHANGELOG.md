@@ -1,3 +1,10 @@
+## [5.14.1](https://github.com/CFBD/cfb-api-v2/compare/v5.14.0...v5.14.1) (2026-06-01)
+
+
+### Bug Fixes
+
+* **quotas:** changing /live/plays behavior ([94bbc84](https://github.com/CFBD/cfb-api-v2/commit/94bbc84d89557e0d953bc78d8448a63f8a42564f))
+
 # [5.14.0](https://github.com/CFBD/cfb-api-v2/compare/v5.13.2...v5.14.0) (2026-06-01)
 
 
