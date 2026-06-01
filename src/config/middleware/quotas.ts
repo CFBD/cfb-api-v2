@@ -7,7 +7,7 @@ type QuotaRequest = Request & {
 };
 
 export const ignoredPaths = [
-  '/live/plays',
+  // '/live/plays',
   // '/games/weather',
   '/scoreboard',
   '/auth/graphql',
