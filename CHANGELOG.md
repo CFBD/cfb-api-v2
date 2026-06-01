@@ -1,3 +1,17 @@
+# [5.14.0](https://github.com/CFBD/cfb-api-v2/compare/v5.13.2...v5.14.0) (2026-06-01)
+
+
+### Bug Fixes
+
+* **ci:** disable commit hooks ([9610cb4](https://github.com/CFBD/cfb-api-v2/commit/9610cb4538b8f0d87f015639f77ab90d997455f6))
+* **ci:** skip install scripts ([7477db2](https://github.com/CFBD/cfb-api-v2/commit/7477db2c25fcd0478cf8a89b7fb818cf98777cfb))
+* **quotas:** better request metering ([9eab59e](https://github.com/CFBD/cfb-api-v2/commit/9eab59ec57737bcaec00d7e7ef8c722d591ff205))
+
+
+### Features
+
+* **players:** season overview endpoint ([88af3a4](https://github.com/CFBD/cfb-api-v2/commit/88af3a4a2749f473dbe6b7ac63f7e709e24c9748))
+
 ## [5.13.2](https://github.com/CFBD/cfb-api-v2/compare/v5.13.1...v5.13.2) (2025-10-22)
 
 
