@@ -1,3 +1,10 @@
+## [5.14.2](https://github.com/CFBD/cfb-api-v2/compare/v5.14.1...v5.14.2) (2026-06-16)
+
+
+### Bug Fixes
+
+* **stats:** conference label fix for team season advanced stats ([c1482be](https://github.com/CFBD/cfb-api-v2/commit/c1482be70b4561e1610e36059a489b2381bbe8ba))
+
 ## [5.14.1](https://github.com/CFBD/cfb-api-v2/compare/v5.14.0...v5.14.1) (2026-06-01)
 
 
