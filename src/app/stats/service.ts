@@ -996,7 +996,7 @@ export const getAdvancedStats = async (
             FROM game AS g
                 INNER JOIN game_team AS gt ON g.id = gt.game_id
                 INNER JOIN team AS t ON gt.team_id = t.id
-                INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.end_year IS NULL
+                INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
                 INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
                 INNER JOIN drive AS d ON g.id = d.game_id
                 INNER JOIN play AS p ON d.id = p.drive_id AND p.ppa IS NOT NULL
@@ -1105,7 +1105,7 @@ export const getAdvancedStats = async (
                     INNER JOIN drive AS d ON g.id = d.game_id
                     INNER JOIN game_team AS gt ON g.id = gt.game_id AND gt.team_id = d.offense_id
                     INNER JOIN team AS t ON d.offense_id = t.id
-                    INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.end_year IS NULL AND ct.start_year IS NOT NULL
+                    INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
                     INNER JOIN ppa ON ppa.down = 1 AND ppa.distance = 10 AND ((gt.home_away = 'home' AND (100 - d.start_yardline) = ppa.yard_line) OR (gt.home_away = 'away' AND d.start_yardline = ppa.yard_line))
                 ${filter} AND d.start_period < 5 AND d.result_id NOT IN (28, 41, 43, 44, 57)
                 GROUP BY g.season, t.id
@@ -1121,7 +1121,7 @@ export const getAdvancedStats = async (
                     INNER JOIN drive AS d ON g.id = d.game_id
                     INNER JOIN game_team AS gt ON g.id = gt.game_id AND gt.team_id = d.defense_id
                     INNER JOIN team AS t ON d.defense_id = t.id
-                    INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.end_year IS NULL AND ct.start_year IS NOT NULL
+                    INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
                     INNER JOIN ppa ON ppa.down = 1 AND ppa.distance = 10 AND ((gt.home_away = 'away' AND (100 - d.start_yardline) = ppa.yard_line) OR (gt.home_away = 'home' AND d.start_yardline = ppa.yard_line))
                 ${filter} AND d.start_period < 5 AND d.result_id NOT IN (28, 41, 43, 44, 57)
                 GROUP BY g.season, t.id
