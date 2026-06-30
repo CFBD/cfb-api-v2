@@ -1,3 +1,10 @@
+# [5.15.0](https://github.com/CFBD/cfb-api-v2/compare/v5.14.2...v5.15.0) (2026-06-30)
+
+
+### Features
+
+* **info:** enhanced user info endpoints ([cdbd62e](https://github.com/CFBD/cfb-api-v2/commit/cdbd62e9a5c585c4f1e2228cecfaf2511cfbcef5))
+
 ## [5.14.2](https://github.com/CFBD/cfb-api-v2/compare/v5.14.1...v5.14.2) (2026-06-16)
 
 
