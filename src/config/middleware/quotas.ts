@@ -12,6 +12,7 @@ export const ignoredPaths = [
   '/scoreboard',
   '/auth/graphql',
   '/info',
+  '/info/usage',
 ];
 
 const isSuccessfulResponse = (statusCode: number): boolean =>

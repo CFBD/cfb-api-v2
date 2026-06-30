@@ -6,7 +6,7 @@ import { AuthorizationError } from '../globals';
 const keyPattern = /Bearer (?<token>.+)/;
 
 export const patreonLocked: Record<string, number> = {
-  '/live/plays': 1,
+  '/live/plays': 2,
   '/games/weather': 1,
   '/scoreboard': 1,
   '/wepa/team/season': 1,
