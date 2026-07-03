@@ -1,5 +1,17 @@
 import { TransferEligibility } from '../enums';
 
+export interface PlayerSearchTeamStint {
+  team: string;
+  /**
+   * @isInt
+   */
+  startYear: number | null;
+  /**
+   * @isInt
+   */
+  endYear: number | null;
+}
+
 export interface PlayerSearchResult {
   /**
    * @isInt
@@ -22,6 +34,15 @@ export interface PlayerSearchResult {
   hometown: string;
   teamColor: string;
   teamColorSecondary: string;
+  /**
+   * @isInt
+   */
+  activeStartYear: number | null;
+  /**
+   * @isInt
+   */
+  activeEndYear: number | null;
+  teamStints: PlayerSearchTeamStint[];
 }
 
 export interface PlayerPPAChartItem {

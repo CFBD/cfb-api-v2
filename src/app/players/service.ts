@@ -3,6 +3,7 @@ import { kdb } from '../../config/database';
 import {
   PlayerPPAChartItem,
   PlayerSearchResult,
+  PlayerSearchTeamStint,
   PlayerSeasonOverview,
   PlayerSeasonOverviewCategory,
   PlayerTransfer,
@@ -12,6 +13,7 @@ import {
 import { SelectQueryBuilder, sql } from 'kysely';
 import { PASS_PLAY_TYPES } from '../../globals';
 import { DB, PlayerUsageStats } from 'src/config/types/db';
+import { TransferEligibility } from '../enums';
 import { getPredictedPointsAddedByPlayerSeason } from '../metrics/service';
 import { getPlayerSeasonStats } from '../stats/service';
 import { PlayerStat } from '../stats/types';
@@ -26,8 +28,164 @@ interface PlayerSeasonOverviewGameCount {
   games: number;
 }
 
+interface PlayerSearchRawTeamStint {
+  rowId: number;
+  athleteId: string;
+  teamId: number;
+  team: string;
+  color?: string | null;
+  altColor?: string | null;
+  startYear: number | null;
+  endYear: number | null;
+}
+
+interface PlayerSearchLatestTeam {
+  team: string;
+  teamColor: string;
+  teamColorSecondary: string;
+}
+
+interface PlayerSearchStintSummary {
+  activeStartYear: number | null;
+  activeEndYear: number | null;
+  latestTeam: PlayerSearchLatestTeam | null;
+  teamStints: PlayerSearchTeamStint[];
+}
+
+interface PlayerSearchMergedTeamStint extends PlayerSearchTeamStint {
+  teamId: number;
+  color: string | null;
+  altColor: string | null;
+}
+
 const getOverviewKey = (season: number, id: string, team: string): string =>
   `${season}:${id}:${team}`;
+
+const compareNullableYears = (
+  yearA: number | null,
+  yearB: number | null,
+): number => {
+  if (yearA === null && yearB === null) return 0;
+  if (yearA === null) return 1;
+  if (yearB === null) return -1;
+
+  return yearA - yearB;
+};
+
+const comparePlayerSearchRawTeamStints = (
+  stintA: PlayerSearchRawTeamStint,
+  stintB: PlayerSearchRawTeamStint,
+): number =>
+  compareNullableYears(stintA.startYear, stintB.startYear) ||
+  compareNullableYears(stintA.endYear, stintB.endYear) ||
+  stintA.rowId - stintB.rowId;
+
+const comparePlayerSearchMergedTeamStints = (
+  stintA: PlayerSearchMergedTeamStint,
+  stintB: PlayerSearchMergedTeamStint,
+): number =>
+  compareNullableYears(stintA.startYear, stintB.startYear) ||
+  compareNullableYears(stintA.endYear, stintB.endYear) ||
+  stintA.team.localeCompare(stintB.team) ||
+  stintA.teamId - stintB.teamId;
+
+const canMergePlayerSearchStints = (
+  current: PlayerSearchTeamStint,
+  next: PlayerSearchRawTeamStint,
+): boolean => {
+  if (current.endYear === null) return true;
+  if (next.startYear === null) return false;
+
+  return next.startYear <= current.endYear + 1;
+};
+
+const mergePlayerSearchStint = (
+  current: PlayerSearchMergedTeamStint,
+  next: PlayerSearchRawTeamStint,
+): void => {
+  if (current.startYear === null) {
+    current.startYear = next.startYear;
+  } else if (next.startYear !== null) {
+    current.startYear = Math.min(current.startYear, next.startYear);
+  }
+
+  if (current.endYear === null || next.endYear === null) {
+    current.endYear = null;
+  } else {
+    current.endYear = Math.max(current.endYear, next.endYear);
+  }
+};
+
+const isMoreRecentPlayerSearchTeamStint = (
+  candidate: PlayerSearchMergedTeamStint,
+  current: PlayerSearchMergedTeamStint,
+): boolean => {
+  if (candidate.endYear === null && current.endYear !== null) return true;
+  if (candidate.endYear !== null && current.endYear === null) return false;
+
+  if (
+    candidate.endYear !== null &&
+    current.endYear !== null &&
+    candidate.endYear !== current.endYear
+  ) {
+    return candidate.endYear > current.endYear;
+  }
+
+  if (candidate.startYear !== null && current.startYear === null) return true;
+  if (candidate.startYear === null && current.startYear !== null) return false;
+
+  if (
+    candidate.startYear !== null &&
+    current.startYear !== null &&
+    candidate.startYear !== current.startYear
+  ) {
+    return candidate.startYear > current.startYear;
+  }
+
+  return candidate.teamId < current.teamId;
+};
+
+const getLatestPlayerSearchTeam = (
+  stints: PlayerSearchMergedTeamStint[],
+): PlayerSearchLatestTeam | null => {
+  if (stints.length === 0) {
+    return null;
+  }
+
+  const latestStint = stints.reduce((latest, stint) =>
+    isMoreRecentPlayerSearchTeamStint(stint, latest) ? stint : latest,
+  );
+
+  return {
+    team: latestStint.team,
+    teamColor: `#${latestStint.color}`,
+    teamColorSecondary: `#${latestStint.altColor}`,
+  };
+};
+
+const derivePlayerSearchStintSummary = (
+  stints: PlayerSearchTeamStint[],
+  latestTeam: PlayerSearchLatestTeam | null,
+): PlayerSearchStintSummary => {
+  const knownStartYears = stints
+    .map((stint) => stint.startYear)
+    .filter((year): year is number => year !== null);
+  const knownEndYears = stints
+    .map((stint) => stint.endYear)
+    .filter((year): year is number => year !== null);
+
+  return {
+    activeStartYear:
+      knownStartYears.length > 0 ? Math.min(...knownStartYears) : null,
+    activeEndYear: stints.some((stint) => stint.endYear === null)
+      ? null
+      : knownEndYears.length > 0
+        ? Math.max(...knownEndYears)
+        : null,
+    latestTeam,
+    teamStints: stints,
+  };
+};
 
 export const mapPlayerSeasonOverviewCategories = (
   stats: PlayerStat[],
@@ -51,6 +209,90 @@ export const mapPlayerSeasonOverviewCategories = (
   return Array.from(categoryMap.values());
 };
 
+export const mapPlayerSearchStintSummaries = (
+  rows: PlayerSearchRawTeamStint[],
+): Map<string, PlayerSearchStintSummary> => {
+  const rowsByAthlete = new Map<string, PlayerSearchRawTeamStint[]>();
+
+  for (const row of rows) {
+    const athleteId = String(row.athleteId);
+    const athleteRows = rowsByAthlete.get(athleteId) ?? [];
+    athleteRows.push({
+      ...row,
+      athleteId,
+    });
+    rowsByAthlete.set(athleteId, athleteRows);
+  }
+
+  const summaries = new Map<string, PlayerSearchStintSummary>();
+
+  for (const [athleteId, athleteRows] of rowsByAthlete.entries()) {
+    const rowsByTeam = new Map<number, PlayerSearchRawTeamStint[]>();
+
+    for (const row of athleteRows) {
+      const teamRows = rowsByTeam.get(row.teamId) ?? [];
+      teamRows.push(row);
+      rowsByTeam.set(row.teamId, teamRows);
+    }
+
+    const mergedStints: PlayerSearchMergedTeamStint[] = [];
+
+    for (const teamRows of rowsByTeam.values()) {
+      const sortedRows = [...teamRows].sort(comparePlayerSearchRawTeamStints);
+      let currentStint: PlayerSearchMergedTeamStint | null = null;
+
+      for (const row of sortedRows) {
+        if (!currentStint) {
+          currentStint = {
+            team: row.team,
+            teamId: row.teamId,
+            color: row.color ?? null,
+            altColor: row.altColor ?? null,
+            startYear: row.startYear,
+            endYear: row.endYear,
+          };
+          continue;
+        }
+
+        if (canMergePlayerSearchStints(currentStint, row)) {
+          mergePlayerSearchStint(currentStint, row);
+        } else {
+          mergedStints.push(currentStint);
+          currentStint = {
+            team: row.team,
+            teamId: row.teamId,
+            color: row.color ?? null,
+            altColor: row.altColor ?? null,
+            startYear: row.startYear,
+            endYear: row.endYear,
+          };
+        }
+      }
+
+      if (currentStint) {
+        mergedStints.push(currentStint);
+      }
+    }
+
+    const sortedStints = mergedStints.sort(comparePlayerSearchMergedTeamStints);
+    const latestTeam = getLatestPlayerSearchTeam(sortedStints);
+    const teamStints = sortedStints.map(
+      (stint): PlayerSearchTeamStint => ({
+        team: stint.team,
+        startYear: stint.startYear,
+        endYear: stint.endYear,
+      }),
+    );
+
+    summaries.set(
+      athleteId,
+      derivePlayerSearchStintSummary(teamStints, latestTeam),
+    );
+  }
+
+  return summaries;
+};
+
 export const searchPlayers = async (
   searchTerm: string,
   year?: number,
@@ -72,7 +314,6 @@ export const searchPlayers = async (
     )
     .select([
       'athlete.id',
-      'team.school',
       'athlete.name',
       'athlete.firstName',
       'athlete.lastName',
@@ -81,9 +322,6 @@ export const searchPlayers = async (
       'athlete.jersey',
       'position.abbreviation as position',
       'hometown.city as hometownCity',
-      'hometown.state as hometownState',
-      'team.color',
-      'team.altColor',
     ])
     .distinct()
     .orderBy('athlete.name')
@@ -92,7 +330,12 @@ export const searchPlayers = async (
   if (year) {
     query = query
       .where('athleteTeam.startYear', '<=', year)
-      .where('athleteTeam.endYear', '>=', year);
+      .where((eb) =>
+        eb.or([
+          eb('athleteTeam.endYear', '>=', year),
+          eb('athleteTeam.endYear', 'is', null),
+        ]),
+      );
   }
 
   if (team) {
@@ -113,10 +356,57 @@ export const searchPlayers = async (
 
   const results = await query.execute();
 
-  return results.map(
-    (r): PlayerSearchResult => ({
+  if (results.length === 0) {
+    return [];
+  }
+
+  const athleteIds = Array.from(new Set(results.map((result) => result.id)));
+  const stintRows = await kdb
+    .selectFrom('athleteTeam')
+    .innerJoin('team', 'athleteTeam.teamId', 'team.id')
+    .select([
+      'athleteTeam.id as rowId',
+      'athleteTeam.athleteId',
+      'athleteTeam.teamId',
+      'team.school as team',
+      'team.color',
+      'team.altColor',
+      'athleteTeam.startYear',
+      'athleteTeam.endYear',
+    ])
+    .where('athleteTeam.athleteId', 'in', athleteIds)
+    .orderBy('athleteTeam.athleteId')
+    .orderBy('athleteTeam.teamId')
+    .orderBy('athleteTeam.startYear')
+    .orderBy('athleteTeam.endYear')
+    .orderBy('athleteTeam.id')
+    .execute();
+
+  const stintSummaries = mapPlayerSearchStintSummaries(
+    stintRows.map((row) => ({
+      rowId: row.rowId,
+      athleteId: String(row.athleteId),
+      teamId: row.teamId,
+      team: row.team,
+      color: row.color,
+      altColor: row.altColor,
+      startYear: row.startYear,
+      endYear: row.endYear,
+    })),
+  );
+  const emptySummary: PlayerSearchStintSummary = {
+    activeStartYear: null,
+    activeEndYear: null,
+    latestTeam: null,
+    teamStints: [],
+  };
+
+  return results.map((r): PlayerSearchResult => {
+    const summary = stintSummaries.get(String(r.id)) ?? emptySummary;
+
+    return {
       id: r.id,
-      team: r.school,
+      team: summary.latestTeam?.team ?? '',
       name: r.name,
       firstName: r.firstName,
       lastName: r.lastName,
@@ -125,10 +415,13 @@ export const searchPlayers = async (
       jersey: r.jersey,
       position: r.position,
       hometown: `${r.hometownCity}`,
-      teamColor: `#${r.color}`,
-      teamColorSecondary: `#${r.altColor}`,
-    }),
-  );
+      teamColor: summary.latestTeam?.teamColor ?? '#null',
+      teamColorSecondary: summary.latestTeam?.teamColorSecondary ?? '#null',
+      activeStartYear: summary.activeStartYear,
+      activeEndYear: summary.activeEndYear,
+      teamStints: summary.teamStints,
+    };
+  });
 };
 
 export const generateMeanPassingChart = async (
@@ -232,7 +525,7 @@ export const getPlayerUsage = async (
       usage: PlayerUsageStats;
     },
     'usage',
-    {}
+    object
   >;
 
   if (excludeGarbageTime) {
@@ -673,8 +966,7 @@ export const getTransferPortal = async (
       transferDate: t.transferDate,
       rating: t.rating ? Number(t.rating) : null,
       stars: t.stars,
-      // @ts-ignore
-      eligibility: t.eligibility,
+      eligibility: t.eligibility as TransferEligibility | null,
     }),
   );
 };
