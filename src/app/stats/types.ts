@@ -18,6 +18,62 @@ export interface PlayerStat {
   stat: string;
 }
 
+export interface PlayerSuccessRateSplit {
+  /**
+   * @isInt
+   */
+  plays: number;
+  /**
+   * @isInt
+   */
+  successes: number;
+  successRate: number | null;
+}
+
+export interface PlayerSeasonSuccessRate {
+  /**
+   * @isInt
+   */
+  season: number;
+  /**
+   * @isInt
+   */
+  id: string;
+  name: string;
+  position: string;
+  team: string;
+  conference: string;
+  passing: PlayerSuccessRateSplit;
+  rushing: PlayerSuccessRateSplit;
+}
+
+export interface PlayerGameSuccessRate {
+  /**
+   * @isInt
+   */
+  season: number;
+  seasonType: SeasonTypeDB;
+  /**
+   * @isInt
+   */
+  week: number;
+  /**
+   * @isInt
+   */
+  gameId: number;
+  /**
+   * @isInt
+   */
+  id: string;
+  name: string;
+  position: string;
+  team: string;
+  conference: string;
+  opponent: string;
+  passing: PlayerSuccessRateSplit;
+  rushing: PlayerSuccessRateSplit;
+}
+
 export interface TeamStat {
   /**
    * @isInt

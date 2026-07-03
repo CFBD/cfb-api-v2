@@ -5,10 +5,109 @@ import {
   AdvancedGameStat,
   AdvancedSeasonStat,
   GameHavocStats,
+  PlayerGameSuccessRate,
+  PlayerSeasonSuccessRate,
+  PlayerSuccessRateSplit,
   PlayerStat,
   TeamStat,
 } from './types';
 import { sql } from 'kysely';
+
+const PASSING_PLAY_STAT_TYPE_IDS = [1, 4, 20];
+const RUSHING_PLAY_STAT_TYPE_IDS = [7];
+const SACK_TAKEN_PLAY_STAT_TYPE_ID = 11;
+const SACK_PLAY_TYPE_IDS = [7];
+const PLAYER_SUCCESS_PLAY_STAT_TYPE_IDS = [
+  ...PASSING_PLAY_STAT_TYPE_IDS,
+  ...RUSHING_PLAY_STAT_TYPE_IDS,
+  SACK_TAKEN_PLAY_STAT_TYPE_ID,
+];
+
+type NumericResult = number | string | null;
+
+type PlayerSuccessRateAggregateRow = {
+  season: number;
+  seasonType?: PlayerGameSuccessRate['seasonType'];
+  week?: number;
+  gameId?: number;
+  id: string;
+  name: string;
+  position: string;
+  team: string;
+  conference: string;
+  opponent?: string;
+  passingPlays: NumericResult;
+  passingSuccesses: NumericResult;
+  passingSuccessRate: NumericResult;
+  rushingPlays: NumericResult;
+  rushingSuccesses: NumericResult;
+  rushingSuccessRate: NumericResult;
+};
+
+const playerSuccessSplitExpression = sql<string | null>`
+  CASE
+    WHEN EXISTS (
+      SELECT 1
+      FROM play_stat sack_ps
+      WHERE sack_ps.play_id = ps.play_id
+        AND sack_ps.athlete_id = ps.athlete_id
+        AND sack_ps.stat_type_id = ${SACK_TAKEN_PLAY_STAT_TYPE_ID}
+    )
+      OR p.play_type_id IN (${sql.join(SACK_PLAY_TYPE_IDS)})
+      OR LOWER(pt.text) LIKE '%sack%'
+      OR LOWER(COALESCE(pt.abbreviation, '')) LIKE '%sack%'
+      THEN 'passing'
+    WHEN ps.stat_type_id IN (${sql.join(PASSING_PLAY_STAT_TYPE_IDS)})
+      THEN 'passing'
+    WHEN ps.stat_type_id IN (${sql.join(RUSHING_PLAY_STAT_TYPE_IDS)})
+      THEN 'rushing'
+    ELSE NULL
+  END
+`;
+
+const passingPlaysSql = sql<number>`
+  COUNT(*) FILTER (WHERE split = 'passing')
+`;
+const passingSuccessesSql = sql<number>`
+  COUNT(*) FILTER (WHERE split = 'passing' AND success = true)
+`;
+const passingSuccessRateSql = sql<number | null>`
+  CAST(
+    COUNT(*) FILTER (WHERE split = 'passing' AND success = true) AS NUMERIC
+  ) / NULLIF(COUNT(*) FILTER (WHERE split = 'passing'), 0)
+`;
+const rushingPlaysSql = sql<number>`
+  COUNT(*) FILTER (WHERE split = 'rushing')
+`;
+const rushingSuccessesSql = sql<number>`
+  COUNT(*) FILTER (WHERE split = 'rushing' AND success = true)
+`;
+const rushingSuccessRateSql = sql<number | null>`
+  CAST(
+    COUNT(*) FILTER (WHERE split = 'rushing' AND success = true) AS NUMERIC
+  ) / NULLIF(COUNT(*) FILTER (WHERE split = 'rushing'), 0)
+`;
+
+const toPlayerSuccessNumber = (value: NumericResult): number =>
+  value === null ? 0 : Number(value);
+
+const roundSuccessRate = (value: NumericResult): number | null => {
+  if (value === null) {
+    return null;
+  }
+
+  return Math.round(Number(value) * 1000) / 1000;
+};
+
+const mapPlayerSuccessRateSplit = (
+  plays: NumericResult,
+  successes: NumericResult,
+  successRate: NumericResult,
+): PlayerSuccessRateSplit => ({
+  plays: toPlayerSuccessNumber(plays),
+  successes: toPlayerSuccessNumber(successes),
+  successRate: roundSuccessRate(successRate),
+});
 
 export const getPlayerSeasonStats = async (
   year: number,
@@ -506,6 +605,366 @@ export const getPlayerSeasonStats = async (
         stat: r.stat.toString(),
       }),
     );
+};
+
+export const getPlayerSeasonSuccessRates = async (
+  year?: number,
+  conference?: string,
+  team?: string,
+  playerId?: number,
+  seasonType?: SeasonType,
+  startWeek?: number,
+  endWeek?: number,
+  threshold?: number,
+  excludeGarbageTime?: boolean,
+): Promise<PlayerSeasonSuccessRate[]> => {
+  if (!year && !playerId) {
+    throw new ValidateError(
+      {
+        year: {
+          value: year,
+          message: 'year required when playerId not specified',
+        },
+        playerId: {
+          value: playerId,
+          message: 'playerId required when year not specified',
+        },
+      },
+      'Validation error',
+    );
+  }
+
+  let query = kdb
+    .with('creditedPlayerPlays', (eb) => {
+      let withClause = eb
+        .selectFrom('game as g')
+        .innerJoin('drive as d', 'd.gameId', 'g.id')
+        .innerJoin('play as p', 'p.driveId', 'd.id')
+        .innerJoin('team as ot', 'ot.id', 'p.offenseId')
+        .innerJoin('gameTeam as ogt', (join) =>
+          join
+            .onRef('ogt.gameId', '=', 'g.id')
+            .onRef('ogt.teamId', '=', 'ot.id'),
+        )
+        .innerJoin('gameTeam as oppgt', (join) =>
+          join
+            .onRef('oppgt.gameId', '=', 'g.id')
+            .onRef('oppgt.id', '<>', 'ogt.id'),
+        )
+        .innerJoin('team as opp', 'opp.id', 'oppgt.teamId')
+        .innerJoin('playType as pt', 'pt.id', 'p.playTypeId')
+        .innerJoin('playStat as ps', 'ps.playId', 'p.id')
+        .innerJoin('athlete as a', 'a.id', 'ps.athleteId')
+        .innerJoin('athleteTeam as ateam', (join) =>
+          join
+            .onRef('ateam.athleteId', '=', 'a.id')
+            .onRef('ateam.teamId', '=', 'ot.id')
+            .onRef('ateam.startYear', '<=', 'g.season')
+            .onRef('ateam.endYear', '>=', 'g.season'),
+        )
+        .leftJoin('position as pos', 'pos.id', 'a.positionId')
+        .innerJoin('conferenceTeam as ct', (join) =>
+          join
+            .onRef('ct.teamId', '=', 'ot.id')
+            .onRef('ct.startYear', '<=', 'g.season')
+            .on((eb) =>
+              eb.or([
+                eb('ct.endYear', '>=', eb.ref('g.season')),
+                eb('ct.endYear', 'is', null),
+              ]),
+            ),
+        )
+        .innerJoin('conference as c', 'c.id', 'ct.conferenceId')
+        .where('p.success', 'is not', null)
+        .where('p.ppa', 'is not', null)
+        .where('ps.statTypeId', 'in', PLAYER_SUCCESS_PLAY_STAT_TYPE_IDS)
+        .select([
+          'g.id as gameId',
+          'g.season',
+          'g.seasonType',
+          'g.week',
+          'ot.school as team',
+          'opp.school as opponent',
+          'a.name as name',
+          'p.id as playId',
+          'p.success',
+        ])
+        .select(sql<string>`a.id::text`.as('id'))
+        .select(sql<string>`COALESCE(pos.abbreviation, '')`.as('position'))
+        .select(sql<string>`COALESCE(c.abbreviation, c.name)`.as('conference'))
+        .select(playerSuccessSplitExpression.as('split'))
+        .distinct();
+
+      if (year !== undefined) {
+        withClause = withClause.where('g.season', '=', year);
+      }
+
+      if (conference) {
+        withClause = withClause.where((eb) =>
+          eb(eb.fn('lower', ['c.abbreviation']), '=', conference.toLowerCase()),
+        );
+      }
+
+      if (team) {
+        withClause = withClause.where((eb) =>
+          eb(eb.fn('lower', ['ot.school']), '=', team.toLowerCase()),
+        );
+      }
+
+      if (playerId !== undefined) {
+        withClause = withClause.where('a.id', '=', playerId.toString());
+      }
+
+      if (seasonType && seasonType !== SeasonType.Both) {
+        withClause = withClause.where('g.seasonType', '=', seasonType);
+      }
+
+      if (startWeek !== undefined) {
+        withClause = withClause.where('g.week', '>=', startWeek);
+      }
+
+      if (endWeek !== undefined) {
+        withClause = withClause.where('g.week', '<=', endWeek);
+      }
+
+      if (excludeGarbageTime === true) {
+        withClause = withClause.where('p.garbageTime', '=', false);
+      }
+
+      return withClause;
+    })
+    .selectFrom('creditedPlayerPlays')
+    .where('split', 'is not', null)
+    .select(['season', 'id', 'name', 'position', 'team', 'conference'])
+    .select(passingPlaysSql.as('passingPlays'))
+    .select(passingSuccessesSql.as('passingSuccesses'))
+    .select(passingSuccessRateSql.as('passingSuccessRate'))
+    .select(rushingPlaysSql.as('rushingPlays'))
+    .select(rushingSuccessesSql.as('rushingSuccesses'))
+    .select(rushingSuccessRateSql.as('rushingSuccessRate'))
+    .groupBy(['season', 'id', 'name', 'position', 'team', 'conference'])
+    .orderBy('season', 'desc')
+    .orderBy('team', 'asc')
+    .orderBy('name', 'asc');
+
+  if (threshold !== undefined) {
+    query = query.having((eb) => eb.fn.countAll(), '>=', threshold);
+  }
+
+  const results = (await query.execute()) as PlayerSuccessRateAggregateRow[];
+
+  return results.map(
+    (r): PlayerSeasonSuccessRate => ({
+      season: r.season,
+      id: r.id,
+      name: r.name,
+      position: r.position,
+      team: r.team,
+      conference: r.conference,
+      passing: mapPlayerSuccessRateSplit(
+        r.passingPlays,
+        r.passingSuccesses,
+        r.passingSuccessRate,
+      ),
+      rushing: mapPlayerSuccessRateSplit(
+        r.rushingPlays,
+        r.rushingSuccesses,
+        r.rushingSuccessRate,
+      ),
+    }),
+  );
+};
+
+export const getPlayerGameSuccessRates = async (
+  year: number,
+  week?: number,
+  seasonType?: SeasonType,
+  conference?: string,
+  team?: string,
+  playerId?: number,
+  threshold?: number,
+  excludeGarbageTime?: boolean,
+): Promise<PlayerGameSuccessRate[]> => {
+  if (!week && !team && !playerId) {
+    throw new ValidateError(
+      {
+        week: {
+          value: week,
+          message: 'week required when team and playerId not specified',
+        },
+        team: {
+          value: team,
+          message: 'team required when week and playerId not specified',
+        },
+        playerId: {
+          value: playerId,
+          message: 'playerId required when week and team not specified',
+        },
+      },
+      'Validation error',
+    );
+  }
+
+  let query = kdb
+    .with('creditedPlayerPlays', (eb) => {
+      let withClause = eb
+        .selectFrom('game as g')
+        .innerJoin('drive as d', 'd.gameId', 'g.id')
+        .innerJoin('play as p', 'p.driveId', 'd.id')
+        .innerJoin('team as ot', 'ot.id', 'p.offenseId')
+        .innerJoin('gameTeam as ogt', (join) =>
+          join
+            .onRef('ogt.gameId', '=', 'g.id')
+            .onRef('ogt.teamId', '=', 'ot.id'),
+        )
+        .innerJoin('gameTeam as oppgt', (join) =>
+          join
+            .onRef('oppgt.gameId', '=', 'g.id')
+            .onRef('oppgt.id', '<>', 'ogt.id'),
+        )
+        .innerJoin('team as opp', 'opp.id', 'oppgt.teamId')
+        .innerJoin('playType as pt', 'pt.id', 'p.playTypeId')
+        .innerJoin('playStat as ps', 'ps.playId', 'p.id')
+        .innerJoin('athlete as a', 'a.id', 'ps.athleteId')
+        .innerJoin('athleteTeam as ateam', (join) =>
+          join
+            .onRef('ateam.athleteId', '=', 'a.id')
+            .onRef('ateam.teamId', '=', 'ot.id')
+            .onRef('ateam.startYear', '<=', 'g.season')
+            .onRef('ateam.endYear', '>=', 'g.season'),
+        )
+        .leftJoin('position as pos', 'pos.id', 'a.positionId')
+        .innerJoin('conferenceTeam as ct', (join) =>
+          join
+            .onRef('ct.teamId', '=', 'ot.id')
+            .onRef('ct.startYear', '<=', 'g.season')
+            .on((eb) =>
+              eb.or([
+                eb('ct.endYear', '>=', eb.ref('g.season')),
+                eb('ct.endYear', 'is', null),
+              ]),
+            ),
+        )
+        .innerJoin('conference as c', 'c.id', 'ct.conferenceId')
+        .where('p.success', 'is not', null)
+        .where('p.ppa', 'is not', null)
+        .where('ps.statTypeId', 'in', PLAYER_SUCCESS_PLAY_STAT_TYPE_IDS)
+        .where('g.season', '=', year)
+        .select([
+          'g.id as gameId',
+          'g.season',
+          'g.seasonType',
+          'g.week',
+          'ot.school as team',
+          'opp.school as opponent',
+          'a.name as name',
+          'p.id as playId',
+          'p.success',
+        ])
+        .select(sql<string>`a.id::text`.as('id'))
+        .select(sql<string>`COALESCE(pos.abbreviation, '')`.as('position'))
+        .select(sql<string>`COALESCE(c.abbreviation, c.name)`.as('conference'))
+        .select(playerSuccessSplitExpression.as('split'))
+        .distinct();
+
+      if (week !== undefined) {
+        withClause = withClause.where('g.week', '=', week);
+      }
+
+      if (seasonType && seasonType !== SeasonType.Both) {
+        withClause = withClause.where('g.seasonType', '=', seasonType);
+      }
+
+      if (conference) {
+        withClause = withClause.where((eb) =>
+          eb(eb.fn('lower', ['c.abbreviation']), '=', conference.toLowerCase()),
+        );
+      }
+
+      if (team) {
+        withClause = withClause.where((eb) =>
+          eb(eb.fn('lower', ['ot.school']), '=', team.toLowerCase()),
+        );
+      }
+
+      if (playerId !== undefined) {
+        withClause = withClause.where('a.id', '=', playerId.toString());
+      }
+
+      if (excludeGarbageTime === true) {
+        withClause = withClause.where('p.garbageTime', '=', false);
+      }
+
+      return withClause;
+    })
+    .selectFrom('creditedPlayerPlays')
+    .where('split', 'is not', null)
+    .select([
+      'season',
+      'seasonType',
+      'week',
+      'gameId',
+      'id',
+      'name',
+      'position',
+      'team',
+      'conference',
+      'opponent',
+    ])
+    .select(passingPlaysSql.as('passingPlays'))
+    .select(passingSuccessesSql.as('passingSuccesses'))
+    .select(passingSuccessRateSql.as('passingSuccessRate'))
+    .select(rushingPlaysSql.as('rushingPlays'))
+    .select(rushingSuccessesSql.as('rushingSuccesses'))
+    .select(rushingSuccessRateSql.as('rushingSuccessRate'))
+    .groupBy([
+      'season',
+      'seasonType',
+      'week',
+      'gameId',
+      'id',
+      'name',
+      'position',
+      'team',
+      'conference',
+      'opponent',
+    ])
+    .orderBy('season', 'desc')
+    .orderBy('seasonType', 'asc')
+    .orderBy('week', 'asc')
+    .orderBy('team', 'asc')
+    .orderBy('name', 'asc');
+
+  if (threshold !== undefined) {
+    query = query.having((eb) => eb.fn.countAll(), '>=', threshold);
+  }
+
+  const results = (await query.execute()) as PlayerSuccessRateAggregateRow[];
+
+  return results.map(
+    (r): PlayerGameSuccessRate => ({
+      season: r.season,
+      seasonType: r.seasonType as PlayerGameSuccessRate['seasonType'],
+      week: r.week ?? 0,
+      gameId: r.gameId ?? 0,
+      id: r.id,
+      name: r.name,
+      position: r.position,
+      team: r.team,
+      conference: r.conference,
+      opponent: r.opponent ?? '',
+      passing: mapPlayerSuccessRateSplit(
+        r.passingPlays,
+        r.passingSuccesses,
+        r.passingSuccessRate,
+      ),
+      rushing: mapPlayerSuccessRateSplit(
+        r.rushingPlays,
+        r.rushingSuccesses,
+        r.rushingSuccessRate,
+      ),
+    }),
+  );
 };
 
 export const getTeamStats = async (
