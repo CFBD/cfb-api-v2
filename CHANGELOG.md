@@ -1,3 +1,10 @@
+# [5.17.0](https://github.com/CFBD/cfb-api-v2/compare/v5.16.0...v5.17.0) (2026-07-03)
+
+
+### Features
+
+* **players:** adding active years and team stints to search payload ([86a4cef](https://github.com/CFBD/cfb-api-v2/commit/86a4ceff9e139c6b3d73924b4ed66aba9c54b05b))
+
 # [5.16.0](https://github.com/CFBD/cfb-api-v2/compare/v5.15.0...v5.16.0) (2026-07-03)
 
 
