@@ -1,3 +1,10 @@
+# [5.16.0](https://github.com/CFBD/cfb-api-v2/compare/v5.15.0...v5.16.0) (2026-07-03)
+
+
+### Features
+
+* **stats:** new player success rate endpoints ([f3fa766](https://github.com/CFBD/cfb-api-v2/commit/f3fa7666680ee54c031cac83eca45519b09b2749))
+
 # [5.15.0](https://github.com/CFBD/cfb-api-v2/compare/v5.14.2...v5.15.0) (2026-06-30)
 
 
