@@ -15,6 +15,7 @@
     "test": "jest",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --ignore-path .gitignore .",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint --ignore-path .gitignore . --fix",
+    "docs:check": "node scripts/check-docs.mjs",
     "prettier-check": "prettier -c --ignore-path .gitignore \"**/*.{css,html,js,json,md,yaml,yml,ts}\"",
     "prettier-check:updated": "pipe-git-updated --base=main --ext=css --ext=html --ext=js --ext=ts --ext=json --ext=md --ext=yaml --ext=yml -ext=js --ext=mdx -- prettier -c",
     "prettify": "prettier --write --ignore-path .gitignore \"**/*.{css,html,js,json,yaml,yml,ts,tsx,jsx,vue,}\" -c",

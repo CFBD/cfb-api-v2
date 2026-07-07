@@ -1,51 +1,56 @@
 # CFBD API v2
 
-This is the repository for the CFBD API v2, currently hosted at [api.CollegeFootballData.com](https://api.collegefootballdata.com). The API is built on NodeJS using TypeScript and Express over a PostgreSQL database.
+This is the repository for the CFBD API v2, hosted at
+[api.CollegeFootballData.com](https://api.collegefootballdata.com). The API is
+built with Node.js, TypeScript, Express, TSOA, and PostgreSQL.
 
 ## Getting Started
 
-This repo uses `pnpm` for dependency management. Run the following commands to install dependencies and start a dev server with hot reloading:
+This repo uses `pnpm` for dependency management.
 
 ```bash
 pnpm install
 pnpm dev
 ```
-### Code Formatting
 
-This repo uses `prettier` and `eslint` for code formatting. Run the following command to format your code before committing:
+`pnpm dev` starts the API with hot reload and regenerates TSOA routes/specs as
+controller files change.
+
+## Common Commands
 
 ```bash
-pnpm prettify
+pnpm build         # generate TSOA routes/specs and compile TypeScript
+pnpm test          # run all Jest tests
+pnpm lint          # run ESLint
+pnpm prettify      # format code with Prettier
+pnpm docs:check    # verify required docs, AGENTS.md size, and local doc links
+pnpm build:db      # regenerate Kysely database types
 ```
 
-### Semantic Versioning
+## Documentation Map
 
-Semantic versioning is used for this project. Version numbers are automatically updated via [semantic-release](https://github.com/semantic-release/semantic-release) based on commit messages. [commitlint](https://commitlint.js.org/) is used to enforce commit message formatting.
+- [AGENTS.md](AGENTS.md): short operating guide for Codex and other agents.
+- [ARCHITECTURE.md](ARCHITECTURE.md): request flow, source layout, data access,
+  auth/quotas, generated outputs, tests, and release/deploy behavior.
+- [docs/index.md](docs/index.md): repository knowledge-base index.
+- [docs/QUALITY_SCORE.md](docs/QUALITY_SCORE.md): documentation quality
+  snapshot and cleanup queue.
 
 ## Project Architecture
 
-### tsoa and Express
+This project uses [TSOA](https://tsoa-community.github.io/docs/) to generate
+OpenAPI documentation and Express routes from TypeScript controllers. Data
+access is primarily implemented with [Kysely](https://kysely.dev/), with
+existing `pg-promise` usage for auth and legacy paths.
 
-This project uses [tsoa](https://tsoa-community.github.io/docs/) to generate OpenAPI documentation and Express routes from TypeScript controllers.
+Feature code lives under `src/app/<domain>/` and follows a
+`controller.ts`, `service.ts`, `types.ts` pattern. See
+[ARCHITECTURE.md](ARCHITECTURE.md) before changing request flow, authentication,
+quota behavior, generated OpenAPI output, or deployment behavior.
 
-### Data Access
+## Releases
 
-Data access is implemented using [kysely](https://kysely.dev/), a lightweight SQL query builder for TypeScript.
-
-### Folder Structure
-```
-src/
-├── app/ - application logic
-│   └── category/ - application category
-│       ├── controller.ts - tsoa controller
-│       ├── service.ts - business logic
-│       └── types.ts - typescript types
-├── config/
-│   ├── middleware/ - tsoa and express middlewares
-│   ├── types/ - typescript types
-│   ├── auth.ts - authorization logic
-│   ├── database.ts - database configuration
-│   ├── errors.ts - error handling
-│   └── express.ts - express configuration
-├── globals/ - global types and constants
-└── app.ts - application entrypoint
+Semantic versioning is handled by
+[semantic-release](https://github.com/semantic-release/semantic-release) based
+on conventional commit messages. [commitlint](https://commitlint.js.org/) is
+used in the release workflow to enforce commit message formatting.
