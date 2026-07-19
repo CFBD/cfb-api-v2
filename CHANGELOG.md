@@ -1,3 +1,11 @@
+# [5.18.0](https://github.com/CFBD/cfb-api-v2/compare/v5.17.0...v5.18.0) (2026-07-19)
+
+
+### Features
+
+* **cfp:** new CFP endpoints ([7a7b968](https://github.com/CFBD/cfb-api-v2/commit/7a7b9687a6dca99eff6be533aa95c83a7719d15d))
+* **cfp:** new CFP endpoints and related enhancements ([81bea86](https://github.com/CFBD/cfb-api-v2/commit/81bea8673f16b73b8338e36ad8d46cd5ad93681a))
+
 # [5.17.0](https://github.com/CFBD/cfb-api-v2/compare/v5.16.0...v5.17.0) (2026-07-03)
 
 
