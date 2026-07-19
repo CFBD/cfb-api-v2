@@ -1,4 +1,12 @@
-import { Controller, Get, Middlewares, Query, Route, Tags } from 'tsoa';
+import {
+  Controller,
+  Get,
+  Middlewares,
+  Query,
+  Response,
+  Route,
+  Tags,
+} from 'tsoa';
 
 import middlewares from '../../config/middleware';
 import {
@@ -22,6 +30,7 @@ import {
   getWeather,
 } from './service';
 import { DivisionClassification, MediaType, SeasonType } from '../enums';
+import { PlayoffCompetition, PlayoffRound } from '../playoffs/types';
 
 @Route('games')
 @Middlewares(middlewares.standard)
@@ -38,11 +47,14 @@ export class GamesController extends Controller {
    * @param away Optional away team filter
    * @param conference Optional conference filter
    * @param id Game id filter to retrieve a single game
+   * @param competition Optional playoff competition filter
+   * @param round Optional playoff round filter; requires competition
    * @isInt year
    * @isInt week
    * @isInt id
    */
   @Get()
+  @Response<{ message: string }>(400, 'Validation error')
   public async getGames(
     @Query() year?: number,
     @Query() week?: number,
@@ -53,6 +65,8 @@ export class GamesController extends Controller {
     @Query() away?: string,
     @Query() conference?: string,
     @Query() id?: number,
+    @Query() competition?: PlayoffCompetition,
+    @Query() round?: PlayoffRound,
   ): Promise<Game[]> {
     return await getGames(
       year,
@@ -64,6 +78,8 @@ export class GamesController extends Controller {
       away,
       conference,
       id,
+      competition,
+      round,
     );
   }
 

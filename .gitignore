@@ -4,5 +4,4 @@ node_modules/
 # Local planning docs: PRDs and associated implementation specs
 plans/
 API_ENDPOINTS.md
-/docs/local/
-/docs/private/
+/docs

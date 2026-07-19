@@ -1,5 +1,9 @@
 import { SeasonType } from '../enums';
 
+export enum RankingPoll {
+  Cfp = 'cfp',
+}
+
 export interface PollWeek {
   /**
    * @isInt
@@ -15,6 +19,7 @@ export interface PollWeek {
 
 export interface Poll {
   poll: string;
+  isFinal: boolean | null;
   ranks: PollRank[];
 }
 

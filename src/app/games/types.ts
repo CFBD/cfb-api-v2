@@ -4,6 +4,24 @@ import {
   MediaType,
   SeasonType,
 } from '../enums';
+import { PlayoffCompetition, PlayoffRound } from '../playoffs/types';
+
+export interface GamePlayoff {
+  competition: PlayoffCompetition;
+  format: string;
+  round: PlayoffRound;
+  roundName: string;
+  bracketSlot: string;
+  /**
+   * @isInt
+   */
+  homeSeed: number | null;
+  /**
+   * @isInt
+   */
+  awaySeed: number | null;
+  bowlName: string | null;
+}
 
 export interface Game {
   /**
@@ -81,6 +99,7 @@ export interface Game {
   excitementIndex: number | null;
   highlights: string | null;
   notes: string | null;
+  playoff: GamePlayoff | null;
 }
 
 export interface GameTeamStats {

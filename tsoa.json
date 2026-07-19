@@ -30,6 +30,10 @@
         "description": "Games scores and statistics"
       },
       {
+        "name": "playoffs",
+        "description": "College Football Playoff brackets and participants"
+      },
+      {
         "name": "drives",
         "description": "Drive data"
       },

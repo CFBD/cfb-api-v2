@@ -17,6 +17,7 @@ operational runbooks.
 | Kysely database types             | `../src/config/types/db.d.ts`              | Run `pnpm build:db` against an appropriate database schema.                |
 | Release and deploy workflow       | `../.github/workflows/release.yml`         | Update when release, image, deploy, or client-generation behavior changes. |
 | Security scan workflow            | `../.github/workflows/codeql-analysis.yml` | Update when CodeQL language or schedule changes.                           |
+| CFP endpoint usage                | `cfp-playoff-api.md`                       | Update when CFP routes, filters, or response semantics change.             |
 
 ## Generated Artifacts
 

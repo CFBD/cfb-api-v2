@@ -556,6 +556,56 @@ export interface PlayerUsageStats {
   thirdDownsPpa: number;
 }
 
+export interface PlayoffMatchup {
+  bowlName: string | null;
+  bracketSlot: string;
+  gameId: number | null;
+  id: Generated<number>;
+  playoffId: number;
+  roundId: number;
+  sequence: number;
+  sourceGameId: number | null;
+  startDate: Timestamp | null;
+}
+
+export interface PlayoffMatchupSlot {
+  id: Generated<number>;
+  matchupId: number;
+  participantId: number | null;
+  position: number;
+  seed: number | null;
+  sourceMatchupId: number | null;
+}
+
+export interface PlayoffParticipant {
+  bidType: string;
+  committeeRank: number | null;
+  conferenceChampion: Generated<boolean>;
+  firstRoundBye: Generated<boolean>;
+  id: Generated<number>;
+  playoffId: number;
+  qualificationReason: string | null;
+  qualifyingConferenceId: number | null;
+  seed: number;
+  teamId: number;
+}
+
+export interface PlayoffRound {
+  code: string;
+  id: Generated<number>;
+  name: string;
+  playoffId: number;
+  sequence: number;
+}
+
+export interface PlayoffTournament {
+  competition: string;
+  format: string;
+  id: Generated<number>;
+  season: number;
+  teamCount: number;
+}
+
 export interface PlayStat {
   athleteId: Int8;
   id: Generated<Int8>;
@@ -579,6 +629,7 @@ export interface PlayType {
 
 export interface Poll {
   id: Generated<number>;
+  isFinal: Generated<boolean>;
   pollTypeId: number;
   season: number;
   seasonType: SeasonType;
@@ -927,6 +978,11 @@ export interface DB {
   playerStatType: PlayerStatType;
   playerUsageStats: PlayerUsageStats;
   playerUsageStatsFiltered: PlayerUsageStats;
+  playoffMatchup: PlayoffMatchup;
+  playoffMatchupSlot: PlayoffMatchupSlot;
+  playoffParticipant: PlayoffParticipant;
+  playoffRound: PlayoffRound;
+  playoffTournament: PlayoffTournament;
   playStat: PlayStat;
   playStatType: PlayStatType;
   playType: PlayType;

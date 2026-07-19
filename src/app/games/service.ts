@@ -9,6 +9,7 @@ import {
 import {
   CalendarWeek,
   Game,
+  GamePlayoff,
   GameMedia,
   GamePlayerStatCategories,
   GamePlayerStatPlayer,
@@ -20,6 +21,80 @@ import {
   ScoreboardGame,
   TeamRecords,
 } from './types';
+import { PlayoffCompetition, PlayoffRound } from '../playoffs/types';
+
+export interface GamePlayoffMetadataRecord {
+  playoffMatchupId: number | null;
+  playoffCompetition: string | null;
+  playoffFormat: string | null;
+  playoffRound: string | null;
+  playoffRoundName: string | null;
+  playoffBracketSlot: string | null;
+  homeSeed: number | null;
+  awaySeed: number | null;
+  bowlName: string | null;
+}
+
+export const validateGamePlayoffFilters = (
+  seasonType?: SeasonType,
+  competition?: PlayoffCompetition,
+  round?: PlayoffRound,
+): void => {
+  if (round && !competition) {
+    throw new ValidateError(
+      {
+        round: {
+          value: round,
+          message: 'competition parameter is required when round is specified',
+        },
+      },
+      'Validation error',
+    );
+  }
+
+  if (
+    competition === PlayoffCompetition.Cfp &&
+    seasonType &&
+    seasonType !== SeasonType.Postseason &&
+    seasonType !== SeasonType.Both
+  ) {
+    throw new ValidateError(
+      {
+        seasonType: {
+          value: seasonType,
+          message: 'CFP games are postseason games',
+        },
+      },
+      'Validation error',
+    );
+  }
+};
+
+export const mapGamePlayoff = (
+  record: GamePlayoffMetadataRecord,
+): GamePlayoff | null => {
+  if (
+    record.playoffMatchupId === null ||
+    record.playoffCompetition === null ||
+    record.playoffFormat === null ||
+    record.playoffRound === null ||
+    record.playoffRoundName === null ||
+    record.playoffBracketSlot === null
+  ) {
+    return null;
+  }
+
+  return {
+    competition: record.playoffCompetition as PlayoffCompetition,
+    format: record.playoffFormat,
+    round: record.playoffRound as PlayoffRound,
+    roundName: record.playoffRoundName,
+    bracketSlot: record.playoffBracketSlot,
+    homeSeed: record.homeSeed,
+    awaySeed: record.awaySeed,
+    bowlName: record.bowlName,
+  };
+};
 
 export const getGames = async (
   year?: number,
@@ -31,7 +106,11 @@ export const getGames = async (
   away?: string,
   conference?: string,
   id?: number,
+  competition?: PlayoffCompetition,
+  round?: PlayoffRound,
 ): Promise<Game[]> => {
+  validateGamePlayoffFilters(seasonType, competition, round);
+
   if (!year && !id) {
     throw new ValidateError(
       {
@@ -76,6 +155,31 @@ export const getGames = async (
     )
     .leftJoin('conference as ac', 'act.conferenceId', 'ac.id')
     .leftJoin('venue', 'game.venueId', 'venue.id')
+    .leftJoin(
+      'playoffMatchup as playoffMatchup',
+      'game.id',
+      'playoffMatchup.gameId',
+    )
+    .leftJoin(
+      'playoffTournament as playoffTournament',
+      'playoffMatchup.playoffId',
+      'playoffTournament.id',
+    )
+    .leftJoin(
+      'playoffRound as playoffRound',
+      'playoffMatchup.roundId',
+      'playoffRound.id',
+    )
+    .leftJoin('playoffParticipant as homePlayoffParticipant', (join) =>
+      join
+        .onRef('playoffTournament.id', '=', 'homePlayoffParticipant.playoffId')
+        .onRef('home.id', '=', 'homePlayoffParticipant.teamId'),
+    )
+    .leftJoin('playoffParticipant as awayPlayoffParticipant', (join) =>
+      join
+        .onRef('playoffTournament.id', '=', 'awayPlayoffParticipant.playoffId')
+        .onRef('away.id', '=', 'awayPlayoffParticipant.teamId'),
+    )
     .orderBy('game.season')
     .orderBy('game.seasonType')
     .orderBy('game.week')
@@ -114,6 +218,15 @@ export const getGames = async (
       'game.excitement',
       'game.highlights',
       'game.notes',
+      'playoffMatchup.id as playoffMatchupId',
+      'playoffTournament.competition as playoffCompetition',
+      'playoffTournament.format as playoffFormat',
+      'playoffRound.code as playoffRound',
+      'playoffRound.name as playoffRoundName',
+      'playoffMatchup.bracketSlot as playoffBracketSlot',
+      'homePlayoffParticipant.seed as homeSeed',
+      'awayPlayoffParticipant.seed as awaySeed',
+      'playoffMatchup.bowlName as bowlName',
     ]);
 
   if (id) {
@@ -181,6 +294,16 @@ export const getGames = async (
     }
   }
 
+  if (competition) {
+    query = query
+      .where('playoffTournament.competition', '=', competition)
+      .where('game.seasonType', '=', SeasonType.Postseason);
+  }
+
+  if (round) {
+    query = query.where('playoffRound.code', '=', round);
+  }
+
   const games = await query.execute();
 
   return games.map(
@@ -227,6 +350,7 @@ export const getGames = async (
         ? `https://www.youtube.com/watch?v=${g.highlights}`
         : '',
       notes: g.notes,
+      playoff: mapGamePlayoff(g),
     }),
   );
 };

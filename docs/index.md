@@ -1,6 +1,6 @@
 # Repository Knowledge Base
 
-Last reviewed: 2026-07-06
+Last reviewed: 2026-07-18
 
 ## Navigation
 
@@ -10,6 +10,10 @@ Last reviewed: 2026-07-06
   outputs, testing, and release/deploy behavior.
 - `QUALITY_SCORE.md`: current documentation quality snapshot and doc gardening
   queue.
+- `prd/index.md`: product requirements for significant cross-domain API
+  capabilities.
+- `specs/index.md`: implementation-ready development specifications derived
+  from approved product requirements.
 - `plans/index.md`: where to put active or completed implementation plans.
 - `references/index.md`: generated artifacts, config files, and stable
   reference material.
