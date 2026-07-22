@@ -12,7 +12,7 @@ import {
   PlayWinProbability,
 } from './types';
 import { PASS_PLAY_TYPES, RUSH_PLAY_TYPES } from '../../globals';
-import { SeasonType } from '../enums';
+import { DivisionClassification, SeasonType } from '../enums';
 import { SelectQueryBuilder, sql } from 'kysely';
 import { DB, PlayerUsageStats } from 'src/config/types/db';
 
@@ -39,6 +39,7 @@ export const getPredictedPointsAddedByTeam = async (
   team?: string,
   conference?: string,
   excludeGarbageTime?: boolean,
+  classification: DivisionClassification = DivisionClassification.FBS,
 ): Promise<TeamSeasonPredictedPointsAdded[]> => {
   if (!year && !team) {
     throw new ValidateError(
@@ -68,7 +69,7 @@ export const getPredictedPointsAddedByTeam = async (
     .innerJoin('conference', (join) =>
       join
         .onRef('conference.id', '=', 'conferenceTeam.conferenceId')
-        .on('conference.division', '=', 'fbs'),
+        .on('conference.division', '=', classification),
     )
     .innerJoin('drive', 'game.id', 'drive.gameId')
     .innerJoin('play', (join) =>
@@ -331,6 +332,7 @@ export const getPredictedPointsAddedByGame = async (
   team?: string,
   conference?: string,
   excludeGarbageTime?: boolean,
+  classification: DivisionClassification = DivisionClassification.FBS,
 ): Promise<TeamGamePredictedPointsAdded[]> => {
   let query = kdb
     .selectFrom('game')
@@ -350,7 +352,7 @@ export const getPredictedPointsAddedByGame = async (
     .innerJoin('conference', (join) =>
       join
         .onRef('conference.id', '=', 'conferenceTeam.conferenceId')
-        .on('conference.division', '=', 'fbs'),
+        .on('conference.division', '=', classification),
     )
     .innerJoin('drive', 'game.id', 'drive.gameId')
     .innerJoin('play', (join) =>

@@ -1,5 +1,5 @@
 import { kdb } from '../../config/database';
-import { SeasonType } from '../enums';
+import { DivisionClassification, SeasonType } from '../enums';
 import { ConferenceSP, TeamElo, TeamFPI, TeamSP, TeamSRS } from './types';
 import { ValidateError } from 'tsoa';
 
@@ -147,6 +147,7 @@ export const getSP = async (
 export const getConferenceSP = async (
   year?: number,
   conference?: string,
+  classification: DivisionClassification = DivisionClassification.FBS,
 ): Promise<ConferenceSP[]> => {
   let query = kdb
     .selectFrom('ratings')
@@ -164,7 +165,7 @@ export const getConferenceSP = async (
     .innerJoin('conference', (join) =>
       join
         .onRef('conferenceTeam.conferenceId', '=', 'conference.id')
-        .on('conference.division', '=', 'fbs'),
+        .on('conference.division', '=', classification),
     )
     .groupBy(['year', 'conference.name'])
     .select(['year', 'conference.name as conference'])

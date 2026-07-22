@@ -1,6 +1,6 @@
 import { ValidateError } from 'tsoa';
 import { db, kdb } from '../../config/database';
-import { SeasonType } from '../enums';
+import { DivisionClassification, SeasonType } from '../enums';
 import {
   AdvancedGameStat,
   AdvancedSeasonStat,
@@ -973,6 +973,7 @@ export const getTeamStats = async (
   conference?: string,
   startWeek?: number,
   endWeek?: number,
+  classification: DivisionClassification = DivisionClassification.FBS,
 ): Promise<TeamStat[]> => {
   if (!year && !team) {
     throw new ValidateError(
@@ -1004,7 +1005,7 @@ export const getTeamStats = async (
     .innerJoin('conference', (join) =>
       join
         .onRef('conferenceTeam.conferenceId', '=', 'conference.id')
-        .on('conference.division', '=', 'fbs'),
+        .on('conference.division', '=', classification),
     )
     .select(['game.season', 'team.school', 'conference.name as conference'])
     .groupBy([
@@ -1040,7 +1041,7 @@ export const getTeamStats = async (
     .innerJoin('conference', (join) =>
       join
         .onRef('conferenceTeam.conferenceId', '=', 'conference.id')
-        .on('conference.division', '=', 'fbs'),
+        .on('conference.division', '=', classification),
     )
     .select(['game.season', 'team.school', 'conference.name as conference'])
     .groupBy([
@@ -1069,7 +1070,7 @@ export const getTeamStats = async (
     .innerJoin('conference', (join) =>
       join
         .onRef('conferenceTeam.conferenceId', '=', 'conference.id')
-        .on('conference.division', '=', 'fbs'),
+        .on('conference.division', '=', classification),
     )
     .where('game.status', '=', 'completed')
     .select(['game.season', 'team.school', 'conference.name as conference'])
@@ -1335,6 +1336,7 @@ export const getAdvancedStats = async (
   excludeGarbageTime?: boolean,
   startWeek?: number,
   endWeek?: number,
+  classification: DivisionClassification = DivisionClassification.FBS,
 ): Promise<AdvancedSeasonStat[]> => {
   if (!year && !team) {
     throw new ValidateError(
@@ -1408,6 +1410,8 @@ export const getAdvancedStats = async (
   }
 
   const filter = `WHERE ${filters.join(' AND ')}`;
+  const mainTaskParams = [...params, classification];
+  const classificationParam = mainTaskParams.length;
 
   const mainTask = db.any(
     `
@@ -1456,7 +1460,7 @@ export const getAdvancedStats = async (
                 INNER JOIN game_team AS gt ON g.id = gt.game_id
                 INNER JOIN team AS t ON gt.team_id = t.id
                 INNER JOIN conference_team AS ct ON t.id = ct.team_id AND ct.start_year <= g.season AND (ct.end_year >= g.season OR ct.end_year IS NULL)
-                INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = 'fbs'
+                INNER JOIN conference AS c ON ct.conference_id = c.id AND c.division = $${classificationParam}
                 INNER JOIN drive AS d ON g.id = d.game_id
                 INNER JOIN play AS p ON d.id = p.drive_id AND p.ppa IS NOT NULL
             ${filter}
@@ -1501,7 +1505,7 @@ export const getAdvancedStats = async (
         ${excludeGarbageTime === true ? 'WHERE garbage_time = false' : ''}
         GROUP BY season, school, conference, o_d
         `,
-    params,
+    mainTaskParams,
   );
 
   const scoringOppTasks = db.any(

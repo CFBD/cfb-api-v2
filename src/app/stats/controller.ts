@@ -10,7 +10,7 @@ import {
   PlayerStat,
   TeamStat,
 } from './types';
-import { SeasonType } from '../enums';
+import { DivisionClassification, SeasonType } from '../enums';
 import {
   getAdvancedGameStats,
   getAdvancedStats,
@@ -148,6 +148,7 @@ export class StatsController extends Controller {
    * @param conference Optional conference filter
    * @param startWeek Optional week start range filter
    * @param endWeek Optional week end range filter
+   * @param classification Optional division classification filter, defaults to fbs
    * @isInt year
    * @isInt startWeek
    * @isInt endWeek
@@ -160,8 +161,16 @@ export class StatsController extends Controller {
     @Query() conference?: string,
     @Query() startWeek?: number,
     @Query() endWeek?: number,
+    @Query() classification?: DivisionClassification,
   ): Promise<TeamStat[]> {
-    return await getTeamStats(year, team, conference, startWeek, endWeek);
+    return await getTeamStats(
+      year,
+      team,
+      conference,
+      startWeek,
+      endWeek,
+      classification,
+    );
   }
 
   /**
@@ -180,6 +189,7 @@ export class StatsController extends Controller {
    * @param excludeGarbageTime Garbage time exclusion filter, defaults to false
    * @param startWeek Optional start week range filter
    * @param endWeek Optional end week range filter
+   * @param classification Optional division classification filter, defaults to fbs
    * @isInt year
    * @isInt startWeek
    * @isInt endWeek
@@ -192,6 +202,7 @@ export class StatsController extends Controller {
     @Query() excludeGarbageTime?: boolean,
     @Query() startWeek?: number,
     @Query() endWeek?: number,
+    @Query() classification?: DivisionClassification,
   ): Promise<AdvancedSeasonStat[]> {
     return await getAdvancedStats(
       year,
@@ -199,6 +210,7 @@ export class StatsController extends Controller {
       excludeGarbageTime,
       startWeek,
       endWeek,
+      classification,
     );
   }
 

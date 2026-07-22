@@ -3,7 +3,7 @@ import { Controller, Get, Middlewares, Query, Route, Tags } from 'tsoa';
 import middlewares from '../../config/middleware';
 import { ConferenceSP, TeamElo, TeamFPI, TeamSP, TeamSRS } from './types';
 import { getConferenceSP, getElo, getFPI, getSP, getSRS } from './service';
-import { SeasonType } from '../enums';
+import { DivisionClassification, SeasonType } from '../enums';
 
 @Route('ratings')
 @Middlewares(middlewares.standard)
@@ -27,14 +27,16 @@ export class RatingsController extends Controller {
    * Retrieves aggregated historical conference SP+ data
    * @param year Optional year filter
    * @param conference Optional conference filter
+   * @param classification Optional division classification filter, defaults to fbs
    * @isInt year
    */
   @Get('sp/conferences')
   public async getConferenceSP(
     @Query() year?: number,
     @Query() conference?: string,
+    @Query() classification?: DivisionClassification,
   ): Promise<ConferenceSP[]> {
-    return await getConferenceSP(year, conference);
+    return await getConferenceSP(year, conference, classification);
   }
 
   /**

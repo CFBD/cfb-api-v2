@@ -21,7 +21,7 @@ import {
   TeamGamePredictedPointsAdded,
   TeamSeasonPredictedPointsAdded,
 } from './types';
-import { SeasonType } from '../enums';
+import { DivisionClassification, SeasonType } from '../enums';
 
 @Route('ppa')
 @Middlewares(middlewares.standard)
@@ -48,6 +48,7 @@ export class PpaController extends Controller {
    * @param team Team filter, required if year not specified
    * @param conference Conference abbreviation filter
    * @param excludeGarbageTime Exclude garbage time plays
+   * @param classification Optional division classification filter, defaults to fbs
    * @isInt year
    */
   @Get('teams')
@@ -56,12 +57,14 @@ export class PpaController extends Controller {
     @Query() team?: string,
     @Query() conference?: string,
     @Query() excludeGarbageTime?: boolean,
+    @Query() classification?: DivisionClassification,
   ): Promise<TeamSeasonPredictedPointsAdded[]> {
     return await getPredictedPointsAddedByTeam(
       year,
       team,
       conference,
       excludeGarbageTime,
+      classification,
     );
   }
 
@@ -73,6 +76,7 @@ export class PpaController extends Controller {
    * @param team Optional team filter
    * @param conference Optional conference abbreviation filter
    * @param excludeGarbageTime Optional flag to exclude garbage time plays
+   * @param classification Optional division classification filter, defaults to fbs
    * @isInt year
    * @isInt week
    */
@@ -84,6 +88,7 @@ export class PpaController extends Controller {
     @Query() team?: string,
     @Query() conference?: string,
     @Query() excludeGarbageTime?: boolean,
+    @Query() classification?: DivisionClassification,
   ): Promise<TeamGamePredictedPointsAdded[]> {
     return await getPredictedPointsAddedByGame(
       year,
@@ -92,6 +97,7 @@ export class PpaController extends Controller {
       team,
       conference,
       excludeGarbageTime,
+      classification,
     );
   }
 
