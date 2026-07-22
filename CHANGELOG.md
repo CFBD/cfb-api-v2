@@ -1,3 +1,10 @@
+# [5.20.0](https://github.com/CFBD/cfb-api-v2/compare/v5.19.0...v5.20.0) (2026-07-22)
+
+
+### Features
+
+* **ratings:** expanded srs ratings with fcs ([42b56cc](https://github.com/CFBD/cfb-api-v2/commit/42b56cc482acc5156430bcbc33c7ad441e5ac556))
+
 # [5.19.0](https://github.com/CFBD/cfb-api-v2/compare/v5.18.1...v5.19.0) (2026-07-22)
 
 
