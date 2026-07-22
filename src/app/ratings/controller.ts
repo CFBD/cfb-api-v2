@@ -1,8 +1,22 @@
 import { Controller, Get, Middlewares, Query, Route, Tags } from 'tsoa';
 
 import middlewares from '../../config/middleware';
-import { ConferenceSP, TeamElo, TeamFPI, TeamSP, TeamSRS } from './types';
-import { getConferenceSP, getElo, getFPI, getSP, getSRS } from './service';
+import {
+  ConferenceSP,
+  ExpandedTeamSRS,
+  TeamElo,
+  TeamFPI,
+  TeamSP,
+  TeamSRS,
+} from './types';
+import {
+  getConferenceSP,
+  getElo,
+  getExpandedSRS,
+  getFPI,
+  getSP,
+  getSRS,
+} from './service';
 import { DivisionClassification, SeasonType } from '../enums';
 
 @Route('ratings')
@@ -53,6 +67,24 @@ export class RatingsController extends Controller {
     @Query() conference?: string,
   ): Promise<TeamSRS[]> {
     return await getSRS(year, team, conference);
+  }
+
+  /**
+   * Retrieves expanded historical SRS (including FCS) for a year or team
+   * @param year Year filter, required if team not specified
+   * @param team Team filter, required if year not specified
+   * @param conference Optional conference filter
+   * @param classification Optional division classification filter (fbs or fcs)
+   * @isInt year
+   */
+  @Get('srs/expanded')
+  public async getExpandedSRS(
+    @Query() year?: number,
+    @Query() team?: string,
+    @Query() conference?: string,
+    @Query() classification?: DivisionClassification,
+  ): Promise<ExpandedTeamSRS[]> {
+    return await getExpandedSRS(year, team, conference, classification);
   }
 
   /**

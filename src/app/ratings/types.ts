@@ -1,3 +1,5 @@
+import { DivisionClassification } from '../enums';
+
 export interface TeamSP {
   /**
    * @isInt
@@ -102,6 +104,10 @@ export interface TeamSRS {
    * @isInt
    */
   ranking: number | null;
+}
+
+export interface ExpandedTeamSRS extends TeamSRS {
+  classification: DivisionClassification;
 }
 
 export interface TeamElo {

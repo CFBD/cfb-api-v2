@@ -1,6 +1,13 @@
 import { kdb } from '../../config/database';
 import { DivisionClassification, SeasonType } from '../enums';
-import { ConferenceSP, TeamElo, TeamFPI, TeamSP, TeamSRS } from './types';
+import {
+  ConferenceSP,
+  ExpandedTeamSRS,
+  TeamElo,
+  TeamFPI,
+  TeamSP,
+  TeamSRS,
+} from './types';
 import { ValidateError } from 'tsoa';
 
 export const getSP = async (
@@ -319,6 +326,89 @@ export const getSRS = async (
   return results.map((r) => ({
     year: r.year,
     team: r.team,
+    conference: r.conference,
+    division: r.division,
+    ranking: Number(r.ranking),
+    rating: parseFloat(r.rating),
+  }));
+};
+
+export const getExpandedSRS = async (
+  year?: number,
+  team?: string,
+  conference?: string,
+  classification?: DivisionClassification,
+): Promise<ExpandedTeamSRS[]> => {
+  if (!year && !team) {
+    throw new ValidateError(
+      {
+        year: { value: year, message: 'year required when team not specified' },
+        team: { value: team, message: 'team required when year not specified' },
+      },
+      'Validation error',
+    );
+  }
+
+  let query = kdb
+    .selectFrom('srsFull as srs')
+    .innerJoin('team', 'srs.teamId', 'team.id')
+    .leftJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .onRef('conferenceTeam.startYear', '<=', 'srs.year')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', '>=', eb.ref('srs.year')),
+            eb('conferenceTeam.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .select([
+      'srs.year',
+      'team.school as team',
+      'conference.name as conference',
+      'conferenceTeam.division',
+      'conference.division as classification',
+      'srs.rating',
+    ])
+    .select((eb) =>
+      eb.fn
+        .agg<number>('rank')
+        .over((ob) => ob.orderBy('srs.rating', 'desc'))
+        .as('ranking'),
+    );
+
+  if (year) {
+    query = query.where('srs.year', '=', year);
+  }
+
+  if (team) {
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
+  }
+
+  if (conference) {
+    query = query.where((eb) =>
+      eb(
+        eb.fn('lower', ['conference.abbreviation']),
+        '=',
+        conference.toLowerCase(),
+      ),
+    );
+  }
+
+  if (classification) {
+    query = query.where('conference.division', '=', classification);
+  }
+
+  const results = await query.execute();
+
+  return results.map((r) => ({
+    year: r.year,
+    team: r.team,
+    classification: r.classification as DivisionClassification,
     conference: r.conference,
     division: r.division,
     ranking: Number(r.ranking),
