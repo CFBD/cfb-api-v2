@@ -92,8 +92,9 @@ variables in `src/config/database.ts`.
 
 ## Generated Outputs
 
-`pnpm build` runs `tsoa spec-and-routes` and then TypeScript compilation. TSOA
-uses `tsoa.json` to:
+`pnpm build` runs `tsoa spec-and-routes`, TypeScript compilation, and an HTTP
+smoke check that verifies the served OpenAPI document has no Swagger 2 `host`
+or CommonJS `default` wrapper. TSOA uses `tsoa.json` to:
 
 - scan `src/**/controller.ts`,
 - generate routes into `build/routes`, and

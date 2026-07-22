@@ -1,4 +1,4 @@
-import { Application, NextFunction, Request, Response } from 'express';
+import { Application } from 'express';
 import swaggerUi from 'swagger-ui-express';
 
 import bodyParser from 'body-parser';
@@ -9,6 +9,7 @@ import middlewares from './middleware';
 import * as Sentry from '@sentry/node';
 
 import { RegisterRoutes } from '../../build/routes';
+import spec from '../../build/swagger.json';
 import errorHandler from './errors';
 import { updateQuotas } from './middleware/quotas';
 
@@ -42,29 +43,12 @@ export const configureServer = async (
 
   app.use(errorHandler);
 
-  const spec = await import('../../build/swagger.json');
-
-  // @ts-ignore
-  app.get('/api-docs.json', cors(), (req, res) => {
+  app.get('/api-docs.json', cors(), (_req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.send(spec);
   });
 
-  app.use(
-    '/',
-    // @ts-ignore
-    function (req: Request, res: Response, next: NextFunction) {
-      // @ts-ignore
-      spec.host = req.get('host');
-      // @ts-ignore
-      req.swaggerDoc = spec;
-      next();
-    },
-    // @ts-ignore
-    swaggerUi.serveFiles(spec),
-    // @ts-ignore
-    swaggerUi.setup(),
-  );
+  app.use('/', swaggerUi.serveFiles(spec), swaggerUi.setup(spec));
 
   return app;
 };
