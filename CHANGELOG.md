@@ -1,3 +1,10 @@
+# [5.19.0](https://github.com/CFBD/cfb-api-v2/compare/v5.18.1...v5.19.0) (2026-07-22)
+
+
+### Features
+
+* **stats:** fcs coverage expansion ([ab3a7b4](https://github.com/CFBD/cfb-api-v2/commit/ab3a7b42a896050fd0b408ca6e90c1e5b7793358))
+
 ## [5.18.1](https://github.com/CFBD/cfb-api-v2/compare/v5.18.0...v5.18.1) (2026-07-22)
 
 
