@@ -1,3 +1,10 @@
+## [5.18.1](https://github.com/CFBD/cfb-api-v2/compare/v5.18.0...v5.18.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* **general:** openapi v3 spec compatibility ([3fef9fd](https://github.com/CFBD/cfb-api-v2/commit/3fef9fda9e9a55d6708a001edcf874bed5459954))
+
 # [5.18.0](https://github.com/CFBD/cfb-api-v2/compare/v5.17.0...v5.18.0) (2026-07-19)
 
 
