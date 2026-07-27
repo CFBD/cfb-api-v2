@@ -737,12 +737,12 @@ export interface Recruit {
   overallRank: number | null;
   positionRank: number | null;
   ranking: number | null;
-  rating: number;
+  rating: number | null;
   recruitPositionId: number | null;
   recruitSchoolId: number | null;
   recruitType: RecruitType;
   sourceId: string;
-  stars: number;
+  stars: number | null;
   stateId: number | null;
   weight: number | null;
   year: number;

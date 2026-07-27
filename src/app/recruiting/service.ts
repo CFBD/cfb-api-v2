@@ -193,6 +193,8 @@ export const getAggregatedPlayerRatings = async (
     )
     .where('recruit.year', '>=', startYear ?? 2000)
     .where('recruit.year', '<=', endYear ?? new Date().getFullYear())
+    .where('recruit.stars', 'is not', null)
+    .where('recruit.rating', 'is not', null)
     .groupBy([
       'team.school',
       'recruitPosition.positionGroup',

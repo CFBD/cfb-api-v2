@@ -27,8 +27,8 @@ export interface Recruit {
   /**
    * @isInt
    */
-  stars: number;
-  rating: number;
+  stars: number | null;
+  rating: number | null;
   city: string | null;
   stateProvince: string | null;
   country: string | null;
