@@ -1,3 +1,10 @@
+## [5.20.1](https://github.com/CFBD/cfb-api-v2/compare/v5.20.0...v5.20.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **recruiting:** tracking for unrated recruits ([43b70cb](https://github.com/CFBD/cfb-api-v2/commit/43b70cb8794f87bbf0d3472b0ae3997bc08ddf50))
+
 # [5.20.0](https://github.com/CFBD/cfb-api-v2/compare/v5.19.0...v5.20.0) (2026-07-22)
 
 
