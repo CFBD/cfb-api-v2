@@ -1,6 +1,80 @@
 import { sql } from 'kysely';
 import { kdb } from '../../config/database';
-import { Coach, CoachSeason } from './types';
+import { Coach } from './types';
+
+interface CoachRow {
+  id: number;
+  firstName: string;
+  lastName: string;
+  teamId: number;
+  school: string;
+  conference: string | null;
+  year: number;
+  games: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  preseasonRank: number | null;
+  postseasonRank: number | null;
+  srs: string | null;
+  sp: string | null;
+  spOffense: string | null;
+  spDefense: string | null;
+  hireDate: Date | null;
+}
+
+export const calculateWinPercentage = (
+  wins: number,
+  ties: number,
+  games: number,
+): number | null => {
+  if (games === 0) {
+    return null;
+  }
+
+  return Math.round(((wins + 0.5 * ties) / games) * 1000) / 1000;
+};
+
+const roundRating = (value: string | null): number | null =>
+  value === null ? null : Math.round(parseFloat(value) * 10) / 10;
+
+export const mapCoachRows = (results: CoachRow[]): Coach[] => {
+  const coaches = new Map<number, Coach>();
+
+  for (const row of results) {
+    let coach = coaches.get(row.id);
+    if (!coach) {
+      coach = {
+        id: row.id,
+        firstName: row.firstName,
+        lastName: row.lastName,
+        hireDate: row.hireDate,
+        seasons: [],
+      };
+      coaches.set(row.id, coach);
+    }
+
+    coach.seasons.push({
+      teamId: row.teamId,
+      school: row.school,
+      conference: row.conference,
+      year: row.year,
+      games: row.games,
+      wins: row.wins,
+      losses: row.losses,
+      ties: row.ties,
+      winPercentage: calculateWinPercentage(row.wins, row.ties, row.games),
+      preseasonRank: row.preseasonRank,
+      postseasonRank: row.postseasonRank,
+      srs: roundRating(row.srs),
+      spOverall: roundRating(row.sp),
+      spOffense: roundRating(row.spOffense),
+      spDefense: roundRating(row.spDefense),
+    });
+  }
+
+  return Array.from(coaches.values());
+};
 
 export const getCoaches = async (
   firstName?: string,
@@ -21,13 +95,14 @@ export const getCoaches = async (
     )
     .leftJoin('ratings', (join) =>
       join
-        .onRef('srs.year', '=', 'ratings.year')
-        .onRef('srs.teamId', '=', 'ratings.teamId'),
+        .onRef('coachSeason.year', '=', 'ratings.year')
+        .onRef('team.id', '=', 'ratings.teamId'),
     )
     .select([
       'coach.id',
       'coach.firstName',
       'coach.lastName',
+      'team.id as teamId',
       'team.school',
       'coachSeason.year',
       'coachSeason.games',
@@ -41,6 +116,22 @@ export const getCoaches = async (
       'ratings.oRating as spOffense',
       'ratings.dRating as spDefense',
     ])
+    .select(
+      sql<string | null>`(
+        select case
+          when count(distinct c.id) = 1 then min(c.name)
+          else null
+        end
+        from conference_team ct
+        inner join conference c on c.id = ct.conference_id
+        where ct.team_id = coach_season.team_id
+          and ct.start_year <= coach_season.year
+          and (
+            ct.end_year is null
+            or ct.end_year >= coach_season.year
+          )
+      )`.as('conference'),
+    )
     .select((eb) =>
       eb
         .selectFrom('coachTeam')
@@ -60,7 +151,9 @@ export const getCoaches = async (
     )
     .orderBy('coach.lastName')
     .orderBy('coach.firstName')
-    .orderBy('coachSeason.year');
+    .orderBy('coach.id')
+    .orderBy('coachSeason.year')
+    .orderBy('team.id');
 
   if (firstName) {
     query = query.where((eb) =>
@@ -94,37 +187,5 @@ export const getCoaches = async (
 
   const results = await query.execute();
 
-  const coaches: Coach[] = [];
-  const ids = Array.from(new Set(results.map((r) => r.id)));
-  for (const id of ids) {
-    const coachSeasons = results.filter((r) => r.id == id);
-
-    coaches.push({
-      firstName: coachSeasons[0].firstName,
-      lastName: coachSeasons[0].lastName,
-      hireDate: coachSeasons[0].hireDate,
-      seasons: coachSeasons.map((cs): CoachSeason => {
-        return {
-          school: cs.school,
-          year: cs.year,
-          games: cs.games,
-          wins: cs.wins,
-          losses: cs.losses,
-          ties: cs.ties,
-          preseasonRank: cs.preseasonRank,
-          postseasonRank: cs.postseasonRank,
-          srs: cs.srs ? Math.round(parseFloat(cs.srs) * 10) / 10 : null,
-          spOverall: cs.sp ? Math.round(parseFloat(cs.sp) * 10) / 10 : null,
-          spOffense: cs.spOffense
-            ? Math.round(parseFloat(cs.spOffense) * 10) / 10
-            : null,
-          spDefense: cs.spDefense
-            ? Math.round(parseFloat(cs.spDefense) * 10) / 10
-            : null,
-        };
-      }),
-    });
-  }
-
-  return coaches;
+  return mapCoachRows(results);
 };

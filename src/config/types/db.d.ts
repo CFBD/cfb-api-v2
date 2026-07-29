@@ -146,9 +146,15 @@ export interface City {
 }
 
 export interface Coach {
+  almaMaterTeamId: number | null;
+  birthDate: Timestamp | null;
+  displayName: string | null;
   firstName: string;
+  graduationYear: number | null;
+  hallOfFameYear: number | null;
   id: Generated<number>;
   lastName: string;
+  wikidataId: string | null;
 }
 
 export interface CoachSeason {
@@ -166,8 +172,14 @@ export interface CoachSeason {
 
 export interface CoachTeam {
   coachId: number;
+  endDate: Timestamp | null;
+  endYear: number | null;
   hireDate: Timestamp | null;
   id: Generated<number>;
+  isInterim: Generated<boolean>;
+  sourceUrl: string | null;
+  startDate: Timestamp | null;
+  startYear: number;
   teamId: number;
 }
 

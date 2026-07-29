@@ -1,15 +1,25 @@
 export interface Coach {
+  /**
+   * @isInt
+   */
+  id: number;
   firstName: string;
   lastName: string;
   /**
    * @isDateTime
+   * @deprecated Use GET /coaches/tenures.
    */
   hireDate: Date | null;
   seasons: CoachSeason[];
 }
 
 export interface CoachSeason {
+  /**
+   * @isInt
+   */
+  teamId: number;
   school: string;
+  conference: string | null;
   /**
    * @isInt
    */
@@ -30,6 +40,7 @@ export interface CoachSeason {
    * @isInt
    */
   ties: number;
+  winPercentage: number | null;
   /**
    * @isInt
    */
