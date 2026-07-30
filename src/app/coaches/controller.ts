@@ -11,8 +11,19 @@ import {
 } from 'tsoa';
 
 import middlewares from '../../config/middleware';
-import { getCoaches, getCoachProfile, getCoachTenures } from './service';
-import { Coach, CoachNotFound, CoachProfile, CoachTenure } from './types';
+import {
+  getCoaches,
+  getCoachProfile,
+  getCoachSeasons,
+  getCoachTenures,
+} from './service';
+import {
+  Coach,
+  CoachNotFound,
+  CoachProfile,
+  CoachTenure,
+  DetailedCoachSeason,
+} from './types';
 
 type NotFoundResponse = TsoaResponse<404, CoachNotFound>;
 
@@ -64,23 +75,47 @@ export class CoachesController extends Controller {
   }
 
   /**
+   * Retrieves detailed coach-season records with attributed results and
+   * whole-team season context
+   * @param coachId Optional coach ID
+   * @param team Optional team filter
+   * @param year Optional exact season year
+   * @param minYear Optional start year range filter
+   * @param maxYear Optional end year range filter
+   * @isInt coachId
+   * @isInt year
+   * @isInt minYear
+   * @isInt maxYear
+   */
+  @Get('seasons')
+  @Response<{ message: string }>(400, 'Validation error')
+  public async getCoachSeasons(
+    @Query() coachId?: number,
+    @Query() team?: string,
+    @Query() year?: number,
+    @Query() minYear?: number,
+    @Query() maxYear?: number,
+  ): Promise<DetailedCoachSeason[]> {
+    return await getCoachSeasons(coachId, team, year, minYear, maxYear);
+  }
+
+  /**
    * Retrieves continuous head-coaching stints and attributed records
    * @param coachId Optional coach ID
-   * @param teamId Optional team ID
+   * @param team Optional team filter
    * @param year Optional season year contained by the tenure
    * @param active Optional active-tenure filter
    * @isInt coachId
-   * @isInt teamId
    * @isInt year
    */
   @Get('tenures')
   @Response<{ message: string }>(400, 'Validation error')
   public async getCoachTenures(
     @Query() coachId?: number,
-    @Query() teamId?: number,
+    @Query() team?: string,
     @Query() year?: number,
     @Query() active?: boolean,
   ): Promise<CoachTenure[]> {
-    return await getCoachTenures(coachId, teamId, year, active);
+    return await getCoachTenures(coachId, team, year, active);
   }
 }

@@ -189,3 +189,125 @@ export interface CoachTenure {
   record: CoachRecord;
   attributionComplete: boolean;
 }
+
+export interface CoachRatingContext {
+  spSpecialTeams: number | null;
+  strengthOfSchedule: number | null;
+  secondOrderWins: number | null;
+  fpi: number | null;
+  yearOverYear: {
+    /**
+     * @isInt
+     */
+    wins: number | null;
+    srs: number | null;
+    spOverall: number | null;
+  };
+}
+
+export interface CoachRecruitingContext {
+  /**
+   * @isInt
+   */
+  rank: number | null;
+  points: number | null;
+  talent: number | null;
+}
+
+export interface CoachPollResume {
+  /**
+   * @isInt
+   */
+  preseasonRank: number | null;
+  /**
+   * @isInt
+   */
+  postseasonRank: number | null;
+  /**
+   * @isInt
+   */
+  bestRank: number | null;
+  /**
+   * @isInt
+   */
+  weeksRanked: number;
+  /**
+   * @isInt
+   */
+  weeksTopTen: number;
+}
+
+export interface CoachRecordSplits {
+  conference: CoachRecord;
+  postseason: CoachRecord;
+  home: CoachRecord;
+  away: CoachRecord;
+  neutral: CoachRecord;
+}
+
+export interface CoachScoring {
+  /**
+   * @isInt
+   */
+  pointsFor: number;
+  /**
+   * @isInt
+   */
+  pointsAgainst: number;
+  averagePointDifferential: number | null;
+}
+
+export type CfpCoachSeasonOutcome = 'active' | 'eliminated' | 'champion';
+
+export interface CoachCfpContext {
+  appeared: boolean;
+  /**
+   * @isInt
+   */
+  seed: number | null;
+  outcome: CfpCoachSeasonOutcome | null;
+}
+
+export interface CoachDraftContext {
+  /**
+   * @isInt
+   */
+  year: number;
+  /**
+   * @isInt
+   */
+  totalPicks: number;
+  /**
+   * @isInt
+   */
+  firstRoundPicks: number;
+}
+
+export interface DetailedCoachSeason extends CoachRecord {
+  coach: CoachReference;
+  team: CoachSeasonTeamReference;
+  /**
+   * @isInt
+   */
+  year: number;
+  /**
+   * @isInt
+   */
+  preseasonRank: number | null;
+  /**
+   * @isInt
+   */
+  postseasonRank: number | null;
+  srs: number | null;
+  spOverall: number | null;
+  spOffense: number | null;
+  spDefense: number | null;
+  teamMetrics: CoachRatingContext;
+  recruiting: CoachRecruitingContext;
+  pollResume: CoachPollResume | null;
+  attributionComplete: boolean;
+  recordSplits: CoachRecordSplits | null;
+  scoring: CoachScoring | null;
+  cfp: CoachCfpContext;
+  draftFollowingSeason: CoachDraftContext | null;
+}
