@@ -170,7 +170,7 @@ jobs:
           color: 0x38b0ff
           description: |
             v${{ env.api_version}}
-            ${{ env.COMMIT_MESSAGE }}
+            - ${{ join(github.event.commits.*.message, fromJSON('"\n- "')) }}
 
   buildPython:
     needs: deploy
