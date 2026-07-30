@@ -1,8 +1,24 @@
-import { Route, Middlewares, Tags, Controller, Get, Query } from 'tsoa';
+import {
+  Controller,
+  Get,
+  Middlewares,
+  Query,
+  Res,
+  Response,
+  Route,
+  Tags,
+  TsoaResponse,
+} from 'tsoa';
 
 import middlewares from '../../config/middleware';
-import { Coach } from './types';
-import { getCoaches } from './service';
+import { getCoaches, getCoachProfile, getCoachTenures } from './service';
+import { Coach, CoachNotFound, CoachProfile, CoachTenure } from './types';
+
+type NotFoundResponse = TsoaResponse<404, CoachNotFound>;
+
+const coachNotFound: CoachNotFound = {
+  message: 'Coach not found',
+};
 
 @Route('coaches')
 @Middlewares(middlewares.standard)
@@ -30,5 +46,41 @@ export class CoachesController extends Controller {
     @Query() maxYear?: number,
   ): Promise<Coach[]> {
     return await getCoaches(firstName, lastName, team, year, minYear, maxYear);
+  }
+
+  /**
+   * Retrieves canonical coach identity and complete career totals
+   * @param coachId Required coach ID
+   * @isInt coachId
+   */
+  @Get('profile')
+  @Response<{ message: string }>(400, 'Validation error')
+  public async getCoachProfile(
+    @Query() coachId: number,
+    @Res() notFoundResponse: NotFoundResponse,
+  ): Promise<CoachProfile> {
+    const profile = await getCoachProfile(coachId);
+    return profile ?? (notFoundResponse(404, coachNotFound) as never);
+  }
+
+  /**
+   * Retrieves continuous head-coaching stints and attributed records
+   * @param coachId Optional coach ID
+   * @param teamId Optional team ID
+   * @param year Optional season year contained by the tenure
+   * @param active Optional active-tenure filter
+   * @isInt coachId
+   * @isInt teamId
+   * @isInt year
+   */
+  @Get('tenures')
+  @Response<{ message: string }>(400, 'Validation error')
+  public async getCoachTenures(
+    @Query() coachId?: number,
+    @Query() teamId?: number,
+    @Query() year?: number,
+    @Query() active?: boolean,
+  ): Promise<CoachTenure[]> {
+    return await getCoachTenures(coachId, teamId, year, active);
   }
 }
