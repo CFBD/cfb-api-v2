@@ -1,3 +1,12 @@
+# [5.21.0](https://github.com/CFBD/cfb-api-v2/compare/v5.20.1...v5.21.0) (2026-07-30)
+
+
+### Features
+
+* **coaches:** /coaches endpoint enrichment ([857ddbb](https://github.com/CFBD/cfb-api-v2/commit/857ddbb488da491a32c79f87cb3d000d002b42b7))
+* **coaches:** new coach seasons endpoint ([4343a3c](https://github.com/CFBD/cfb-api-v2/commit/4343a3c0bb07836244a13a3fdf3d59c27d04a73f))
+* **coaches:** new profile and tenure endpoints ([15fd199](https://github.com/CFBD/cfb-api-v2/commit/15fd199b1606c179e0ec9db697581be6cff27789))
+
 ## [5.20.1](https://github.com/CFBD/cfb-api-v2/compare/v5.20.0...v5.20.1) (2026-07-27)
 
 
