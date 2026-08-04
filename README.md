@@ -21,7 +21,7 @@ run `pnpm docs:dev` in a second terminal.
 
 ```bash
 pnpm build         # generate TSOA routes/specs and compile TypeScript
-pnpm docs:build    # generate OpenAPI and build the Zudoku preview
+pnpm docs:build    # generate OpenAPI and build the Zudoku site
 pnpm docs:dev      # generate OpenAPI and start the Zudoku dev server
 pnpm test          # run all Jest tests
 pnpm lint          # run ESLint
@@ -31,6 +31,11 @@ pnpm build:db      # regenerate Kysely database types
 ```
 
 ## Documentation Map
+
+The deployed [Zudoku documentation](https://api.collegefootballdata.com/) is
+the primary API reference. The [legacy Swagger
+UI](https://api.collegefootballdata.com/swagger) remains available during the
+transition.
 
 - [AGENTS.md](AGENTS.md): short operating guide for Codex and other agents.
 - [ARCHITECTURE.md](ARCHITECTURE.md): request flow, source layout, data access,

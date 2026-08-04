@@ -5,7 +5,18 @@ import path from 'node:path';
 const moduleRoot = path.resolve(__dirname, '../..');
 const repositoryRoot =
   path.basename(moduleRoot) === 'build' ? path.dirname(moduleRoot) : moduleRoot;
-const defaultDistPath = path.join(repositoryRoot, 'docs-site/dist/docs');
+const defaultDistPath = path.join(repositoryRoot, 'docs-site/dist');
+
+const documentationRoutes = [
+  '/',
+  '/getting-started',
+  '/authentication',
+  '/usage-and-access',
+  '/libraries/python',
+  '/libraries/typescript',
+  '/api',
+  '/api/*',
+];
 
 export const registerDocumentation = (
   app: Application,
@@ -20,11 +31,18 @@ export const registerDocumentation = (
     return;
   }
 
-  app.use('/docs', express.static(distPath, { extensions: ['html'] }));
+  app.use('/docs', (req: Request, res: Response) => {
+    const suffix = req.originalUrl.slice('/docs'.length);
+    const destination = `/${suffix.replace(/^\/+/, '')}`;
+
+    res.redirect(308, destination);
+  });
+
+  app.use('/', express.static(distPath, { extensions: ['html'] }));
   app.get(
-    ['/docs', '/docs/*'],
+    documentationRoutes,
     (req: Request, res: Response, next: NextFunction) => {
-      if (!req.accepts('html') || path.extname(req.path)) {
+      if (!req.accepts('html')) {
         next();
         return;
       }

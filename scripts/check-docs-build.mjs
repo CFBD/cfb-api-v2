@@ -7,7 +7,7 @@ const repoRoot = path.resolve(
   '..',
 );
 const swaggerPath = path.join(repoRoot, 'build/swagger.json');
-const siteRoot = path.join(repoRoot, 'docs-site/dist/docs');
+const siteRoot = path.join(repoRoot, 'docs-site/dist');
 const operationMethods = new Set([
   'delete',
   'get',
@@ -108,7 +108,7 @@ if (schemaCount === 0) {
   fail('build/swagger.json contains no component schemas');
 }
 
-requireFile(path.join(siteRoot, 'index.html'), 'Zudoku preview index');
+requireFile(path.join(siteRoot, 'index.html'), 'Zudoku index');
 
 const authoredRoutes = [
   'getting-started.html',
@@ -125,7 +125,7 @@ const llmsPath = path.join(siteRoot, 'llms.txt');
 requireFile(llmsPath, 'LLM documentation index');
 const llmsIndex = readFileSync(llmsPath, 'utf8');
 for (const route of authoredRoutes) {
-  const markdownRoute = `/docs/${route.replace(/\.html$/, '.md')}`;
+  const markdownRoute = `/${route.replace(/\.html$/, '.md')}`;
   if (!llmsIndex.includes(markdownRoute)) {
     fail(`llms.txt does not link to ${markdownRoute}`);
   }

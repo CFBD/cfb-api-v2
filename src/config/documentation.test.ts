@@ -35,7 +35,7 @@ const withServer = async (
   }
 };
 
-describe('documentation preview routes', () => {
+describe('documentation GA routes', () => {
   let fixturePath: string;
 
   beforeEach(() => {
@@ -44,10 +44,6 @@ describe('documentation preview routes', () => {
     writeFileSync(
       path.join(fixturePath, 'index.html'),
       '<!doctype html><title>Documentation index</title>',
-    );
-    writeFileSync(
-      path.join(fixturePath, 'getting-started.html'),
-      '<!doctype html><title>Getting started</title>',
     );
     writeFileSync(
       path.join(fixturePath, 'assets/site.css'),
@@ -59,33 +55,44 @@ describe('documentation preview routes', () => {
     rmSync(fixturePath, { force: true, recursive: true });
   });
 
-  test('serves the docs index, an authored deep link, and a static file', async () => {
+  test('serves the root, allowlisted routes, and static files', async () => {
     const app = express();
     registerDocumentation(app, fixturePath);
 
+    const documentationRoutes = [
+      '/',
+      '/getting-started',
+      '/authentication',
+      '/usage-and-access',
+      '/libraries/python',
+      '/libraries/typescript',
+      '/api',
+      '/api/games',
+    ];
+
     await withServer(app, async (baseUrl) => {
-      const indexResponse = await fetch(`${baseUrl}/docs`);
-      expect(indexResponse.status).toBe(200);
-      expect(indexResponse.headers.get('content-type')).toContain('text/html');
-      expect(await indexResponse.text()).toContain('Documentation index');
+      for (const route of documentationRoutes) {
+        const response = await fetch(`${baseUrl}${route}`, {
+          headers: { Accept: 'text/html' },
+        });
+        expect(response.status).toBe(200);
+        expect(response.headers.get('content-type')).toContain('text/html');
+        expect(await response.text()).toContain('Documentation index');
+      }
 
-      const deepLinkResponse = await fetch(`${baseUrl}/docs/getting-started`);
-      expect(deepLinkResponse.status).toBe(200);
-      expect(await deepLinkResponse.text()).toContain('Getting started');
-
-      const assetResponse = await fetch(`${baseUrl}/docs/assets/site.css`);
+      const assetResponse = await fetch(`${baseUrl}/assets/site.css`);
       expect(assetResponse.status).toBe(200);
       expect(assetResponse.headers.get('content-type')).toContain('text/css');
       expect(await assetResponse.text()).toContain('color: navy');
     });
   });
 
-  test('serves the index for an HTML HEAD request', async () => {
+  test('serves the index for an allowlisted HTML HEAD request', async () => {
     const app = express();
     registerDocumentation(app, fixturePath);
 
     await withServer(app, async (baseUrl) => {
-      const response = await fetch(`${baseUrl}/docs/unknown`, {
+      const response = await fetch(`${baseUrl}/api/games`, {
         headers: { Accept: 'text/html' },
         method: 'HEAD',
       });
@@ -95,7 +102,29 @@ describe('documentation preview routes', () => {
     });
   });
 
-  test('lets a non-HTML missing docs request fall through', async () => {
+  test('redirects preview paths with path and query intact', async () => {
+    const app = express();
+    registerDocumentation(app, fixturePath);
+
+    await withServer(app, async (baseUrl) => {
+      const rootResponse = await fetch(`${baseUrl}/docs?source=preview`, {
+        redirect: 'manual',
+      });
+      expect(rootResponse.status).toBe(308);
+      expect(rootResponse.headers.get('location')).toBe('/?source=preview');
+
+      const deepLinkResponse = await fetch(
+        `${baseUrl}/docs/libraries/python?tab=install`,
+        { redirect: 'manual' },
+      );
+      expect(deepLinkResponse.status).toBe(308);
+      expect(deepLinkResponse.headers.get('location')).toBe(
+        '/libraries/python?tab=install',
+      );
+    });
+  });
+
+  test('does not rewrite unknown routes or missing assets as HTML', async () => {
     const app = express();
     registerDocumentation(app, fixturePath);
     app.use((_req, res) => {
@@ -103,19 +132,21 @@ describe('documentation preview routes', () => {
     });
 
     await withServer(app, async (baseUrl) => {
-      const response = await fetch(`${baseUrl}/docs/missing.json`, {
+      for (const route of ['/games-typo', '/assets/missing.js']) {
+        const response = await fetch(`${baseUrl}${route}`, {
+          headers: { Accept: 'text/html' },
+        });
+        expect(response.status).toBe(418);
+        expect(await response.json()).toEqual({
+          handledBy: 'fallthrough',
+        });
+      }
+
+      const nonHtmlDocsResponse = await fetch(`${baseUrl}/api/games`, {
         headers: { Accept: 'application/json' },
       });
-
-      expect(response.status).toBe(418);
-      expect(await response.json()).toEqual({ handledBy: 'fallthrough' });
-
-      const missingAssetResponse = await fetch(
-        `${baseUrl}/docs/assets/missing.js`,
-        { headers: { Accept: 'text/html' } },
-      );
-      expect(missingAssetResponse.status).toBe(418);
-      expect(await missingAssetResponse.json()).toEqual({
+      expect(nonHtmlDocsResponse.status).toBe(418);
+      expect(await nonHtmlDocsResponse.json()).toEqual({
         handledBy: 'fallthrough',
       });
     });
@@ -146,7 +177,7 @@ describe('documentation preview routes', () => {
     consoleSpy.mockRestore();
   });
 
-  test('does not intercept OpenAPI, REST, or root Swagger routes', async () => {
+  test('preserves Swagger, OpenAPI, and registered REST routes', async () => {
     const app = express();
     app.get('/api-docs.json', (_req, res) => {
       res.json({ openapi: '3.0.0' });
@@ -154,10 +185,10 @@ describe('documentation preview routes', () => {
     app.get('/games', (_req, res) => {
       res.json([{ id: 1 }]);
     });
-    registerDocumentation(app, fixturePath);
-    app.use('/', (_req, res) => {
+    app.use('/swagger', (_req, res) => {
       res.type('html').send('<title>Swagger UI</title>');
     });
+    registerDocumentation(app, fixturePath);
 
     await withServer(app, async (baseUrl) => {
       const specResponse = await fetch(`${baseUrl}/api-docs.json`);
@@ -169,7 +200,7 @@ describe('documentation preview routes', () => {
       const gamesResponse = await fetch(`${baseUrl}/games`);
       expect(await gamesResponse.json()).toEqual([{ id: 1 }]);
 
-      const swaggerResponse = await fetch(baseUrl);
+      const swaggerResponse = await fetch(`${baseUrl}/swagger`);
       expect(await swaggerResponse.text()).toContain('Swagger UI');
     });
   });

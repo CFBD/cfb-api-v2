@@ -3,7 +3,6 @@ import type { ZudokuConfig } from 'zudoku';
 import './styles.css';
 
 const config: ZudokuConfig = {
-  basePath: '/docs',
   site: {
     title: 'College Football Data API',
     logo: {
@@ -104,6 +103,11 @@ const config: ZudokuConfig = {
       {
         label: 'Get API Key',
         to: 'https://collegefootballdata.com/key',
+        target: '_blank',
+      },
+      {
+        label: 'Legacy Swagger UI',
+        to: 'https://api.collegefootballdata.com/swagger',
         target: '_blank',
       },
     ],

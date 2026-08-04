@@ -49,9 +49,9 @@ export const configureServer = async (
     res.send(spec);
   });
 
-  registerDocumentation(app);
+  app.use('/swagger', swaggerUi.serveFiles(spec), swaggerUi.setup(spec));
 
-  app.use('/', swaggerUi.serveFiles(spec), swaggerUi.setup(spec));
+  registerDocumentation(app);
 
   return app;
 };

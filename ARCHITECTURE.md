@@ -15,8 +15,8 @@ Docker image through GitHub Actions.
    and delegates setup to `configureServer`.
 2. `src/config/express.ts` configures proxy trust, Sentry, Helmet, cookie and
    body parsing, CORS, quota refund handling, generated TSOA routes, the shared
-   error handler, `/api-docs.json`, Zudoku preview documentation at `/docs`,
-   and Swagger UI at `/`.
+   error handler, `/api-docs.json`, Swagger UI at `/swagger`, and Zudoku
+   documentation at `/`.
 3. TSOA registers routes generated from `src/**/controller.ts` into
    `build/routes`.
 4. Controllers receive and document request parameters with TSOA decorators,
@@ -30,8 +30,8 @@ Docker image through GitHub Actions.
 
 - `src/app.ts`: application entrypoint.
 - `src/config/express.ts`: Express server composition and Swagger exposure.
-- `src/config/documentation.ts`: Zudoku preview static files and HTML fallback
-  registration.
+- `src/config/documentation.ts`: Zudoku static files, GA redirects, and the
+  allowlisted HTML fallback.
 - `src/config/auth.ts`: TSOA bearer authentication and Patreon-gated endpoint
   checks.
 - `src/config/database.ts`: PostgreSQL connection setup for both `pg-promise`
