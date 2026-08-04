@@ -128,6 +128,11 @@ client from the deployed OpenAPI spec.
 `.github/workflows/codeql-analysis.yml` runs CodeQL for JavaScript on pushes,
 pull requests to `main`, and a weekly schedule.
 
+The pnpm version is pinned in `package.json`, `.github/workflows/release.yml`,
+and `Dockerfile`; keep all three pins aligned when upgrading. Supply-chain
+release-age policy and any approved, version-specific exceptions live in
+`pnpm-workspace.yaml`.
+
 ## Change Boundaries
 
 - Keep public response shapes stable unless the task is explicitly a breaking

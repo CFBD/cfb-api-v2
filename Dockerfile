@@ -2,7 +2,7 @@ FROM node:20-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
-RUN corepack prepare pnpm@10.0.0 --activate
+RUN corepack prepare pnpm@11.20.0 --activate
 
 FROM base AS build
 COPY . /usr/src/app

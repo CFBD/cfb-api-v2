@@ -1,2 +1,13 @@
 packages:
   - 'docs-site'
+
+# Keep the supply-chain cooldown enabled while allowing these lockfile-pinned
+# docs dependencies to deploy immediately.
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
+minimumReleaseAgeExclude:
+  - '@base-ui/react@1.7.0'
+  - '@base-ui/utils@0.3.2'
+  - '@posthog/core@1.46.7'
+  - '@posthog/types@1.401.0'
+  - '@vitejs/devtools-kit@0.4.12'
