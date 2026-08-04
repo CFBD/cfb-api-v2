@@ -7,16 +7,17 @@
     "specVersion": 3,
     "host": "api.collegefootballdata.com",
     "name": "College Football Data API",
-    "description": "This is an API for query various college football datasets and analytics. API keys can be acquired from the CollegeFootballData.com website.",
-    "license": "",
+    "description": "Build college football applications, models, and analysis with game, team, player, recruiting, ranking, and advanced metrics data. Request an API key at CollegeFootballData.com.",
     "contact": {
       "email": "admin@collegefootballdata.com",
-      "name": "the developer"
+      "name": "CollegeFootballData",
+      "url": "https://collegefootballdata.com"
     },
     "securityDefinitions": {
       "apiKey": {
         "type": "http",
-        "scheme": "bearer"
+        "scheme": "bearer",
+        "description": "CollegeFootballData API key supplied as a bearer token."
       }
     },
     "rootSecurity": [
@@ -27,75 +28,75 @@
     "tags": [
       {
         "name": "games",
-        "description": "Games scores and statistics"
+        "description": "Game schedules, results, box scores, media, and weather."
       },
       {
         "name": "playoffs",
-        "description": "College Football Playoff brackets and participants"
+        "description": "College Football Playoff brackets, participants, and matchups."
       },
       {
         "name": "drives",
-        "description": "Drive data"
+        "description": "Historical drive-level data."
       },
       {
         "name": "plays",
-        "description": "Play by play data"
+        "description": "Historical and live play-by-play data."
       },
       {
         "name": "teams",
-        "description": "Team information"
+        "description": "Teams, rosters, matchups, talent ratings, and ATS records."
       },
       {
         "name": "conferences",
-        "description": "Conference information"
+        "description": "Conference names, abbreviations, and classifications."
       },
       {
         "name": "venues",
-        "description": "Information about venues"
+        "description": "College football venue information."
       },
       {
         "name": "coaches",
-        "description": "Information about coaches"
+        "description": "Head coach identities, careers, seasons, and tenures."
       },
       {
         "name": "players",
-        "description": "Player information and data"
+        "description": "Player search, usage, production, and transfer data."
       },
       {
         "name": "rankings",
-        "description": "Historical poll rankings"
+        "description": "Historical poll rankings and College Football Playoff snapshots."
       },
       {
         "name": "betting",
-        "description": "Betting lines and data"
+        "description": "Historical betting lines and results."
       },
       {
         "name": "recruiting",
-        "description": "Recruiting rankings and data"
+        "description": "Player and team recruiting rankings and aggregated ratings."
       },
       {
         "name": "ratings",
-        "description": "Team rating data"
+        "description": "SP+, SRS, Elo, and FPI team ratings."
       },
       {
         "name": "metrics",
-        "description": "Data relating to Predicted Points and other metrics"
+        "description": "Predicted points, PPA (EPA), win probability, and expected points metrics."
       },
       {
         "name": "stats",
-        "description": "Statistical data"
+        "description": "Player and team statistics, including advanced metrics."
       },
       {
         "name": "draft",
-        "description": "NFL Draft data"
+        "description": "NFL Draft picks, teams, and position categories."
       },
       {
         "name": "adjustedMetrics",
-        "description": "Metrics adjusted for opponent strength and other factors"
+        "description": "Team and player metrics adjusted for opponent strength."
       },
       {
         "name": "info",
-        "description": "General information about the API and user"
+        "description": "Authenticated user account and API usage information."
       }
     ]
   },

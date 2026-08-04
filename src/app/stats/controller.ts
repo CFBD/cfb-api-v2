@@ -27,14 +27,14 @@ import {
 @Tags('stats')
 export class StatsController extends Controller {
   /**
-   * Retrieves aggregated player statistics for a given season
-   * @param year Required year filter
-   * @param conference Optional conference filter
-   * @param team Optional team filter
-   * @param startWeek Optional starting week range
-   * @param endWeek Optional ending week range
-   * @param seasonType Optional season type filter
-   * @param category Optional category filter
+   * Returns player statistics aggregated by season.
+   * @param year Season year.
+   * @param conference Conference name or abbreviation.
+   * @param team Team name.
+   * @param startWeek Earliest week to include.
+   * @param endWeek Latest week to include.
+   * @param seasonType Season type.
+   * @param category Statistical category.
    * @isInt year
    * @isInt startWeek
    * @isInt endWeek
@@ -62,16 +62,16 @@ export class StatsController extends Controller {
   }
 
   /**
-   * Retrieves player passing and rushing success rates by season
-   * @param year Year filter, required if playerId not specified
-   * @param conference Optional conference abbreviation filter
-   * @param team Optional team filter
-   * @param playerId Player ID filter, required if year not specified
-   * @param seasonType Optional season type filter
-   * @param startWeek Optional starting week range
-   * @param endWeek Optional ending week range
-   * @param threshold Optional minimum credited passing plus rushing plays
-   * @param excludeGarbageTime Optional flag to exclude garbage time plays
+   * Returns player passing and rushing success rates by season.
+   * @param year Season year. Required unless `playerId` is specified.
+   * @param conference Conference abbreviation.
+   * @param team Team name.
+   * @param playerId Player ID. Required unless `year` is specified.
+   * @param seasonType Season type.
+   * @param startWeek Earliest week to include.
+   * @param endWeek Latest week to include.
+   * @param threshold Minimum credited passing and rushing plays.
+   * @param excludeGarbageTime Excludes garbage-time plays when `true`.
    * @isInt year
    * @isInt playerId
    * @isInt startWeek
@@ -104,15 +104,15 @@ export class StatsController extends Controller {
   }
 
   /**
-   * Retrieves player passing and rushing success rates by game
-   * @param year Required year filter
-   * @param week Week filter, required if team and playerId not specified
-   * @param seasonType Optional season type filter
-   * @param conference Optional conference abbreviation filter
-   * @param team Optional team filter
-   * @param playerId Optional player ID filter
-   * @param threshold Optional minimum credited passing plus rushing plays
-   * @param excludeGarbageTime Optional flag to exclude garbage time plays
+   * Returns player passing and rushing success rates by game.
+   * @param year Season year.
+   * @param week Week number. Required unless `team` or `playerId` is specified.
+   * @param seasonType Season type.
+   * @param conference Conference abbreviation.
+   * @param team Team name.
+   * @param playerId Player ID.
+   * @param threshold Minimum credited passing and rushing plays.
+   * @param excludeGarbageTime Excludes garbage-time plays when `true`.
    * @isInt year
    * @isInt week
    * @isInt playerId
@@ -142,13 +142,13 @@ export class StatsController extends Controller {
   }
 
   /**
-   * Retrieves aggregated team season statistics
-   * @param year Year filter, required if team not specified
-   * @param team Team filter, required if year not specified
-   * @param conference Optional conference filter
-   * @param startWeek Optional week start range filter
-   * @param endWeek Optional week end range filter
-   * @param classification Optional division classification filter, defaults to fbs
+   * Returns team statistics aggregated by season.
+   * @param year Season year. Required unless `team` is specified.
+   * @param team Team name. Required unless `year` is specified.
+   * @param conference Conference name or abbreviation.
+   * @param startWeek Earliest week to include.
+   * @param endWeek Latest week to include.
+   * @param classification Division classification. Defaults to `fbs`.
    * @isInt year
    * @isInt startWeek
    * @isInt endWeek
@@ -174,7 +174,7 @@ export class StatsController extends Controller {
   }
 
   /**
-   * Gets team statistical categories
+   * Returns the available team statistical categories.
    */
   @Middlewares(middlewares.rejectBadParam('playerId'))
   @Get('categories')
@@ -183,13 +183,14 @@ export class StatsController extends Controller {
   }
 
   /**
-   * Retrieves advanced season statistics for teams
-   * @param year Year filter, required if team not specified
-   * @param team Team filter, required if year not specified
-   * @param excludeGarbageTime Garbage time exclusion filter, defaults to false
-   * @param startWeek Optional start week range filter
-   * @param endWeek Optional end week range filter
-   * @param classification Optional division classification filter, defaults to fbs
+   * Returns advanced team statistics aggregated by season.
+   * @param year Season year. Required unless `team` is specified.
+   * @param team Team name. Required unless `year` is specified.
+   * @param excludeGarbageTime Excludes garbage-time plays when `true`. Defaults
+   * to `false`.
+   * @param startWeek Earliest week to include.
+   * @param endWeek Latest week to include.
+   * @param classification Division classification. Defaults to `fbs`.
    * @isInt year
    * @isInt startWeek
    * @isInt endWeek
@@ -215,13 +216,14 @@ export class StatsController extends Controller {
   }
 
   /**
-   * Retrieves advanced statistics aggregated by game
-   * @param year Year filter, required if team not specified
-   * @param team Team filter, required if year not specified
-   * @param week Optional week filter
-   * @param opponent Optional opponent filter
-   * @param excludeGarbageTime Garbage time exclusion filter, defaults to false
-   * @param seasonType Optional season type filter
+   * Returns advanced team statistics aggregated by game.
+   * @param year Season year. Required unless `team` is specified.
+   * @param team Team name. Required unless `year` is specified.
+   * @param week Week number.
+   * @param opponent Opponent team name.
+   * @param excludeGarbageTime Excludes garbage-time plays when `true`. Defaults
+   * to `false`.
+   * @param seasonType Season type.
    * @isInt year
    */
   @Middlewares(middlewares.rejectBadParam('playerId'))
@@ -245,12 +247,12 @@ export class StatsController extends Controller {
   }
 
   /**
-   * Retrieves havoc statistics aggregated by game
-   * @param year Year filter, required if team not specified
-   * @param team Team filter, required if year not specified
-   * @param week Optional week filter
-   * @param opponent Optional opponent filter
-   * @param seasonType Optional season type filter
+   * Returns team havoc statistics aggregated by game.
+   * @param year Season year. Required unless `team` is specified.
+   * @param team Team name. Required unless `year` is specified.
+   * @param week Week number.
+   * @param opponent Opponent team name.
+   * @param seasonType Season type.
    * @isInt year
    */
   @Middlewares(middlewares.rejectBadParam('playerId'))

@@ -18,12 +18,12 @@ import { RecruitClassification } from '../enums';
 @Tags('recruiting')
 export class RecruitingController extends Controller {
   /**
-   * Retrieves player recruiting rankings
-   * @param year Year filter, required when no team specified
-   * @param team Team filter, required when no team specified
-   * @param position Optional position categorization filter
-   * @param state Optional state/province filter
-   * @param classification Optional recruit type classification filter, defaults to HighSchool
+   * Returns player recruiting rankings.
+   * @param year Recruiting class year. Required unless `team` is specified.
+   * @param team Team name. Required unless `year` is specified.
+   * @param position Position category.
+   * @param state State or province abbreviation.
+   * @param classification Recruit classification. Defaults to `HighSchool`.
    * @isInt year
    */
   @Get('players')
@@ -38,9 +38,9 @@ export class RecruitingController extends Controller {
   }
 
   /**
-   * Retrieves team recruiting rankings
-   * @param year Optional year filter
-   * @param team Optional team filter
+   * Returns team recruiting rankings.
+   * @param year Recruiting class year.
+   * @param team Team name.
    * @isInt year
    */
   @Get('teams')
@@ -52,12 +52,12 @@ export class RecruitingController extends Controller {
   }
 
   /**
-   * Retrieves aggregated recruiting statistics by team and position grouping
-   * @param team Optional team filter
-   * @param conference Optional conference filter
-   * @param recruitType Optional recruit type filter, defaults to HighSchool
-   * @param startYear Optional start year range, defaults to 2000
-   * @param endYear Optional end year range, defaults to current year
+   * Returns recruiting ratings aggregated by team and position group.
+   * @param team Team name.
+   * @param conference Conference name or abbreviation.
+   * @param recruitType Recruit classification. Defaults to `HighSchool`.
+   * @param startYear Earliest recruiting class year. Defaults to 2000.
+   * @param endYear Latest recruiting class year. Defaults to the current year.
    * @isInt startYear
    * @isInt endYear
    */

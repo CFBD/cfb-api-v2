@@ -28,9 +28,9 @@ import { DivisionClassification, SeasonType } from '../enums';
 @Tags('metrics')
 export class PpaController extends Controller {
   /**
-   * Query Predicted Points values by down and distance
-   * @param down Down value
-   * @param distance Distance value
+   * Returns predicted points values by down and distance.
+   * @param down Down number.
+   * @param distance Distance to gain, in yards.
    * @isInt down
    * @isInt distance
    */
@@ -43,12 +43,12 @@ export class PpaController extends Controller {
   }
 
   /**
-   * Retrieves historical team PPA metrics by season
-   * @param year Year filter, required if team not specified
-   * @param team Team filter, required if year not specified
-   * @param conference Conference abbreviation filter
-   * @param excludeGarbageTime Exclude garbage time plays
-   * @param classification Optional division classification filter, defaults to fbs
+   * Returns team Predicted Points Added (PPA) metrics by season.
+   * @param year Season year. Required unless `team` is specified.
+   * @param team Team name. Required unless `year` is specified.
+   * @param conference Conference abbreviation.
+   * @param excludeGarbageTime Excludes garbage-time plays when `true`.
+   * @param classification Division classification. Defaults to `fbs`.
    * @isInt year
    */
   @Get('teams')
@@ -69,14 +69,14 @@ export class PpaController extends Controller {
   }
 
   /**
-   * Retrieves historical team PPA metrics by game
-   * @param year Required year filter
-   * @param week Optional week filter
-   * @param seasonType Optional season type filter
-   * @param team Optional team filter
-   * @param conference Optional conference abbreviation filter
-   * @param excludeGarbageTime Optional flag to exclude garbage time plays
-   * @param classification Optional division classification filter, defaults to fbs
+   * Returns team Predicted Points Added (PPA) metrics by game.
+   * @param year Season year.
+   * @param week Week number.
+   * @param seasonType Season type.
+   * @param team Team name.
+   * @param conference Conference abbreviation.
+   * @param excludeGarbageTime Excludes garbage-time plays when `true`.
+   * @param classification Division classification. Defaults to `fbs`.
    * @isInt year
    * @isInt week
    */
@@ -102,15 +102,15 @@ export class PpaController extends Controller {
   }
 
   /**
-   * Queries player PPA statistics by game
-   * @param year Required year filter
-   * @param week Week filter, required if team not specified
-   * @param seasonType Optional season type filter
-   * @param team Team filter, required if week not specified
-   * @param position Optional player position abbreviation filter
-   * @param playerId Optional player ID filter
-   * @param threshold Threshold value for minimum number of plays
-   * @param excludeGarbageTime Optional flag to exclude garbage time plays
+   * Returns player Predicted Points Added (PPA) metrics by game.
+   * @param year Season year.
+   * @param week Week number. Required unless `team` is specified.
+   * @param seasonType Season type.
+   * @param team Team name. Required unless `week` is specified.
+   * @param position Player position abbreviation.
+   * @param playerId Player ID.
+   * @param threshold Minimum number of plays.
+   * @param excludeGarbageTime Excludes garbage-time plays when `true`.
    * @isInt year
    * @isInt week
    */
@@ -138,14 +138,14 @@ export class PpaController extends Controller {
   }
 
   /**
-   * Queries player PPA statistics by season
-   * @param year Year filter, required if playerId not specified
-   * @param conference Optional conference abbreviation filter
-   * @param team Optional team filter
-   * @param position Optional position abbreviation filter
-   * @param playerId Player ID filter, required if year not specified
-   * @param threshold Threshold value for minimum number of plays
-   * @param excludeGarbageTime Optional flag to exclude garbage time plays
+   * Returns player Predicted Points Added (PPA) metrics by season.
+   * @param year Season year. Required unless `playerId` is specified.
+   * @param conference Conference abbreviation.
+   * @param team Team name.
+   * @param position Player position abbreviation.
+   * @param playerId Player ID. Required unless `year` is specified.
+   * @param threshold Minimum number of plays.
+   * @param excludeGarbageTime Excludes garbage-time plays when `true`.
    * @isInt year
    */
   @Get('players/season')
@@ -175,8 +175,8 @@ export class PpaController extends Controller {
 @Tags('metrics')
 export class MetricsController extends Controller {
   /**
-   * Query play win probabilities by game
-   * @param gameId Required game ID filter
+   * Returns play-by-play win probabilities for a game.
+   * @param gameId Game ID.
    * @isInt gameId
    */
   @Get('wp')
@@ -187,11 +187,11 @@ export class MetricsController extends Controller {
   }
 
   /**
-   * Queries pregame win probabilities
-   * @param year Optional year filter
-   * @param week Optional week filter
-   * @param seasonType Optional season type filter
-   * @param team Optional team filter
+   * Returns pregame win probabilities.
+   * @param year Season year.
+   * @param week Week number.
+   * @param seasonType Season type.
+   * @param team Team name.
    * @isInt year
    * @isInt week
    */
@@ -206,7 +206,7 @@ export class MetricsController extends Controller {
   }
 
   /**
-   * Queries field goal expected points values
+   * Returns expected points values for field goal attempts.
    */
   @Get('fg/ep')
   public async getFieldGoalExpectedPoints(): Promise<FieldGoalEP[]> {

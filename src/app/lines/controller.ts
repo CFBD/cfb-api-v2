@@ -10,16 +10,16 @@ import { BettingGame } from './types';
 @Tags('betting')
 export class BettingController extends Controller {
   /**
-   * Retrieves historical betting data
-   * @param gameId Optional gameId filter
-   * @param year Year filter, required if game id not specified
-   * @param seasonType Optional season type filter
-   * @param week Optional week filter
-   * @param team Optional team filter
-   * @param home Optional home team filter
-   * @param away Optional away team filter
-   * @param conference Optional conference filter
-   * @param provider Optional provider name filter
+   * Returns historical betting lines and results.
+   * @param gameId Game ID.
+   * @param year Season year. Required unless `gameId` is specified.
+   * @param seasonType Season type.
+   * @param week Week number.
+   * @param team Team name on either side of the game.
+   * @param home Home team name.
+   * @param away Away team name.
+   * @param conference Conference of either team.
+   * @param provider Betting line provider.
    * @isInt gameId
    * @isInt year
    * @isInt week

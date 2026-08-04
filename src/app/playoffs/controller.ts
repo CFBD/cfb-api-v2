@@ -31,8 +31,8 @@ const notFoundBody: CfpPlayoffNotFound = {
 @Tags('playoffs')
 export class CfpPlayoffsController extends Controller {
   /**
-   * Retrieves the complete College Football Playoff bracket for a season
-   * @param year Required year filter
+   * Returns the complete College Football Playoff bracket for a season.
+   * @param year Season year.
    * @isInt year
    */
   @Get()
@@ -46,8 +46,8 @@ export class CfpPlayoffsController extends Controller {
   }
 
   /**
-   * Retrieves College Football Playoff participants for a season
-   * @param year Required year filter
+   * Returns College Football Playoff participants for a season.
+   * @param year Season year.
    * @isInt year
    */
   @Get('participants')
@@ -61,9 +61,9 @@ export class CfpPlayoffsController extends Controller {
   }
 
   /**
-   * Retrieves College Football Playoff matchups for a season
-   * @param year Required year filter
-   * @param round Optional playoff round filter
+   * Returns College Football Playoff matchups for a season.
+   * @param year Season year.
+   * @param round Playoff round.
    * @isInt year
    */
   @Get('games')

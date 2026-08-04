@@ -9,8 +9,8 @@ import { getAdvancedBoxScore } from './service';
 @Tags('games')
 export class BoxScoresController extends Controller {
   /**
-   * Retrieves an advanced box score for a game
-   * @param id Required game id filter
+   * Returns an advanced box score for a game.
+   * @param id Game ID.
    * @isInt id
    */
   @Get('box/advanced')

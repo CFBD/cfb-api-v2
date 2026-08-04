@@ -24,9 +24,9 @@ import { DivisionClassification, SeasonType } from '../enums';
 @Tags('ratings')
 export class RatingsController extends Controller {
   /**
-   * Retrieves SP+ ratings for a given year or school
-   * @param year Year filter, required if team not specified
-   * @param team Team filter, required if year not specified
+   * Returns SP+ ratings by team and season.
+   * @param year Season year. Required unless `team` is specified.
+   * @param team Team name. Required unless `year` is specified.
    * @isInt year
    */
   @Get('sp')
@@ -38,10 +38,10 @@ export class RatingsController extends Controller {
   }
 
   /**
-   * Retrieves aggregated historical conference SP+ data
-   * @param year Optional year filter
-   * @param conference Optional conference filter
-   * @param classification Optional division classification filter, defaults to fbs
+   * Returns conference-level SP+ ratings by season.
+   * @param year Season year.
+   * @param conference Conference name or abbreviation.
+   * @param classification Division classification. Defaults to `fbs`.
    * @isInt year
    */
   @Get('sp/conferences')
@@ -54,10 +54,10 @@ export class RatingsController extends Controller {
   }
 
   /**
-   * Retrieves historical SRS for a year or team
-   * @param year Year filter, required if team not specified
-   * @param team Team filter, required if year not specified
-   * @param conference Optional conference filter
+   * Returns Simple Rating System (SRS) ratings by team and season.
+   * @param year Season year. Required unless `team` is specified.
+   * @param team Team name. Required unless `year` is specified.
+   * @param conference Conference name or abbreviation.
    * @isInt year
    */
   @Get('srs')
@@ -70,11 +70,11 @@ export class RatingsController extends Controller {
   }
 
   /**
-   * Retrieves expanded historical SRS (including FCS) for a year or team
-   * @param year Year filter, required if team not specified
-   * @param team Team filter, required if year not specified
-   * @param conference Optional conference filter
-   * @param classification Optional division classification filter (fbs or fcs)
+   * Returns expanded Simple Rating System (SRS) ratings, including FCS teams.
+   * @param year Season year. Required unless `team` is specified.
+   * @param team Team name. Required unless `year` is specified.
+   * @param conference Conference name or abbreviation.
+   * @param classification Division classification: `fbs` or `fcs`.
    * @isInt year
    */
   @Get('srs/expanded')
@@ -88,12 +88,13 @@ export class RatingsController extends Controller {
   }
 
   /**
-   * Retrieves historical Elo ratings
-   * @param year Optional year filter
-   * @param week Optional week filter, defaults to last available week in the season
-   * @param seasonType Optional season type filter
-   * @param team Optional team filter
-   * @param conference Optional conference filter
+   * Returns historical Elo ratings.
+   * @param year Season year.
+   * @param week Week number. Defaults to the latest available week in the
+   * season.
+   * @param seasonType Season type.
+   * @param team Team name.
+   * @param conference Conference name or abbreviation.
    * @isInt year
    * @isInt week
    */
@@ -109,10 +110,10 @@ export class RatingsController extends Controller {
   }
 
   /**
-   * Retrieves historical Football Power Index (FPI) ratings
-   * @param year year filter, required if team not specified
-   * @param team team filter, required if year not specified
-   * @param conference Optional conference filter
+   * Returns historical Football Power Index (FPI) ratings.
+   * @param year Season year. Required unless `team` is specified.
+   * @param team Team name. Required unless `year` is specified.
+   * @param conference Conference name or abbreviation.
    * @isInt year
    */
   @Get('fpi')

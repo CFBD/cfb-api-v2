@@ -28,9 +28,9 @@ import { DivisionClassification } from '../enums';
 @Tags('teams')
 export class TeamsController extends Controller {
   /**
-   * Retrieves team information
-   * @param conference Optional conference abbreviation filter
-   * @param year Optional year filter to get historical conference affiliations
+   * Returns team information and conference affiliations.
+   * @param conference Conference abbreviation.
+   * @param year Season year for historical conference affiliations.
    * @isInt year
    */
   @Get()
@@ -42,8 +42,8 @@ export class TeamsController extends Controller {
   }
 
   /**
-   * Retrieves information on teams playing in the highest division of CFB
-   * @param year Year or season
+   * Returns Football Bowl Subdivision (FBS) teams for a season.
+   * @param year Season year.
    * @isInt year
    */
   @Get('fbs')
@@ -52,11 +52,11 @@ export class TeamsController extends Controller {
   }
 
   /**
-   * Retrieves historical matchup details for two given teams
-   * @param team1 First team to compare
-   * @param team2 Second team to compare
-   * @param minYear Optional starting year
-   * @param maxYear Optional ending year
+   * Returns historical matchup results between two teams.
+   * @param team1 First team name.
+   * @param team2 Second team name.
+   * @param minYear Earliest season year to include.
+   * @param maxYear Latest season year to include.
    * @isInt minYear
    * @isInt maxYear
    */
@@ -71,10 +71,10 @@ export class TeamsController extends Controller {
   }
 
   /**
-   * Retrieves against-the-spread (ATS) summary by team
-   * @param year Required year filter
-   * @param conference Optional conference filter
-   * @param team Optional team filter
+   * Returns against-the-spread (ATS) records by team.
+   * @param year Season year.
+   * @param conference Conference name or abbreviation.
+   * @param team Team name.
    * @isInt year
    */
   @Get('ats')
@@ -92,10 +92,10 @@ export class TeamsController extends Controller {
 @Tags('teams')
 export class RosterController extends Controller {
   /**
-   * Retrieves historical roster data
-   * @param team Optional team filter
-   * @param year Optional year filter, defaults to 2025
-   * @param classification Optional filter to only include players from FBS or FCS teams
+   * Returns historical roster data.
+   * @param team Team name.
+   * @param year Season year. Defaults to 2025.
+   * @param classification Division classification: `fbs` or `fcs`.
    * @isInt year
    */
   @Get()
@@ -113,7 +113,7 @@ export class RosterController extends Controller {
 @Tags('conferences')
 export class ConferencesController extends Controller {
   /**
-   * Retrieves list of conferences
+   * Returns the available conferences.
    */
   @Get()
   public async getConferences(): Promise<Conference[]> {
@@ -126,8 +126,8 @@ export class ConferencesController extends Controller {
 @Tags('teams')
 export class TalentController extends Controller {
   /**
-   * Retrieve 247 Team Talent Composite for a given year
-   * @param year Year filter
+   * Returns 247Sports Team Talent Composite ratings for a season.
+   * @param year Season year.
    * @isInt year
    */
   @Get()
@@ -141,7 +141,7 @@ export class TalentController extends Controller {
 @Tags('venues')
 export class VenueController extends Controller {
   /**
-   * Retrieve list of venues
+   * Returns college football venues.
    */
   @Get()
   public async getVenues(): Promise<Venue[]> {

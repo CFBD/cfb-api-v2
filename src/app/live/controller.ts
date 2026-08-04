@@ -8,8 +8,8 @@ import { getLivePlays } from './service';
 @Middlewares(middlewares.standard)
 export class LiveController extends Controller {
   /**
-   * Queries live play-by-play data and advanced stats
-   * @param gameId Game Id filter
+   * Returns live play-by-play data and advanced metrics for a game.
+   * @param gameId Game ID.
    * @isInt gameId
    */
   @Tags('plays')

@@ -14,10 +14,10 @@ import { AdjustedTeamMetrics, KickerPAAR, PlayerWeightedEPA } from './types';
 @Tags('adjustedMetrics')
 export class WepaController extends Controller {
   /**
-   * Retrieve opponent-adjusted team season statistics
-   * @param year Optional year filter
-   * @param team Optional team filter
-   * @param conference Optional conference filter
+   * Returns opponent-adjusted team statistics by season.
+   * @param year Season year.
+   * @param team Team name.
+   * @param conference Conference name or abbreviation.
    * @isInt year
    */
   @Get('team/season')
@@ -30,11 +30,11 @@ export class WepaController extends Controller {
   }
 
   /**
-   * Retrieve opponent-adjusted player passing statistics
-   * @param year Optional year filter
-   * @param team Optional team filter
-   * @param conference Optional conference abbreviation filter
-   * @param position Optional position abbreviation filter
+   * Returns opponent-adjusted player passing metrics.
+   * @param year Season year.
+   * @param team Team name.
+   * @param conference Conference abbreviation.
+   * @param position Player position abbreviation.
    * @isInt year
    */
   @Get('players/passing')
@@ -48,11 +48,11 @@ export class WepaController extends Controller {
   }
 
   /**
-   * Retrieve opponent-adjusted player rushing statistics
-   * @param year Optional year filter
-   * @param team Optional team filter
-   * @param conference Optional conference abbreviation filter
-   * @param position Optional position abbreviation filter
+   * Returns opponent-adjusted player rushing metrics.
+   * @param year Season year.
+   * @param team Team name.
+   * @param conference Conference abbreviation.
+   * @param position Player position abbreviation.
    * @isInt year
    */
   @Get('players/rushing')
@@ -66,11 +66,10 @@ export class WepaController extends Controller {
   }
 
   /**
-   * Retrieve Points Added Above Replacement (PAAR) ratings for kickers
-   * @param year Optional year filter
-   * @param team Optional team filter
-   * @param conference Optional conference abbreviation filter
-   * @param position Optional position abbreviation filter
+   * Returns Points Added Above Replacement (PAAR) ratings for kickers.
+   * @param year Season year.
+   * @param team Team name.
+   * @param conference Conference abbreviation.
    * @isInt year
    */
   @Get('players/kicking')

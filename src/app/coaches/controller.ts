@@ -36,13 +36,13 @@ const coachNotFound: CoachNotFound = {
 @Tags('coaches')
 export class CoachesController extends Controller {
   /**
-   * Retrieves historical head coach information and records
-   * @param firstName Optional first name filter
-   * @param lastName Optional last name filter
-   * @param team Optional team filter
-   * @param year Optional year filter
-   * @param minYear Optional start year range filter
-   * @param maxYear Optional end year range filter
+   * Returns historical head coach records.
+   * @param firstName Coach first name.
+   * @param lastName Coach last name.
+   * @param team Team name.
+   * @param year Season year.
+   * @param minYear Earliest season year to include.
+   * @param maxYear Latest season year to include.
    * @isInt year
    * @isInt minYear
    * @isInt maxYear
@@ -60,8 +60,8 @@ export class CoachesController extends Controller {
   }
 
   /**
-   * Retrieves canonical coach identity and complete career totals
-   * @param coachId Required coach ID
+   * Returns a coach profile with canonical identity and career totals.
+   * @param coachId Coach ID.
    * @isInt coachId
    */
   @Get('profile')
@@ -75,13 +75,12 @@ export class CoachesController extends Controller {
   }
 
   /**
-   * Retrieves detailed coach-season records with attributed results and
-   * whole-team season context
-   * @param coachId Optional coach ID
-   * @param team Optional team filter
-   * @param year Optional exact season year
-   * @param minYear Optional start year range filter
-   * @param maxYear Optional end year range filter
+   * Returns coach-season records with attributed results and team context.
+   * @param coachId Coach ID.
+   * @param team Team name.
+   * @param year Exact season year.
+   * @param minYear Earliest season year to include.
+   * @param maxYear Latest season year to include.
    * @isInt coachId
    * @isInt year
    * @isInt minYear
@@ -100,11 +99,11 @@ export class CoachesController extends Controller {
   }
 
   /**
-   * Retrieves continuous head-coaching stints and attributed records
-   * @param coachId Optional coach ID
-   * @param team Optional team filter
-   * @param year Optional season year contained by the tenure
-   * @param active Optional active-tenure filter
+   * Returns continuous head-coaching tenures and their attributed records.
+   * @param coachId Coach ID.
+   * @param team Team name.
+   * @param year Season year contained within the tenure.
+   * @param active Filters by active status when specified.
    * @isInt coachId
    * @isInt year
    */

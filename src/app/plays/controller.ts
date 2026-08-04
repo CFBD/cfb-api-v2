@@ -15,18 +15,18 @@ import { DivisionClassification, SeasonType } from '../enums';
 @Tags('plays')
 export class PlaysController extends Controller {
   /**
-   * Retrieves historical play data
-   * @param year Required year filter
-   * @param week Required week filter
-   * @param team Optional team filter
-   * @param offense Optional offensive team filter
-   * @param defense Optional defensive team filter
-   * @param offenseConference Optional offensive conference filter
-   * @param defenseConference Optional defensive conference filter
-   * @param conference Optional conference filter
-   * @param playType Optoinal play type abbreviation filter
-   * @param seasonType Optional season type filter
-   * @param classification Optional division classification filter
+   * Returns historical play-by-play data.
+   * @param year Season year.
+   * @param week Week number.
+   * @param team Team name on either side of the play.
+   * @param offense Offensive team name.
+   * @param defense Defensive team name.
+   * @param offenseConference Offensive team conference.
+   * @param defenseConference Defensive team conference.
+   * @param conference Conference of either team.
+   * @param playType Play type abbreviation.
+   * @param seasonType Season type.
+   * @param classification Division classification of either team.
    * @isInt year
    * @isInt week
    */
@@ -60,7 +60,7 @@ export class PlaysController extends Controller {
   }
 
   /**
-   * Retrieves available play types
+   * Returns the available play types.
    */
   @Get('types')
   public async getPlayTypes(): Promise<PlayType[]> {
@@ -68,15 +68,15 @@ export class PlaysController extends Controller {
   }
 
   /**
-   * Retrieve player-play associations (limit 2000)
-   * @param year Optional year filter
-   * @param week Optional week filter
-   * @param team Optional team filter
-   * @param gameId Optional gameId filter
-   * @param athleteId Optional athleteId filter
-   * @param statTypeId Optional statTypeId filter
-   * @param seasonType Optional season type filter
-   * @param conference Optional conference filter
+   * Returns player and play-stat associations, limited to 2,000 records.
+   * @param year Season year.
+   * @param week Week number.
+   * @param team Team name.
+   * @param gameId Game ID.
+   * @param athleteId Athlete ID.
+   * @param statTypeId Play stat type ID.
+   * @param seasonType Season type.
+   * @param conference Conference name or abbreviation.
    * @isInt year
    * @isInt week
    * @isInt gameId
@@ -107,7 +107,7 @@ export class PlaysController extends Controller {
   }
 
   /**
-   * Retrieves available play stat types
+   * Returns the available play stat types.
    */
   @Get('stats/types')
   public async getPlayStatTypes(): Promise<PlayStatType[]> {

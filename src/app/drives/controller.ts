@@ -10,17 +10,17 @@ import { DivisionClassification, SeasonType } from '../enums';
 @Tags('drives')
 export class DrivesController extends Controller {
   /**
-   * Retrieves historical drive data
-   * @param year Required year filter
-   * @param seasonType Optional season type filter
-   * @param week Optional week filter
-   * @param team Optional team filter
-   * @param offense Optional offensive team filter
-   * @param defense Optional defensive team filter
-   * @param conference Optional conference filter
-   * @param offenseConference Optional offensive team conference filter
-   * @param defenseConference Optional defensive team conference filter
-   * @param classification Optional division classification filter
+   * Returns historical drive data.
+   * @param year Season year.
+   * @param seasonType Season type.
+   * @param week Week number.
+   * @param team Team name on either side of the drive.
+   * @param offense Offensive team name.
+   * @param defense Defensive team name.
+   * @param conference Conference of either team.
+   * @param offenseConference Offensive team conference.
+   * @param defenseConference Defensive team conference.
+   * @param classification Division classification of either team.
    * @isInt year
    * @isInt week
    */

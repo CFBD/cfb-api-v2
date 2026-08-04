@@ -37,18 +37,18 @@ import { PlayoffCompetition, PlayoffRound } from '../playoffs/types';
 @Tags('games')
 export class GamesController extends Controller {
   /**
-   * Retrieves historical game data
-   * @param year Required year filter (except when id is specified)
-   * @param week Optional week filter
-   * @param seasonType Optional season type filter
-   * @param classification Optional division classification filter
-   * @param team Optional team filter
-   * @param home Optional home team filter
-   * @param away Optional away team filter
-   * @param conference Optional conference filter
-   * @param id Game id filter to retrieve a single game
-   * @param competition Optional playoff competition filter
-   * @param round Optional playoff round filter; requires competition
+   * Returns historical game data.
+   * @param year Season year. Required unless `id` is specified.
+   * @param week Week number.
+   * @param seasonType Season type.
+   * @param classification Division classification.
+   * @param team Team name on either side of the game.
+   * @param home Home team name.
+   * @param away Away team name.
+   * @param conference Conference of either team.
+   * @param id Game ID. When specified, returns data for that game.
+   * @param competition Playoff competition.
+   * @param round Playoff round. Requires `competition`.
    * @isInt year
    * @isInt week
    * @isInt id
@@ -84,14 +84,17 @@ export class GamesController extends Controller {
   }
 
   /**
-   * Retrieves team box score statistics
-   * @param year Required year filter (along with one of week, team, or conference), unless id is specified
-   * @param week Optional week filter, required if team and conference not specified
-   * @param team Optional team filter, required if week and conference not specified
-   * @param conference Optional conference filter, required if week and team not specified
-   * @param classification Optional division classification filter
-   * @param seasonType Optional season type filter
-   * @param id Optional id filter to retrieve a single game
+   * Returns team box score statistics by game.
+   * @param year Season year. Required unless `id` is specified.
+   * @param week Week number. One of `week`, `team`, or `conference` is required
+   * when filtering by year.
+   * @param team Team name. One of `week`, `team`, or `conference` is required
+   * when filtering by year.
+   * @param conference Conference name or abbreviation. One of `week`, `team`,
+   * or `conference` is required when filtering by year.
+   * @param classification Division classification.
+   * @param seasonType Season type.
+   * @param id Game ID. When specified, returns statistics for that game.
    * @isInt year
    * @isInt week
    * @isInt id
@@ -118,15 +121,18 @@ export class GamesController extends Controller {
   }
 
   /**
-   * Retrieves player box score statistics
-   * @param year Required year filter (along with one of week, team, or conference), unless id is specified
-   * @param week Optional week filter, required if team and conference not specified
-   * @param team Optional team filter, required if week and conference not specified
-   * @param conference Optional conference filter, required if week and team not specified
-   * @param classification Optional division classification filter
-   * @param seasonType Optional season type filter
-   * @param category Optional player statistical category filter
-   * @param id Optional id filter to retrieve a single game
+   * Returns player box score statistics by game.
+   * @param year Season year. Required unless `id` is specified.
+   * @param week Week number. One of `week`, `team`, or `conference` is required
+   * when filtering by year.
+   * @param team Team name. One of `week`, `team`, or `conference` is required
+   * when filtering by year.
+   * @param conference Conference name or abbreviation. One of `week`, `team`,
+   * or `conference` is required when filtering by year.
+   * @param classification Division classification.
+   * @param seasonType Season type.
+   * @param category Player statistical category.
+   * @param id Game ID. When specified, returns statistics for that game.
    * @isInt year
    * @isInt week
    * @isInt id
@@ -155,14 +161,14 @@ export class GamesController extends Controller {
   }
 
   /**
-   * Retrieves media information for games
-   * @param year Required year filter
-   * @param seasonType Optional season type filter
-   * @param week Optional week filter
-   * @param team Optional team filter
-   * @param conference Optional conference filter
-   * @param mediaType Optional media type filter
-   * @param classification Optional division classification filter
+   * Returns broadcast and media information for games.
+   * @param year Season year.
+   * @param seasonType Season type.
+   * @param week Week number.
+   * @param team Team name.
+   * @param conference Conference name or abbreviation.
+   * @param mediaType Media type.
+   * @param classification Division classification.
    * @isInt year
    * @isInt week
    */
@@ -188,14 +194,14 @@ export class GamesController extends Controller {
   }
 
   /**
-   * Retrieve historical and future weather data (Patreon only)
-   * @param year Year filter, required if game id not specified
-   * @param seasonType Optional season type filter
-   * @param week Optional week filter
-   * @param team Optional team filter
-   * @param conference Optional conference filter
-   * @param classification Optional division classification filter
-   * @param gameId Filter for retrieving a single game
+   * Returns historical and forecast weather data for games. Requires Patreon.
+   * @param year Season year. Required unless `gameId` is specified.
+   * @param seasonType Season type.
+   * @param week Week number.
+   * @param team Team name.
+   * @param conference Conference name or abbreviation.
+   * @param classification Division classification.
+   * @param gameId Game ID. When specified, returns weather for that game.
    * @isInt year
    * @isInt week
    * @isInt gameId
@@ -227,10 +233,10 @@ export class GamesController extends Controller {
 @Tags('games')
 export class RecordsController extends Controller {
   /**
-   * Retrieves historical team records
-   * @param year Year filter, required if team not specified
-   * @param team Team filter, required if year not specified
-   * @param conference Optional conference filter
+   * Returns historical team records by season.
+   * @param year Season year. Required unless `team` is specified.
+   * @param team Team name. Required unless `year` is specified.
+   * @param conference Conference name or abbreviation.
    * @isInt year
    */
   @Get()
@@ -248,8 +254,8 @@ export class RecordsController extends Controller {
 @Tags('games')
 export class CalendarController extends Controller {
   /**
-   * Retrieves calendar information
-   * @param year Required year filter
+   * Returns the week-by-week season calendar.
+   * @param year Season year.
    * @isInt year
    */
   @Get()
@@ -263,9 +269,9 @@ export class CalendarController extends Controller {
 @Tags('games')
 export class ScoreboardController extends Controller {
   /**
-   * Retrieves live scoreboard data
-   * @param classification Optional division classification filter, defaults to fbs
-   * @param conference Optional conference filter
+   * Returns current scoreboard data.
+   * @param classification Division classification. Defaults to `fbs`.
+   * @param conference Conference name or abbreviation.
    */
   @Get()
   public async getScoreboard(

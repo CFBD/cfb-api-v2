@@ -18,13 +18,16 @@ import { SeasonType } from '../enums';
 @Tags('rankings')
 export class RankingsController extends Controller {
   /**
-   * Retrieves historical poll data
-   * @param year Required year filter
-   * @param seasonType Optional season type filter
-   * @param week Optional week filter
-   * @param poll Optional poll filter
-   * @param latest Return the latest CFP snapshot, preferring the marked final
-   * @param final Return the marked final CFP snapshot
+   * Returns historical poll rankings.
+   * @param year Season year.
+   * @param seasonType Season type.
+   * @param week Poll week.
+   * @param poll Poll name.
+   * @param latest Returns the latest CFP snapshot when `true`, preferring the
+   * snapshot marked as final. Requires `poll=cfp` and cannot be combined with
+   * `final`.
+   * @param final Returns the CFP snapshot marked as final when `true`. Requires
+   * `poll=cfp` and cannot be combined with `latest`.
    * @isInt year
    */
   @Get()

@@ -9,7 +9,7 @@ import { getPicks, getPositions, getTeams } from './service';
 @Tags('draft')
 export class DraftController extends Controller {
   /**
-   * Retrieves list of NFL teams
+   * Returns the NFL teams represented in draft data.
    */
   @Get('teams')
   public async getDraftTeams(): Promise<DraftTeam[]> {
@@ -17,7 +17,7 @@ export class DraftController extends Controller {
   }
 
   /**
-   * Retrieves list of player position categories for the NFL Draft
+   * Returns the player position categories used in NFL Draft data.
    */
   @Get('positions')
   public async getDraftPositions(): Promise<DraftPosition[]> {
@@ -25,12 +25,12 @@ export class DraftController extends Controller {
   }
 
   /**
-   * Retrieve historical NFL draft data
-   * @param year Optional year filter
-   * @param team Optional NFL team filter
-   * @param school Optional college team filter
-   * @param conference Optional college conference filter
-   * @param position Optional position classification filter
+   * Returns historical NFL Draft picks.
+   * @param year Draft year.
+   * @param team NFL team name.
+   * @param school College team name.
+   * @param conference College conference name or abbreviation.
+   * @param position Position category.
    * @isInt year
    */
   @Get('picks')

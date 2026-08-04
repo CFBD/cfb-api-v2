@@ -23,11 +23,11 @@ import {
 @Tags('players')
 export class PlayersController extends Controller {
   /**
-   * Search for players (lists top 100 results)
-   * @param searchTerm Search term for matching player name
-   * @param year Optional year filter
-   * @param team Optional team filter
-   * @param position Optional position abbreviation filter
+   * Returns up to 100 players whose names match the search term.
+   * @param searchTerm Full or partial player name.
+   * @param year Season year.
+   * @param team Team name.
+   * @param position Player position abbreviation.
    * @isInt year
    */
   @Get('search')
@@ -51,13 +51,14 @@ export class PlayersController extends Controller {
   }
 
   /**
-   * Retrieves player usage data for a given season
-   * @param year Required year filter
-   * @param conference Optional conference abbreviation filter
-   * @param position Optional position abbreivation filter
-   * @param team Optional team filter
-   * @param playerId Optional player id filter
-   * @param excludeGarbageTime Optional exclude garbage time flag, defaults to false
+   * Returns player usage metrics for a season.
+   * @param year Season year.
+   * @param conference Conference abbreviation.
+   * @param position Player position abbreviation.
+   * @param team Team name.
+   * @param playerId Player ID.
+   * @param excludeGarbageTime Excludes garbage-time plays when `true`. Defaults
+   * to `false`.
    * @isInt year
    * @isInt playerId
    */
@@ -81,9 +82,10 @@ export class PlayersController extends Controller {
   }
 
   /**
-   * Retrieves a player season overview with box score, usage, and PPA data
-   * @param year Required year filter
-   * @param playerId Required player id filter
+   * Returns a player season overview with box score, usage, and Predicted
+   * Points Added (PPA) data.
+   * @param year Season year.
+   * @param playerId Player ID.
    * @isInt year
    * @isInt playerId
    */
@@ -96,10 +98,10 @@ export class PlayersController extends Controller {
   }
 
   /**
-   * Retrieves returning production data. Either a year or team filter must be specified.
-   * @param year Year filter, required if team not specified
-   * @param team Team filter, required if year not specified
-   * @param conference Optional conference filter
+   * Returns returning production metrics by team and season.
+   * @param year Season year. Required unless `team` is specified.
+   * @param team Team name. Required unless `year` is specified.
+   * @param conference Conference name or abbreviation.
    * @isInt year
    */
   @Get('returning')
@@ -112,8 +114,8 @@ export class PlayersController extends Controller {
   }
 
   /**
-   * Retrieves transfer portal data for a given year
-   * @param year Required year filter
+   * Returns transfer portal entries for a season.
+   * @param year Season year.
    * @isInt year
    */
   @Get('portal')
