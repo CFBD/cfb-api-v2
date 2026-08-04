@@ -1,6 +1,10 @@
 packages:
   - 'docs-site'
 
+allowBuilds:
+  '@scarf/scarf': false
+  esbuild: true
+
 # Keep the supply-chain cooldown enabled while allowing these lockfile-pinned
 # docs dependencies to deploy immediately.
 minimumReleaseAge: 1440
