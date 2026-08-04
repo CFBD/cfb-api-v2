@@ -14,12 +14,15 @@ pnpm dev
 ```
 
 `pnpm dev` starts the API with hot reload and regenerates TSOA routes/specs as
-controller files change.
+controller files change. To work on the documentation site at the same time,
+run `pnpm docs:dev` in a second terminal.
 
 ## Common Commands
 
 ```bash
 pnpm build         # generate TSOA routes/specs and compile TypeScript
+pnpm docs:build    # generate OpenAPI and build the Zudoku preview
+pnpm docs:dev      # generate OpenAPI and start the Zudoku dev server
 pnpm test          # run all Jest tests
 pnpm lint          # run ESLint
 pnpm prettify      # format code with Prettier

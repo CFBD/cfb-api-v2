@@ -8,4 +8,5 @@ API_ENDPOINTS.md
 /docs/*
 !/docs/references/
 /docs/references/*
-/scripts
+/scripts/*
+!/scripts/check-docs-build.mjs

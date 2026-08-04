@@ -10,6 +10,7 @@ import * as Sentry from '@sentry/node';
 
 import { RegisterRoutes } from '../../build/routes';
 import spec from '../../build/swagger.json';
+import { registerDocumentation } from './documentation';
 import errorHandler from './errors';
 import { updateQuotas } from './middleware/quotas';
 
@@ -47,6 +48,8 @@ export const configureServer = async (
     res.setHeader('Content-Type', 'application/json');
     res.send(spec);
   });
+
+  registerDocumentation(app);
 
   app.use('/', swaggerUi.serveFiles(spec), swaggerUi.setup(spec));
 
