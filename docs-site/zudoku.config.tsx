@@ -17,6 +17,72 @@ const config: ZudokuConfig = {
       reloadDocument: false,
     },
     footer: {
+      position: 'center',
+      columns: [
+        {
+          title: 'Helpful Links',
+          position: 'start',
+          links: [
+            { label: 'CFBD', href: 'https://collegefootballdata.com' },
+            {
+              label: 'Patreon',
+              href: 'https://www.patreon.com/collegefootballdata',
+            },
+            {
+              label: 'Gumroad',
+              href: 'https://collegefootballdata.gumroad.com',
+            },
+          ],
+        },
+        {
+          title: 'Data + Code Packs',
+          position: 'center',
+          links: [
+            {
+              label: 'Starter Pack',
+              href: 'https://collegefootballdata.gumroad.com/l/starter-pack',
+            },
+            {
+              label: 'Model Training Pack',
+              href: 'https://collegefootballdata.gumroad.com/l/model-training-pack',
+            },
+            {
+              label: 'AI Launchpad',
+              href: 'https://collegefootballdata.gumroad.com/l/ai-launchpad',
+            },
+            {
+              label: 'AI Builder Pack',
+              href: 'https://collegefootballdata.gumroad.com/l/ai-builder',
+            },
+          ],
+        },
+        {
+          title: 'Other Resources',
+          position: 'end',
+          links: [
+            {
+              label: 'Rad Sports Analytics',
+              href: 'https://radsportsanalytics.com',
+            },
+            { label: 'Blog', href: 'https://radsportsanalytics.com/blog' },
+            { label: 'Basketball', href: 'https://collegebasketballdata.com' },
+          ],
+        },
+      ],
+      social: [
+        {
+          icon: 'x',
+          href: 'https://x.com/CFB_Data',
+        },
+        {
+          icon: 'discord',
+          href: 'https://discord.gg/Eb3ex5a',
+        },
+        {
+          icon: 'github',
+          href: 'https://github.com/CFBD',
+        },
+      ],
       copyright: 'A Rad Sports Analytics platform.',
     },
   },
@@ -94,6 +160,18 @@ const config: ZudokuConfig = {
   redirects: [{ from: '/', to: '/getting-started' }],
   docs: {
     files: ['/pages/**/*.{md,mdx}'],
+    publishMarkdown: true,
+    defaultOptions: {
+      copyPage: true,
+      showLastModified: true,
+      suggestEdit: {
+        url: 'https://github.com/CFBD/cfb-api-v2/edit/main/docs-site/pages',
+        text: 'Edit this page on GitHub',
+      },
+    },
+    llms: {
+      llmsTxt: true,
+    },
   },
   apis: [
     {
@@ -106,7 +184,7 @@ const config: ZudokuConfig = {
         examplesLanguage: 'shell',
         supportedLanguages: [
           { value: 'shell', label: 'cURL' },
-          { value: 'javascript', label: 'JavaScript' },
+          { value: 'js', label: 'JavaScript' },
           { value: 'python', label: 'Python' },
         ],
         schemaDownload: {
@@ -125,7 +203,7 @@ const config: ZudokuConfig = {
   syntaxHighlighting: {
     languages: ['bash', 'http', 'python', 'typescript'],
   },
-  aiAssistants: false,
+  aiAssistants: ['claude', 'chatgpt'],
   theme: {
     fonts: {
       sans: 'Inter',

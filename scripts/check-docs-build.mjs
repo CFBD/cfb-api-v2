@@ -121,6 +121,16 @@ for (const route of authoredRoutes) {
   requireFile(path.join(siteRoot, route), `authored route ${route}`);
 }
 
+const llmsPath = path.join(siteRoot, 'llms.txt');
+requireFile(llmsPath, 'LLM documentation index');
+const llmsIndex = readFileSync(llmsPath, 'utf8');
+for (const route of authoredRoutes) {
+  const markdownRoute = `/docs/${route.replace(/\.html$/, '.md')}`;
+  if (!llmsIndex.includes(markdownRoute)) {
+    fail(`llms.txt does not link to ${markdownRoute}`);
+  }
+}
+
 requireFile(path.join(siteRoot, 'api.html'), 'API reference route');
 
 const pagefindRoot = path.join(siteRoot, 'pagefind');
