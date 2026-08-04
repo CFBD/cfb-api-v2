@@ -1,0 +1,54 @@
+---
+title: Python quickstart
+description: Install the official Python package and retrieve game data.
+---
+
+# Use the official Python client
+
+The official `cfbd` package provides generated Python clients and models for
+working with the API.
+
+## Install the package
+
+```bash
+python -m pip install cfbd
+```
+
+Set your key outside source code:
+
+```bash
+export CFBD_API_KEY='your-api-key'
+```
+
+## Retrieve games
+
+This example retrieves the same Michigan games as `GET
+/games?year=2023&team=Michigan`:
+
+```python
+import os
+
+import cfbd
+from cfbd.rest import ApiException
+
+configuration = cfbd.Configuration(
+    access_token=os.environ['CFBD_API_KEY'],
+)
+
+try:
+    with cfbd.ApiClient(configuration) as api_client:
+        games_api = cfbd.GamesApi(api_client)
+        games = games_api.get_games(year=2023, team='Michigan')
+
+        if games:
+            print(games[0])
+except ApiException as error:
+    print(f'College Football Data API request failed: {error}')
+```
+
+The client returns a list of generated game model objects. Handle
+`ApiException` according to your application's logging and retry policy.
+
+See the [official source repository](https://github.com/CFBD/cfbd-python) and
+the [package on PyPI](https://pypi.org/project/cfbd/) for the complete generated
+client reference and current package information.

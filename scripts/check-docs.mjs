@@ -16,6 +16,7 @@ const ignoredDirs = new Set([
   '.git',
   'build',
   'coverage',
+  'dist',
   'node_modules',
   '.pnpm-store',
 ]);

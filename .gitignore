@@ -1,8 +1,11 @@
 build/
+docs-site/dist/
 node_modules/
 .env
 # Local planning docs: PRDs and associated implementation specs
 plans/
 API_ENDPOINTS.md
-/docs
+/docs/*
+!/docs/references/
+/docs/references/*
 /scripts

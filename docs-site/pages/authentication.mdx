@@ -1,0 +1,53 @@
+---
+title: Authentication
+description: Send an API key securely as a bearer credential.
+---
+
+# Authenticate API requests
+
+Protected operations accept an API key in this HTTP header:
+
+```http
+Authorization: Bearer <key>
+```
+
+[Request a free API key](https://collegefootballdata.com/key) if you need one.
+
+## Authorize a playground request
+
+1. Open an operation in the [API reference](/api).
+2. Open the **Authorize** control and enter your API key.
+3. Add the operation parameters, then select **Send**.
+4. Clear the credential when you finish, especially on a shared device.
+
+## Send the key from your application
+
+Keep the key out of source code by storing it in an environment variable:
+
+```bash
+export CFBD_API_KEY='your-api-key'
+```
+
+Then pass it in the bearer header:
+
+```bash
+curl --get 'https://api.collegefootballdata.com/games' \
+  --data-urlencode 'year=2023' \
+  --data-urlencode 'team=Michigan' \
+  --header "Authorization: Bearer ${CFBD_API_KEY}"
+```
+
+The official [Python](/libraries/python) and
+[TypeScript](/libraries/typescript) clients use the same bearer contract
+through their client configuration.
+
+## Protect the key
+
+Treat an API key like a password. Do not commit it, place it in a URL, or
+include it in a public browser application. Use environment variables or your
+deployment platform's secret storage, and add the header from server-side
+code.
+
+If the API returns `401`, confirm that the key is current and the header starts
+with `Bearer `, including the space. Clear and re-enter the key in the
+playground if needed.

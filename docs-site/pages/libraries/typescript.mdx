@@ -1,0 +1,67 @@
+---
+title: TypeScript quickstart
+description: Install the official TypeScript package and retrieve game data.
+---
+
+# Use the official TypeScript client
+
+The official `cfbd` package provides generated TypeScript operations, types,
+and a fetch client for working with the API.
+
+## Install the package
+
+```bash
+pnpm add cfbd
+```
+
+Set your key in the server-side Node environment:
+
+```bash
+export CFBD_API_KEY='your-api-key'
+```
+
+Keep this example in a server-side Node process. Do not put an API key in
+frontend JavaScript, where users can inspect client-side code and network
+requests.
+
+## Retrieve games
+
+This example retrieves the same Michigan games as `GET
+/games?year=2023&team=Michigan`:
+
+```typescript
+import { client, getGames } from 'cfbd';
+
+const apiKey = process.env.CFBD_API_KEY;
+
+if (!apiKey) {
+  throw new Error('CFBD_API_KEY is required');
+}
+
+client.setConfig({
+  headers: {
+    Authorization: `Bearer ${apiKey}`,
+  },
+});
+
+const response = await getGames({
+  query: {
+    year: 2023,
+    team: 'Michigan',
+  },
+});
+
+if (response.error) {
+  throw response.error;
+}
+
+console.log(response.data?.[0]);
+```
+
+When the request succeeds, `response.data` contains generated game types.
+Handle `response.error` according to your application's logging and retry
+policy.
+
+See the [official source repository](https://github.com/CFBD/cfbd-typescript)
+and the [package on npm](https://www.npmjs.com/package/cfbd) for the complete
+generated client reference and current package information.

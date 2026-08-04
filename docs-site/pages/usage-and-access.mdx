@@ -1,0 +1,30 @@
+---
+title: Usage and access
+description: Check current access information and troubleshoot common responses.
+---
+
+# Check usage and access
+
+The [API tiers page](https://collegefootballdata.com/api-tiers) is the source
+for current access levels, limits, and pricing. Those details can change, so
+they are not duplicated here.
+
+Use the [info operations in the API reference](/api/info) to inspect your
+account information and recent shared usage. Playground requests count toward
+usage in the same way as requests from any other client.
+
+## Troubleshoot common responses
+
+- `400` means the API could not accept the parameters or their combination.
+  Review the operation requirements and correct the request.
+- `401` means the request is not authorized. Confirm the bearer header and
+  review [Authentication](/authentication).
+- `404` means the resource or route was not found. Check the operation path and
+  any identifiers in the request.
+- A quota or entitlement response means the current account cannot complete
+  that request. Check your usage and the current API tiers.
+- `500` means the server could not complete a valid request. Retry later and
+  contact support if the problem continues.
+
+The playground shows the API's response status, headers, and body so you can
+distinguish an API response from validation performed before a request is sent.

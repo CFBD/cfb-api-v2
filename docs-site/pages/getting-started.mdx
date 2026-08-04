@@ -1,0 +1,55 @@
+---
+title: Getting started
+description: Get an API key, retrieve games, and choose an integration path.
+---
+
+# Get started with the API
+
+Use the College Football Data REST API to retrieve game, team, player,
+recruiting, ranking, and analytics data. Send requests to this base URL:
+
+```text
+https://api.collegefootballdata.com
+```
+
+## Get an API key
+
+[Request a free API key](https://collegefootballdata.com/key). Keep it out of
+source code by storing it in an environment variable:
+
+```bash
+export CFBD_API_KEY='your-api-key'
+```
+
+## Make your first request
+
+Start by retrieving Michigan's games from the 2023 season:
+
+```http
+GET /games?year=2023&team=Michigan
+```
+
+Run the same request with cURL:
+
+```bash
+curl --get 'https://api.collegefootballdata.com/games' \
+  --data-urlencode 'year=2023' \
+  --data-urlencode 'team=Michigan' \
+  --header "Authorization: Bearer ${CFBD_API_KEY}"
+```
+
+A successful request returns a JSON array of game objects.
+
+## Choose how to keep building
+
+- Use the [API reference playground](/api/games#getgames) to inspect the games
+  operation, enter parameters, and send a live request.
+- Keep using raw HTTP for direct control over requests and responses.
+- Use the [Python quickstart](/libraries/python) to retrieve data with the
+  official Python package.
+- Use the [TypeScript quickstart](/libraries/typescript) to call typed
+  operations with the official TypeScript package.
+
+Before building further, review [Authentication](/authentication) for
+credential guidance and [Usage and access](/usage-and-access) for current
+access information and common API responses.

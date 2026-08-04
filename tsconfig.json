@@ -34,5 +34,6 @@
     /* Advanced Options */
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
-  }
+  },
+  "exclude": ["docs-site"]
 }

@@ -125,10 +125,9 @@ const config: Config = {
   // The root directory that Jest should scan for tests and modules within
   // rootDir: undefined,
 
-  // A list of paths to directories that Jest should use to search for files in
-  // roots: [
-  //   "<rootDir>"
-  // ],
+  // Only discover source tests. TypeScript compilation mirrors tests into
+  // build/, where stale output can otherwise be executed as a second suite.
+  roots: ['<rootDir>/src'],
 
   // Allows you to use a custom runner instead of Jest's default test runner
   // runner: "jest-runner",

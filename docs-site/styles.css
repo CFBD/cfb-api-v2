@@ -1,0 +1,33 @@
+body {
+  font-feature-settings:
+    'ss01' 1,
+    'cv11' 1,
+    'tnum' 1;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-variant-ligatures: none;
+}
+
+:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ring) 35%, transparent);
+  outline-offset: 2px;
+}
+
+img[src$='/brand/cfbd-watermark.png'],
+img[src$='/brand/cfbd-watermark-dark.png'] {
+  width: auto !important;
+  max-height: 40px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
