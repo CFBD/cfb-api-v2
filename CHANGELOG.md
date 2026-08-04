@@ -1,3 +1,10 @@
+# [5.22.0](https://github.com/CFBD/cfb-api-v2/compare/v5.21.0...v5.22.0) (2026-08-04)
+
+
+### Features
+
+* **docs:** overhaul of api docs language ([301d8cf](https://github.com/CFBD/cfb-api-v2/commit/301d8cffc48e0508523bdb1f9e57c9bc5a78d381))
+
 # [5.21.0](https://github.com/CFBD/cfb-api-v2/compare/v5.20.1...v5.21.0) (2026-07-30)
 
 
