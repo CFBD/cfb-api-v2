@@ -1,5 +1,6 @@
 import type { ZudokuConfig } from 'zudoku';
 
+import { generateCodeSnippet } from './sdk-snippets';
 import './styles.css';
 
 const config: ZudokuConfig = {
@@ -188,9 +189,10 @@ const config: ZudokuConfig = {
         examplesLanguage: 'shell',
         supportedLanguages: [
           { value: 'shell', label: 'cURL' },
-          { value: 'js', label: 'JavaScript' },
-          { value: 'python', label: 'Python' },
+          { value: 'python', label: 'Python SDK' },
+          { value: 'typescript', label: 'TypeScript SDK' },
         ],
+        generateCodeSnippet,
         schemaDownload: {
           enabled: true,
           fileName: 'cfbd-openapi',

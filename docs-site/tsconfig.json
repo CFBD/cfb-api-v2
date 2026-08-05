@@ -13,5 +13,5 @@
     "jsx": "react-jsx",
     "types": ["zudoku/client"]
   },
-  "include": ["zudoku.config.tsx"]
+  "include": ["sdk-snippets.ts", "zudoku.config.tsx"]
 }
