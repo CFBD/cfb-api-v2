@@ -289,7 +289,6 @@ const formatTypescript = (
   record: SnippetRecord,
   selectedServer: string,
 ): string => {
-  const baseUrl = selectedServer.replace(/\/+$/, '');
   const query = record.arguments.length
     ? [
         '  query: {',
@@ -322,7 +321,6 @@ const formatTypescript = (
     '}',
     '',
     'client.setConfig({',
-    `  baseUrl: ${quote(baseUrl)},`,
     '  headers: {',
     '    Authorization: `Bearer ${apiKey}`,',
     '  },',
@@ -366,7 +364,6 @@ const formatPython = (
     'import cfbd',
     '',
     'configuration = cfbd.Configuration(',
-    `    host=${quote(host)},`,
     "    access_token=os.environ['CFBD_API_KEY'],",
     ')',
     '',
