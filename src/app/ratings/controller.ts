@@ -4,12 +4,14 @@ import middlewares from '../../config/middleware';
 import {
   ConferenceSP,
   ExpandedTeamSRS,
+  TeamCoreRating,
   TeamElo,
   TeamFPI,
   TeamSP,
   TeamSRS,
 } from './types';
 import {
+  getCore,
   getConferenceSP,
   getElo,
   getExpandedSRS,
@@ -23,6 +25,23 @@ import { DivisionClassification, SeasonType } from '../enums';
 @Middlewares(middlewares.standard)
 @Tags('ratings')
 export class RatingsController extends Controller {
+  /**
+   * Returns Context & Opponent-Relative Efficiency (CORE) ratings.
+   * At least one of `year` or `team` is required.
+   * @param year Season year. Required unless `team` is specified.
+   * @param team Exact team name. Required unless `year` is specified.
+   * @param conference Conference name or abbreviation.
+   * @isInt year
+   */
+  @Get('core')
+  public async getCore(
+    @Query() year?: number,
+    @Query() team?: string,
+    @Query() conference?: string,
+  ): Promise<TeamCoreRating[]> {
+    return await getCore(year, team, conference);
+  }
+
   /**
    * Returns SP+ ratings by team and season.
    * @param year Season year. Required unless `team` is specified.

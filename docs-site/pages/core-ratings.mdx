@@ -1,0 +1,87 @@
+---
+title: CORE ratings
+description: Understand CFBD's Context & Opponent-Relative Efficiency team ratings.
+---
+
+# CORE ratings methodology
+
+Context & Opponent-Relative Efficiency (CORE) measures how much value a team
+creates on offense and allows on defense after accounting for play situation
+and opponent strength. Higher offense and overall values are better; lower
+defense values are better.
+
+CORE is a team efficiency rating, not a forecast or a percentage. It describes
+performance in the plays included through the snapshot boundary.
+
+## Which plays count
+
+CORE uses completed FBS-versus-FBS games and includes qualifying pass and rush
+plays from the four regulation periods. A play must have valid down, distance,
+field position, clock, score, and Predicted Points Added (PPA) context.
+
+The rating excludes garbage-time plays, overtime, FBS-versus-FCS games,
+special teams, and non-scrimmage plays. Actual PPA is capped at -6 and 6 in
+both model training and weekly calculation so that rare plays do not overwhelm
+a team's rating.
+
+## How the adjustment works
+
+CORE separates the calculation into two steps:
+
+1. A context model estimates the PPA expected from the play's period, time
+   remaining, pre-play score margin, down, distance, field position, home-field
+   context, and pass-or-rush call.
+2. CORE compares bounded actual PPA with that expectation, then adjusts all
+   team offense and defense results together for the strength of the opponents
+   they faced.
+
+This means a play is first compared with similar football situations and then
+placed in the context of the opposing units on the schedule.
+
+## Reading the values
+
+- `offense` is points created above average per 100 qualifying offensive
+  plays.
+- `defense` is points allowed above average per 100 qualifying defensive
+  plays, so lower values indicate better defense.
+- `overall` is `offense - defense`. It represents net
+  advantage over 100 offensive and 100 defensive qualifying plays.
+- `offensePlays` and `defensePlays` show the samples behind the two components.
+
+The API returns stored calculation precision. Round values only for display,
+and do not label them as percentages.
+
+## Snapshot timing and versions
+
+Current-season ratings can be calculated or exported after a coherent Week 1
+import. Weeks 1-3 are dry-run only; public publication begins after
+regular-season Week 4 is complete and fully imported. Each team-season has one
+latest current or final snapshot.
+`throughSeasonType` and `throughWeek` identify the inclusive boundary, while
+`modelVersion` identifies the complete rating definition used for that row.
+
+The context model is frozen during a season. Historical seasons are
+retrospective backfills calculated with the released CORE model version; they
+are not point-in-time model vintages. A later model release does not silently
+rewrite those seasons.
+
+Public retrospective CORE begins in 2016. Seasons 2016-2019 have one final
+snapshot each and no historical weekly snapshots. The released context model
+still trains on 2017-2025; 2016 is a validated backward-scoring season rather
+than training data.
+
+CORE excludes the exact whole games in its reviewed source-failure ledger from
+model fitting, validation, weekly calculation, and retrospective scoring. It
+does not infer missing scores or scoring events. The released manifest records
+the ledger checksum, exact game IDs, and bounded coverage limits.
+
+## API access and v1 scope
+
+Use the [CORE ratings operation](/api/ratings#getcore) to filter the current
+stored snapshots by season, exact team name, or conference. A season or team is
+required, and the response includes the cutoff, sample counts, and model
+version needed to interpret each rating.
+
+CORE v1 does not include special teams, pass/rush splits, player ratings,
+game-level ratings, matchup projections, spreads, win probabilities, or other
+forecasts.

@@ -1,5 +1,36 @@
 import { DivisionClassification } from '../enums';
 
+export type CoreRatingSeasonType = 'regular' | 'postseason';
+
+export interface TeamCoreRating {
+  /**
+   * @isInt
+   */
+  year: number;
+  throughSeasonType: CoreRatingSeasonType;
+  /**
+   * @isInt
+   */
+  throughWeek: number;
+  team: string;
+  conference: string | null;
+  /** Offense-minus-defense composite; higher is better. */
+  overall: number;
+  /** Points created above average per 100 qualifying plays; higher is better. */
+  offense: number;
+  /** Points allowed above average per 100 qualifying plays; lower is better. */
+  defense: number;
+  /**
+   * @isInt
+   */
+  offensePlays: number;
+  /**
+   * @isInt
+   */
+  defensePlays: number;
+  modelVersion: string;
+}
+
 export interface TeamSP {
   /**
    * @isInt

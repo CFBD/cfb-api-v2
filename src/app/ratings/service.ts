@@ -2,13 +2,104 @@ import { kdb } from '../../config/database';
 import { DivisionClassification, SeasonType } from '../enums';
 import {
   ConferenceSP,
+  CoreRatingSeasonType,
   ExpandedTeamSRS,
+  TeamCoreRating,
   TeamElo,
   TeamFPI,
   TeamSP,
   TeamSRS,
 } from './types';
 import { ValidateError } from 'tsoa';
+
+export const getCore = async (
+  year?: number,
+  team?: string,
+  conference?: string,
+): Promise<TeamCoreRating[]> => {
+  if (!year && !team) {
+    throw new ValidateError(
+      {
+        year: { value: year, message: 'year required when team not specified' },
+        team: { value: team, message: 'team required when year not specified' },
+      },
+      'Validation error',
+    );
+  }
+
+  let query = kdb
+    .selectFrom('coreRatings')
+    .innerJoin('team', 'coreRatings.teamId', 'team.id')
+    .leftJoin('conferenceTeam', (join) =>
+      join
+        .onRef('team.id', '=', 'conferenceTeam.teamId')
+        .onRef('conferenceTeam.startYear', '<=', 'coreRatings.year')
+        .on((eb) =>
+          eb.or([
+            eb('conferenceTeam.endYear', '>=', eb.ref('coreRatings.year')),
+            eb('conferenceTeam.endYear', 'is', null),
+          ]),
+        ),
+    )
+    .leftJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
+    .select([
+      'coreRatings.year',
+      'coreRatings.throughSeasonType',
+      'coreRatings.throughWeek',
+      'team.school as team',
+      'conference.name as conference',
+      'coreRatings.overall',
+      'coreRatings.offense',
+      'coreRatings.defense',
+      'coreRatings.offensePlays',
+      'coreRatings.defensePlays',
+      'coreRatings.modelVersion',
+    ])
+    .orderBy('coreRatings.year', 'desc')
+    .orderBy('coreRatings.overall', 'desc')
+    .orderBy('team.school', 'asc');
+
+  if (year) {
+    query = query.where('coreRatings.year', '=', year);
+  }
+
+  if (team) {
+    query = query.where((eb) =>
+      eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+    );
+  }
+
+  if (conference) {
+    query = query.where((eb) =>
+      eb.or([
+        eb(eb.fn('lower', ['conference.name']), '=', conference.toLowerCase()),
+        eb(
+          eb.fn('lower', ['conference.abbreviation']),
+          '=',
+          conference.toLowerCase(),
+        ),
+      ]),
+    );
+  }
+
+  const results = await query.execute();
+
+  return results.map(
+    (result): TeamCoreRating => ({
+      year: Number(result.year),
+      throughSeasonType: result.throughSeasonType as CoreRatingSeasonType,
+      throughWeek: Number(result.throughWeek),
+      team: result.team,
+      conference: result.conference,
+      overall: Math.round(Number(result.overall) * 100) / 100,
+      offense: Math.round(Number(result.offense) * 100) / 100,
+      defense: Math.round(Number(result.defense) * 100) / 100,
+      offensePlays: Number(result.offensePlays),
+      defensePlays: Number(result.defensePlays),
+      modelVersion: result.modelVersion,
+    }),
+  );
+};
 
 export const getSP = async (
   year?: number,

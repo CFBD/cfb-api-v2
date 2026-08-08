@@ -10,7 +10,7 @@
   "main": "src/app.ts",
   "scripts": {
     "build": "tsoa spec-and-routes && tsc --skipLibCheck && pnpm --dir docs-site build && node scripts/check-docs-build.mjs",
-    "build:db": "pnpm kysely-codegen --camel-case --out-file=db.d.ts",
+    "build:db": "pnpm kysely-codegen --camel-case --out-file=src/config/types/db.d.ts",
     "dev": "concurrently \"nodemon\" \"nodemon -x tsoa spec-and-routes\"",
     "start": "node ./build/src/app.js",
     "test": "jest",

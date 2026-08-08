@@ -202,6 +202,20 @@ export interface ConferenceTeam {
   teamId: number;
 }
 
+export interface CoreRatings {
+  defense: number;
+  defensePlays: number;
+  modelVersion: string;
+  offense: number;
+  offensePlays: number;
+  overall: number;
+  teamId: number;
+  throughSeasonType: SeasonType;
+  throughWeek: number;
+  updatedAt: Generated<Timestamp>;
+  year: number;
+}
+
 export interface Country {
   id: Generated<number>;
   name: string;
@@ -978,6 +992,7 @@ export interface DB {
   coachTeam: CoachTeam;
   conference: Conference;
   conferenceTeam: ConferenceTeam;
+  coreRatings: CoreRatings;
   country: Country;
   currentConferences: CurrentConferences;
   draftPicks: DraftPicks;

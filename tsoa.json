@@ -76,7 +76,7 @@
       },
       {
         "name": "ratings",
-        "description": "SP+, SRS, Elo, and FPI team ratings."
+        "description": "SP+, SRS, Elo, FPI, and CORE team ratings."
       },
       {
         "name": "metrics",

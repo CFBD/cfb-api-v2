@@ -157,6 +157,18 @@ const config: ZudokuConfig = {
       ],
     },
     {
+      type: 'category',
+      label: 'Methodology and resources',
+      collapsible: false,
+      items: [
+        {
+          type: 'doc',
+          file: 'core-ratings',
+          label: 'CORE ratings',
+        },
+      ],
+    },
+    {
       type: 'link',
       label: 'API Reference',
       to: '/api',
