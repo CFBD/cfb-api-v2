@@ -1,3 +1,11 @@
+# [5.23.0](https://github.com/CFBD/cfb-api-v2/compare/v5.22.0...v5.23.0) (2026-08-08)
+
+
+### Features
+
+* **docs:** adding methodology and resources for cfbd models and metrics ([585ba54](https://github.com/CFBD/cfb-api-v2/commit/585ba546fa4cd2235234bbe89b224c264bc0d30e))
+* **ratings:** core ratings rollout ([84deb78](https://github.com/CFBD/cfb-api-v2/commit/84deb780faacc3b1a8c998d487bb745102b4ee40))
+
 # [5.22.0](https://github.com/CFBD/cfb-api-v2/compare/v5.21.0...v5.22.0) (2026-08-04)
 
 
