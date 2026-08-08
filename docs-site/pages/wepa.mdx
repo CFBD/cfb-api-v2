@@ -1,0 +1,74 @@
+---
+title: WEPA and adjusted metrics
+description: Understand CFBD's opponent-adjusted team and player efficiency metrics.
+---
+
+Weighted Expected Points Added (WEPA) is CFBD's family of opponent-adjusted
+efficiency metrics. It is intended to answer a practical question: how strong
+was a team's or player's performance after accounting for the quality of the
+opposition?
+
+WEPA is a season-level adjustment, not a play-level value and not a win
+probability. Use [PPA](./ppa) when the unit of analysis is an individual play.
+
+## How the adjustment works
+
+The model evaluates offense and defense together across the FBS schedule. It
+uses regularization to separate the performance of the unit being measured
+from opponent strength and home-field context while limiting extreme estimates
+from small or unbalanced samples.
+
+That process is applied to several metric families, including PPA, success
+rate, rushing-line measures, and explosiveness. Player passing and rushing
+outputs use the same general opponent-adjustment approach for players with a
+sufficient qualifying sample.
+
+WEPA is proprietary. Exact fitted coefficients, regularization settings,
+sample thresholds, and training artifacts are not published.
+
+## Reading team values
+
+The team response includes adjusted offense and defense-allowed views:
+
+- `epa` and `epaAllowed` include total, passing, and rushing efficiency.
+- `successRate` and `successRateAllowed` include overall, standard-down, and
+  passing-down splits.
+- `rushing` and `rushingAllowed` include line, second-level, open-field, and
+  highlight yards.
+- `explosiveness` and `explosivenessAllowed` measure value on successful plays.
+
+Higher offensive values generally indicate better performance. Lower allowed
+values indicate that the defense conceded less adjusted production. Compare
+like fields within the same season rather than treating different metric
+families as one common scale.
+
+## Player WEPA
+
+The passing and rushing endpoints return a player's adjusted `wepa` value and
+the number of qualifying plays behind it. The number is intended for
+season-level comparison among players in the same role and metric family.
+
+Opponent adjustment reduces one major source of schedule bias, but it does not
+isolate a player from scheme, teammates, game state, or every selection effect.
+Sample size still matters.
+
+## Kicker PAAR
+
+Points Added Above Replacement (PAAR) evaluates field-goal results against the
+expected value of the attempts. It is published with the WEPA endpoints but is
+a related, distinct metric rather than an opponent-adjusted rushing or passing
+measure.
+
+Positive PAAR indicates that a kicker produced more value than the comparison
+baseline across the included attempts. `attempts` provides the sample behind
+the rating.
+
+## API access
+
+- [Adjusted team season metrics](/api/adjustedMetrics#getadjustedteamseasonstats)
+- [Adjusted player passing](/api/adjustedMetrics#getadjustedplayerpassingstats)
+- [Adjusted player rushing](/api/adjustedMetrics#getadjustedplayerrushingstats)
+- [Kicker PAAR](/api/adjustedMetrics#getkickerpaar)
+
+See [Metrics and definitions](./metrics-and-definitions) for the component
+metrics used in the response.

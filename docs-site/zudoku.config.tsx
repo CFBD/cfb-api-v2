@@ -163,6 +163,41 @@ const config: ZudokuConfig = {
       items: [
         {
           type: 'doc',
+          file: 'methodology-overview',
+          label: 'Methodology overview',
+        },
+        {
+          type: 'doc',
+          file: 'metrics-and-definitions',
+          label: 'Metrics and definitions',
+        },
+        {
+          type: 'doc',
+          file: 'ppa',
+          label: 'Predicted Points Added',
+        },
+        {
+          type: 'doc',
+          file: 'win-probability',
+          label: 'Win probability',
+        },
+        {
+          type: 'doc',
+          file: 'wepa',
+          label: 'WEPA and adjusted metrics',
+        },
+        {
+          type: 'doc',
+          file: 'elo-ratings',
+          label: 'Elo ratings',
+        },
+        {
+          type: 'doc',
+          file: 'srs-ratings',
+          label: 'SRS ratings',
+        },
+        {
+          type: 'doc',
           file: 'core-ratings',
           label: 'CORE ratings',
         },

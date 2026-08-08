@@ -1,0 +1,87 @@
+---
+title: Win probability
+description: Understand CFBD's pregame, in-game, and postgame win probability models.
+---
+
+CFBD publishes three separate win probability concepts: pregame, in-game, and
+postgame. Each answers a different question and should be interpreted on its
+own terms.
+
+All win probabilities are returned as decimals from 0 to 1. They represent
+uncertainty, not certainty. A team with a `0.75` probability is expected to win
+about three out of four comparable situations over a large sample; it can
+still lose the individual game.
+
+## Pregame win probability
+
+Pregame win probability estimates the home team's chance of winning before
+kickoff. It is derived from the available point spread and the historical
+relationship between spreads and game outcomes.
+
+This is a market-based estimate rather than a CFBD team-rating forecast. Games
+without a usable spread may not have a pregame probability.
+
+Use the
+[pregame win probability operation](/api/metrics#getpregamewinprobabilities)
+to retrieve the spread and `homeWinProbability` together.
+
+## In-game win probability
+
+In-game win probability estimates the home team's chance of winning after each
+play. The current model considers the score, time remaining, down, distance,
+field position, and possession. Timeout context may also be used where it is
+available and reliable.
+
+The model introduced for the 2025 season uses separate approaches for three
+game states:
+
+- **Regulation** handles the broad range of normal game situations.
+- **Clutch** focuses on late, high-leverage situations where clock and field
+  position behave differently from the rest of the game. Its estimate is
+  blended with the regulation estimate as those situations develop.
+- **Overtime** handles the distinct possession and scoring structure of
+  college overtime.
+
+The model is evaluated for calibration, which asks whether outcomes labeled
+with a given probability occur at roughly that rate over a large sample.
+Calibration does not make any one prediction certain.
+
+Stored values for 2025 and later use the revamped model. Values through 2024
+remain outputs from the retired models and were not backfilled. Analyses that
+span that boundary should account for the methodology change, especially when
+comparing Excitement Index values.
+
+Use the [in-game win probability operation](/api/metrics#getwinprobability) to
+retrieve the play-by-play home-team probability. The final record resolves to
+the game outcome.
+
+## Postgame win probability
+
+Postgame win probability asks how often a team would be expected to win with a
+similar underlying game performance. It uses aggregate efficiency and game
+profile measures rather than replaying the in-game probability path.
+
+This is sometimes useful for identifying games where the final result and the
+underlying performance tell different stories. It is not a replacement for the
+score, and it is not the final value from the in-game model.
+
+Postgame win probability appears in advanced game and team box score data.
+
+## Excitement Index
+
+Excitement Index summarizes the movement in win probability over a game.
+Larger and more frequent swings produce a higher value. It describes the path
+of the game, not team quality or the closeness of the final score by itself.
+
+Because the measure is derived from in-game win probability, the 2025 model
+change also affects Excitement Index comparability across the 2024-2025
+boundary.
+
+## Further reading
+
+- [Revamping Win Probability for 2025](https://radsportsanalytics.com/blog/revamping-win-probability-2025/)
+- [CFBD win probability calculator](https://collegefootballdata.com/wp)
+
+The underlying models are proprietary. These resources explain the design and
+interpretation without publishing fitted parameters, model artifacts, or the
+complete production calculation.

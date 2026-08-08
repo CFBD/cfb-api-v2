@@ -1,0 +1,51 @@
+---
+title: Elo ratings
+description: Understand CFBD's sequential team-strength rating.
+---
+
+CFBD Elo is a sequential team-strength rating. Each completed game updates the
+two teams' pregame ratings based on the result, the difference between their
+ratings, the scoring margin, and home-field context for non-neutral games.
+
+Higher values indicate a stronger rating. Elo is useful when an analysis needs
+a strength estimate that evolves one game at a time.
+
+## How it behaves
+
+The model enters a game with a rating for each team and produces an updated
+rating afterward. Results that are more surprising relative to the pregame
+ratings generally cause larger changes, while expected results cause smaller
+changes. Scoring margin also affects the size of the update.
+
+Because each update starts from the previous rating, Elo carries information
+forward through the sequence of games. It is therefore path-dependent: the
+order and history of results matter, not just a team's final record or average
+margin.
+
+When an FBS team plays an opponent without an available Elo rating, the rated
+team's Elo remains unchanged for that game.
+
+CFBD Elo is proprietary. The public documentation does not include its exact
+update formula, constants, or initialization values.
+
+## Reading the API response
+
+The `elo` field is the team's latest available rating through the requested
+season boundary. Higher is better, but the value is relative rather than a
+direct estimate of points or win probability.
+
+The optional week filter returns the latest completed regular-season game at
+or before that week. A null value means no applicable stored rating was
+available for the requested team and boundary.
+
+## Limits to keep in mind
+
+Elo is sensitive to starting values and carries prior results forward. Early
+ratings can reflect limited current-season evidence, while later ratings are
+informed by a longer sequence of games.
+
+The rating does not directly explain why a team won, separate offense from
+defense, or replace a matchup-specific win probability model.
+
+Use the [Elo ratings operation](/api/ratings#getelo) to filter by season, week,
+season type, team, or conference.

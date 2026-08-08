@@ -1,0 +1,51 @@
+---
+title: SRS ratings
+description: Understand CFBD's schedule-adjusted scoring-margin rating.
+---
+
+The Simple Rating System (SRS) measures team strength from scoring margin after
+adjusting for schedule strength and home field. It evaluates the network of
+game results together so that performance against a strong opponent is not
+treated the same as an identical margin against a weak opponent.
+
+Higher values indicate stronger performance. A rating of `8.0` can be read as
+roughly eight points better than the average FBS team on a neutral field within
+that season's rating system.
+
+## How it works
+
+SRS starts with adjusted scoring margins from completed FBS and FCS games. It
+then solves for the set of team ratings that best reconciles each team's
+results with the strength of its opponents. Extreme scoring margins are
+limited so that one unusual game does not dominate the season estimate, and
+the final FBS ratings are centered around zero.
+
+This is a season-to-date descriptive rating. It is not a win probability and
+does not separately rate offense, defense, or special teams.
+
+CFBD SRS is proprietary. Exact margin limits, home-field values, and full
+calculation details are not published.
+
+## Standard and expanded SRS
+
+The standard endpoint returns FBS team ratings. The expanded endpoint includes
+additional classifications where ratings are available, which can be useful
+for analyses involving FCS opponents.
+
+`rating` contains the point-based SRS value. `ranking` is the team's ordered
+position when teams are sorted from highest to lowest rating; it is not an
+additional model output.
+
+## Limits to keep in mind
+
+Early-season SRS can be unstable because the schedule network contains fewer
+games and less cross-team information. Ratings become more connected as the
+season progresses, but they still summarize the games played rather than
+projecting a specific future matchup.
+
+Comparisons are most meaningful within the same season and endpoint scope.
+
+## API access
+
+- [FBS SRS ratings](/api/ratings#getsrs)
+- [Expanded SRS ratings](/api/ratings#getexpandedsrs)

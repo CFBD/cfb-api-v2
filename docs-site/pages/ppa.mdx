@@ -1,0 +1,70 @@
+---
+title: Predicted Points Added (PPA)
+description: Understand CFBD's play-value model and PPA API outputs.
+---
+
+Predicted Points Added measures how much a play changes the offense's expected
+scoring value. It provides a common point-based scale for comparing plays that
+occur in different parts of the field and in different down-and-distance
+situations.
+
+PPA is CFBD's implementation of Expected Points Added (EPA). It should not be
+assumed to match an EPA value from another provider.
+
+## How it works
+
+The model first estimates Predicted Points (PP), the expected value of the next
+score from a game state defined primarily by down, distance, and field
+position. A play's PPA is the change between its starting and ending scoring
+expectation, with scoring plays, turnovers, and failed series handled according
+to their resulting game state.
+
+A positive value means the play improved the offense's position. A negative
+value means it lost expected value. Because the scale is based on scoring
+expectation, a five-yard gain can be valuable in one situation and harmful in
+another.
+
+CFBD uses one consistent PPA model across the historical and current values in
+the API. This page does not attach a model date because the production lookup
+table's original population date is not sufficiently certain.
+
+PPA is proprietary. The public documentation does not include the fitted
+lookup table, training artifact, or every transformation used in production.
+
+## Reading team and player outputs
+
+Team endpoints provide average PPA splits by play type and down. Season
+responses also include cumulative totals.
+
+- **Average PPA** is value per included play and is usually the better measure
+  for comparing efficiency across samples of different sizes.
+- **Total PPA** is the sum of value across the sample and combines efficiency
+  with volume.
+- **Offense** measures value created by the team in possession.
+- **Defense** measures the offensive value opponents produced against that
+  team, so lower values generally indicate better defense.
+
+Player outputs include passing, rushing, down, and situation splits where the
+underlying sample supports them. Missing optional splits should remain missing;
+they are not zero-value performances.
+
+## Limits to keep in mind
+
+PPA values the result of a play in context. It does not fully separate player
+contribution from blocking, coverage, play calling, opponent strength, or
+other teammates. Small samples can also be driven by a handful of high-value
+plays.
+
+Use PPA alongside success rate, explosiveness, volume, and opponent-adjusted
+metrics rather than treating it as a complete measure of performance.
+
+## API access
+
+- [Predicted Points lookup](/api/metrics#getpredictedpoints)
+- [Team season PPA](/api/metrics#getpredictedpointsaddedbyteam)
+- [Team game PPA](/api/metrics#getpredictedpointsaddedbygame)
+- [Player season PPA](/api/metrics#getpredictedpointsaddedbyplayerseason)
+- [Player game PPA](/api/metrics#getpredictedpointsaddedbyplayergame)
+
+See [Metrics and definitions](./metrics-and-definitions) for success rate,
+explosiveness, passing downs, and related terms.

@@ -1,0 +1,149 @@
+---
+title: Metrics and definitions
+description: Common football analytics terms and API value conventions used by CFBD.
+---
+
+This page is the canonical glossary for terms used across the CFBD API. Model
+pages add the context specific to their outputs, while this page defines the
+shared building blocks.
+
+## Reading API values
+
+- **Rates and probabilities** are generally returned as decimals. A value of
+  `0.64` represents 64%, not 0.64%.
+- **Average** values are normalized per included play or opportunity. **Total**
+  or **cumulative** values are summed across the included sample.
+- **Offense** fields describe value created by the team in possession.
+  **Defense** or **allowed** fields describe what opponents produced against
+  that defense. Lower allowed values are generally better.
+- A **rating** is a model value. A **ranking** is the ordered position produced
+  by sorting those values.
+- `null` means the value is unavailable or not applicable. It should not be
+  converted to zero without an explicit analytical reason.
+
+## Expected points and play value
+
+### Predicted Points (PP)
+
+CFBD's estimate of the expected value of the next score from a given down,
+distance, and field position. Positive values favor the offense; negative
+values indicate that the opponent is more likely to score next.
+
+### Predicted Points Added (PPA)
+
+The change in Predicted Points attributable to a play, from the offense's
+perspective. Positive PPA means the play improved the offense's expected
+scoring position. Negative PPA means it lost value. PPA is CFBD's
+implementation of the broader Expected Points Added (EPA) concept.
+
+### Explosiveness
+
+Average PPA on successful plays. This captures the magnitude of a team's
+successful plays rather than how often those plays occur.
+
+See [PPA methodology](./ppa) for calculation context and interpretation.
+
+## Situational definitions
+
+### Success rate
+
+The share of plays classified as successful. A successful play gains at least
+50% of the yards needed on first down, 70% on second down, and 100% on third
+or fourth down. Scoring plays are successful unless the recorded play type
+explicitly represents a failed attempt.
+
+### Standard and passing downs
+
+Stored historical and advanced metrics classify second-and-8 or longer and
+third- or fourth-and-5 or longer as passing downs. All other situations are
+standard downs.
+
+Some live values are calculated independently from the stored historical
+pipeline. When a live response supplies its own down classification, use the
+returned value rather than recomputing the split.
+
+### Garbage time
+
+Garbage time identifies plays where the pre-play margin is greater than 38
+points in the second quarter, 28 points in the third quarter, or 22 points in
+the fourth quarter. A game can leave garbage time if the margin narrows below
+the applicable threshold.
+
+### Scoring opportunity
+
+A drive in which the offense reaches the opponent's 40-yard line or closer.
+Points per opportunity is the average number of points scored on those drives.
+
+## Rushing-line metrics
+
+### Line yards
+
+A weighted rushing-yard measure intended to estimate the offensive line's
+share of a run. Losses count at 120%, yards 0 through 4 at 100%, yards 5
+through 10 at 50%, and yards beyond 10 do not add line yards.
+
+### Second-level yards
+
+Rushing yards gained between 5 and 10 yards beyond the line of scrimmage.
+
+### Open-field yards
+
+Rushing yards gained more than 10 yards beyond the line of scrimmage.
+
+### Highlight yards
+
+The portion of rushing production credited after the line-yards component,
+intended to describe what the ball carrier creates in the second level and
+open field.
+
+### Stuff rate
+
+The share of rushing attempts stopped at or behind the line of scrimmage.
+
+### Power success
+
+The share of short-yardage runs needing two or fewer yards that meet the
+success definition.
+
+## Disruption and involvement
+
+### Havoc rate
+
+The share of defensive plays that produce a tackle for loss, forced fumble,
+interception, or pass breakup.
+
+**Front-seven havoc** uses tackles for loss and forced fumbles. **Defensive
+back havoc** uses passes defended and interceptions.
+
+### Usage rate
+
+The share of a team's relevant plays involving a player. Overall, passing,
+rushing, standard-down, and passing-down usage use the corresponding team
+play total as the denominator.
+
+## Win probability terms
+
+### Pregame win probability
+
+An estimate of the home team's chance of winning before kickoff, derived from
+the available point spread.
+
+### In-game win probability
+
+An estimate of the home team's chance of winning at a specific game state.
+The API returns a decimal from 0 to 1.
+
+### Postgame win probability
+
+An estimate of how often a team would be expected to win with similar
+underlying game performance. It is separate from both the final result and the
+play-by-play in-game model.
+
+### Excitement Index
+
+A summary of win-probability movement during a game. Larger and more frequent
+swings produce a higher value. Because it depends on the underlying win
+probabilities, model changes can affect comparisons across eras.
+
+See [Win probability methodology](./win-probability) for the three distinct
+models and their coverage.
