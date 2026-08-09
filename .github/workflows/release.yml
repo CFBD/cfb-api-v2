@@ -167,7 +167,7 @@ jobs:
           nodetail: true
           title: 'New version of REST API v2 deployed'
           url: 'https://github.com/CFBD/cfb-api-v2'
-          color: 0x38b0ff
+          color: 0x1e913e
           description: |
             v${{ env.api_version}}
             - ${{ join(github.event.commits.*.message, fromJSON('"\n- "')) }}
