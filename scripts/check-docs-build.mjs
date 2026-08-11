@@ -8,6 +8,7 @@ const repoRoot = path.resolve(
 );
 const swaggerPath = path.join(repoRoot, 'build/swagger.json');
 const siteRoot = path.join(repoRoot, 'docs-site/dist');
+const siteOrigin = 'https://api.collegefootballdata.com';
 const operationMethods = new Set([
   'delete',
   'get',
@@ -126,7 +127,49 @@ const authoredRoutes = [
   'libraries/typescript.html',
 ];
 for (const route of authoredRoutes) {
-  requireFile(path.join(siteRoot, route), `authored route ${route}`);
+  const routePath = path.join(siteRoot, route);
+  requireFile(routePath, `authored route ${route}`);
+
+  const html = readFileSync(routePath, 'utf8');
+  const cleanRoute = route.replace(/\.html$/, '');
+  const canonicalUrl = `${siteOrigin}/${cleanRoute}`;
+  const h1Count = html.match(/<h1\b/g)?.length ?? 0;
+
+  if (!html.match(/<title>[^<]+<\/title>/)) {
+    fail(`${route} has no document title`);
+  }
+  if (!html.match(/<meta name="description" content="[^"]+">/)) {
+    fail(`${route} has no meta description`);
+  }
+  if (!html.includes(`<link rel="canonical" href="${canonicalUrl}">`)) {
+    fail(`${route} has no canonical URL for ${canonicalUrl}`);
+  }
+  if (!html.includes('property="og:title"')) {
+    fail(`${route} has no Open Graph title`);
+  }
+  if (!html.includes('name="twitter:card"')) {
+    fail(`${route} has no Twitter card metadata`);
+  }
+  if (h1Count !== 1) {
+    fail(`${route} must contain one h1; found ${h1Count}`);
+  }
+}
+
+const robotsPath = path.join(siteRoot, 'robots.txt');
+requireFile(robotsPath, 'robots.txt');
+const robots = readFileSync(robotsPath, 'utf8');
+if (!robots.includes(`Sitemap: ${siteOrigin}/sitemap.xml`)) {
+  fail('robots.txt does not advertise the canonical sitemap');
+}
+
+const sitemapPath = path.join(siteRoot, 'sitemap.xml');
+requireFile(sitemapPath, 'sitemap');
+const sitemap = readFileSync(sitemapPath, 'utf8');
+for (const route of authoredRoutes) {
+  const cleanRoute = route.replace(/\.html$/, '');
+  if (!sitemap.includes(`<loc>${siteOrigin}/${cleanRoute}</loc>`)) {
+    fail(`sitemap does not include /${cleanRoute}`);
+  }
 }
 
 const llmsPath = path.join(siteRoot, 'llms.txt');
@@ -140,6 +183,14 @@ for (const route of authoredRoutes) {
 }
 
 requireFile(path.join(siteRoot, 'api.html'), 'API reference route');
+const gamesApiPath = path.join(siteRoot, 'api/games.html');
+requireFile(gamesApiPath, 'games API reference route');
+const gamesApi = readFileSync(gamesApiPath, 'utf8');
+if (
+  !gamesApi.includes('<title>Games - College Football Data API | CFBD</title>')
+) {
+  fail('games API reference title is not normalized');
+}
 
 const pagefindRoot = path.join(siteRoot, 'pagefind');
 requireFile(path.join(pagefindRoot, 'pagefind.js'), 'Pagefind runtime');

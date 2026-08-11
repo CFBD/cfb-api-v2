@@ -1,9 +1,39 @@
-import type { ZudokuConfig } from 'zudoku';
+import type { ZudokuConfig, ZudokuPlugin } from 'zudoku';
 
 import { generateCodeSnippet } from './sdk-snippets';
 import './styles.css';
 
+const siteOrigin = 'https://api.collegefootballdata.com';
+const socialDescription =
+  'Documentation and API reference for the College Football Data API.';
+
+const seoPlugin: ZudokuPlugin = {
+  getHead: ({ location }) => (
+    <>
+      <meta property="og:type" content="website" />
+      <meta property="og:site_name" content="College Football Data API" />
+      <meta
+        property="og:title"
+        content="College Football Data API documentation"
+      />
+      <meta property="og:description" content={socialDescription} />
+      <meta
+        property="og:image"
+        content={`${siteOrigin}/brand/cfbd-watermark.png`}
+      />
+      <meta property="og:image:alt" content="College Football Data" />
+      <meta
+        property="og:url"
+        content={new URL(location.pathname, siteOrigin).toString()}
+      />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:site" content="@CFB_Data" />
+    </>
+  ),
+};
+
 const config: ZudokuConfig = {
+  canonicalUrlOrigin: siteOrigin,
   site: {
     title: 'College Football Data API',
     logo: {
@@ -87,13 +117,13 @@ const config: ZudokuConfig = {
     },
   },
   metadata: {
-    title: '%s | College Football Data API',
+    title: '%s | CFBD',
     defaultTitle: 'College Football Data API documentation',
-    description:
-      'Documentation and API reference for the College Football Data API.',
+    description: socialDescription,
     favicon: '/favicon.ico',
     applicationName: 'College Football Data API documentation',
   },
+  plugins: [seoPlugin],
   header: {
     navigation: [
       {
@@ -210,6 +240,11 @@ const config: ZudokuConfig = {
     },
   ],
   redirects: [{ from: '/', to: '/getting-started' }],
+  sitemap: {
+    siteUrl: siteOrigin,
+    changefreq: 'weekly',
+    autoLastmod: false,
+  },
   docs: {
     files: ['/pages/**/*.{md,mdx}'],
     publishMarkdown: true,

@@ -46,6 +46,18 @@ describe('documentation GA routes', () => {
       '<!doctype html><title>Documentation index</title>',
     );
     writeFileSync(
+      path.join(fixturePath, 'getting-started.html'),
+      '<!doctype html><title>Documentation index</title>',
+    );
+    writeFileSync(
+      path.join(fixturePath, 'getting-started.md'),
+      '# Getting started',
+    );
+    writeFileSync(
+      path.join(fixturePath, '404.html'),
+      '<!doctype html><title>Page not found</title>',
+    );
+    writeFileSync(
       path.join(fixturePath, 'assets/site.css'),
       'body { color: navy; }',
     );
@@ -55,12 +67,11 @@ describe('documentation GA routes', () => {
     rmSync(fixturePath, { force: true, recursive: true });
   });
 
-  test('serves the root, allowlisted routes, and static files', async () => {
+  test('serves allowlisted routes and static files', async () => {
     const app = express();
     registerDocumentation(app, fixturePath);
 
     const documentationRoutes = [
-      '/',
       '/getting-started',
       '/authentication',
       '/usage-and-access',
@@ -84,6 +95,42 @@ describe('documentation GA routes', () => {
       expect(assetResponse.status).toBe(200);
       expect(assetResponse.headers.get('content-type')).toContain('text/css');
       expect(await assetResponse.text()).toContain('color: navy');
+    });
+  });
+
+  test('permanently redirects root and duplicate page URLs', async () => {
+    const app = express();
+    registerDocumentation(app, fixturePath);
+
+    await withServer(app, async (baseUrl) => {
+      const redirects = [
+        ['/?source=home', '/getting-started?source=home'],
+        ['/getting-started.html?source=html', '/getting-started?source=html'],
+        ['/getting-started/?source=slash', '/getting-started?source=slash'],
+      ];
+
+      for (const [source, destination] of redirects) {
+        const response = await fetch(`${baseUrl}${source}`, {
+          redirect: 'manual',
+        });
+
+        expect(response.status).toBe(308);
+        expect(response.headers.get('location')).toBe(destination);
+      }
+    });
+  });
+
+  test('prevents alternate and error documents from being indexed', async () => {
+    const app = express();
+    registerDocumentation(app, fixturePath);
+
+    await withServer(app, async (baseUrl) => {
+      for (const route of ['/getting-started.md', '/404']) {
+        const response = await fetch(`${baseUrl}${route}`);
+
+        expect(response.status).toBe(200);
+        expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+      }
     });
   });
 

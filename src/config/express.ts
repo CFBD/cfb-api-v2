@@ -1,4 +1,4 @@
-import { Application } from 'express';
+import { Application, NextFunction, Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
 
 import bodyParser from 'body-parser';
@@ -49,7 +49,15 @@ export const configureServer = async (
     res.send(spec);
   });
 
-  app.use('/swagger', swaggerUi.serveFiles(spec), swaggerUi.setup(spec));
+  app.use(
+    '/swagger',
+    (_req: Request, res: Response, next: NextFunction) => {
+      res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      next();
+    },
+    swaggerUi.serveFiles(spec),
+    swaggerUi.setup(spec),
+  );
 
   registerDocumentation(app);
 

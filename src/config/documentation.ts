@@ -8,7 +8,6 @@ const repositoryRoot =
 const defaultDistPath = path.join(repositoryRoot, 'docs-site/dist');
 
 const documentationRoutes = [
-  '/',
   '/getting-started',
   '/authentication',
   '/usage-and-access',
@@ -36,6 +35,47 @@ export const registerDocumentation = (
     const destination = `/${suffix.replace(/^\/+/, '')}`;
 
     res.redirect(308, destination);
+  });
+
+  app.get('/', (req: Request, res: Response) => {
+    const queryIndex = req.originalUrl.indexOf('?');
+    const query = queryIndex === -1 ? '' : req.originalUrl.slice(queryIndex);
+
+    res.redirect(308, `/getting-started${query}`);
+  });
+
+  app.get(/\.html$/, (req: Request, res: Response) => {
+    const queryIndex = req.originalUrl.indexOf('?');
+    const query = queryIndex === -1 ? '' : req.originalUrl.slice(queryIndex);
+
+    res.redirect(308, `${req.path.slice(0, -'.html'.length)}${query}`);
+  });
+
+  app.get(/\/$/, (req: Request, res: Response, next: NextFunction) => {
+    const cleanPath = req.path.slice(0, -1);
+    const htmlPath = path.join(distPath, `${cleanPath}.html`);
+
+    if (!existsSync(htmlPath)) {
+      next();
+      return;
+    }
+
+    const queryIndex = req.originalUrl.indexOf('?');
+    const query = queryIndex === -1 ? '' : req.originalUrl.slice(queryIndex);
+
+    res.redirect(308, `${cleanPath}${query}`);
+  });
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (
+      req.path.endsWith('.md') ||
+      req.path === '/llms.txt' ||
+      /^\/(400|404|500)$/.test(req.path)
+    ) {
+      res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    }
+
+    next();
   });
 
   app.use('/', express.static(distPath, { extensions: ['html'] }));

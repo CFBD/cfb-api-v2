@@ -28,74 +28,92 @@
     "tags": [
       {
         "name": "games",
+        "x-displayName": "Games",
         "description": "Game schedules, results, box scores, media, and weather."
       },
       {
         "name": "playoffs",
+        "x-displayName": "Playoffs",
         "description": "College Football Playoff brackets, participants, and matchups."
       },
       {
         "name": "drives",
+        "x-displayName": "Drives",
         "description": "Historical drive-level data."
       },
       {
         "name": "plays",
+        "x-displayName": "Plays",
         "description": "Historical and live play-by-play data."
       },
       {
         "name": "teams",
+        "x-displayName": "Teams",
         "description": "Teams, rosters, matchups, talent ratings, and ATS records."
       },
       {
         "name": "conferences",
+        "x-displayName": "Conferences",
         "description": "Conference names, abbreviations, and classifications."
       },
       {
         "name": "venues",
+        "x-displayName": "Venues",
         "description": "College football venue information."
       },
       {
         "name": "coaches",
+        "x-displayName": "Coaches",
         "description": "Head coach identities, careers, seasons, and tenures."
       },
       {
         "name": "players",
+        "x-displayName": "Players",
         "description": "Player search, usage, production, and transfer data."
       },
       {
         "name": "rankings",
+        "x-displayName": "Rankings",
         "description": "Historical poll rankings and College Football Playoff snapshots."
       },
       {
         "name": "betting",
+        "x-displayName": "Betting",
         "description": "Historical betting lines and results."
       },
       {
         "name": "recruiting",
+        "x-displayName": "Recruiting",
         "description": "Player and team recruiting rankings and aggregated ratings."
       },
       {
         "name": "ratings",
+        "x-displayName": "Ratings",
         "description": "SP+, SRS, Elo, FPI, and CORE team ratings."
       },
       {
         "name": "metrics",
+        "x-displayName": "Metrics",
         "description": "Predicted points, PPA (EPA), win probability, and expected points metrics."
       },
       {
         "name": "stats",
+        "x-displayName": "Stats",
         "description": "Player and team statistics, including advanced metrics."
       },
       {
         "name": "draft",
+        "x-displayName": "Draft",
         "description": "NFL Draft picks, teams, and position categories."
       },
       {
         "name": "adjustedMetrics",
+        "x-displayName": "Adjusted metrics",
         "description": "Team and player metrics adjusted for opponent strength."
       },
       {
         "name": "info",
+        "x-displayName": "Info",
         "description": "Authenticated user account and API usage information."
       }
     ]
