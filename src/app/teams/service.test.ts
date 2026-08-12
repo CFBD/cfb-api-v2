@@ -166,12 +166,7 @@ describe('team conference affiliations', () => {
     const lowerBuilder = createQueryBuilder();
     selectFrom.mockReturnValueOnce(lowerBuilder);
 
-    await getTeamConferenceAffiliations(
-      undefined,
-      undefined,
-      undefined,
-      1990,
-    );
+    await getTeamConferenceAffiliations(undefined, undefined, undefined, 1990);
 
     expect(
       lowerBuilder.where.mock.calls.some(
