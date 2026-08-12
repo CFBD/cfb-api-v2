@@ -54,7 +54,7 @@
       {
         "name": "conferences",
         "x-displayName": "Conferences",
-        "description": "Conference names, abbreviations, and classifications."
+        "description": "Conference names, classifications, and historical team affiliations."
       },
       {
         "name": "venues",

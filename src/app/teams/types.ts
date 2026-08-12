@@ -1,5 +1,3 @@
-import { DivisionClassification } from '../enums';
-
 export interface Team {
   /**
    * @isInt
@@ -137,7 +135,69 @@ export interface Conference {
   name: string;
   shortName: string | null;
   abbreviation: string | null;
-  classification: DivisionClassification | null;
+  classification: ConferenceClassification | null;
+  /**
+   * @isInt
+   */
+  memberCount: number;
+}
+
+export enum ConferenceClassification {
+  FBS = 'fbs',
+  FCS = 'fcs',
+  II = 'ii',
+  IIOrIII = 'ii/iii',
+  III = 'iii',
+}
+
+export interface TeamConferenceAffiliation {
+  /**
+   * @isInt
+   */
+  teamId: number;
+  team: string;
+  /**
+   * @isInt
+   */
+  conferenceId: number;
+  conference: string;
+  conferenceAbbreviation: string | null;
+  classification: ConferenceClassification | null;
+  conferenceDivision: string | null;
+  /**
+   * @isInt
+   */
+  startYear: number;
+  /**
+   * @isInt
+   */
+  endYear: number | null;
+}
+
+export interface TeamConferenceChange {
+  /**
+   * @isInt
+   */
+  teamId: number;
+  team: string;
+  /**
+   * @isInt
+   */
+  fromConferenceId: number;
+  fromConference: string;
+  fromConferenceAbbreviation: string | null;
+  fromClassification: ConferenceClassification | null;
+  /**
+   * @isInt
+   */
+  toConferenceId: number;
+  toConference: string;
+  toConferenceAbbreviation: string | null;
+  toClassification: ConferenceClassification | null;
+  /**
+   * @isInt
+   */
+  effectiveYear: number;
 }
 
 export interface TeamTalent {

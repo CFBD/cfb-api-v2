@@ -4,6 +4,8 @@ import middlewares from '../../config/middleware';
 
 import {
   getTeams,
+  getTeamConferenceAffiliations,
+  getTeamConferenceChanges,
   getFBSTeams,
   getMatchup,
   getRoster,
@@ -14,10 +16,13 @@ import {
 } from './service';
 import {
   Conference,
+  ConferenceClassification,
   Matchup,
   RosterPlayer,
   Team,
   TeamATS,
+  TeamConferenceAffiliation,
+  TeamConferenceChange,
   TeamTalent,
   Venue,
 } from './types';
@@ -113,11 +118,60 @@ export class RosterController extends Controller {
 @Tags('conferences')
 export class ConferencesController extends Controller {
   /**
-   * Returns the available conferences.
+   * Returns conferences and member counts.
+   * @param year Season year used to calculate membership.
+   * @param classification Conference classification.
+   * @isInt year
    */
   @Get()
-  public async getConferences(): Promise<Conference[]> {
-    return await getConferences();
+  public async getConferences(
+    @Query() year?: number,
+    @Query() classification?: ConferenceClassification,
+  ): Promise<Conference[]> {
+    return await getConferences(year, classification);
+  }
+
+  /**
+   * Returns team conference changes by season.
+   * @param year Season year.
+   * @isInt year
+   */
+  @Get('changes')
+  public async getTeamConferenceChanges(
+    @Query() year: number,
+  ): Promise<TeamConferenceChange[]> {
+    return await getTeamConferenceChanges(year);
+  }
+
+  /**
+   * Returns historical team conference affiliations.
+   * @param team Team school name or abbreviation.
+   * @param conference Conference name or abbreviation.
+   * @param year Season year. Cannot be combined with `minYear` or `maxYear`.
+   * @param minYear Earliest season year to include.
+   * @param maxYear Latest season year to include.
+   * @param classification Conference classification.
+   * @isInt year
+   * @isInt minYear
+   * @isInt maxYear
+   */
+  @Get('affiliations')
+  public async getTeamConferenceAffiliations(
+    @Query() team?: string,
+    @Query() conference?: string,
+    @Query() year?: number,
+    @Query() minYear?: number,
+    @Query() maxYear?: number,
+    @Query() classification?: ConferenceClassification,
+  ): Promise<TeamConferenceAffiliation[]> {
+    return await getTeamConferenceAffiliations(
+      team,
+      conference,
+      year,
+      minYear,
+      maxYear,
+      classification,
+    );
   }
 }
 

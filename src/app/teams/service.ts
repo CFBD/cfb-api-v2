@@ -2,15 +2,203 @@ import { ValidateError } from 'tsoa';
 import { kdb } from '../../config/database';
 import {
   Conference,
+  ConferenceClassification,
   Matchup,
   MatchupGame,
   RosterPlayer,
   Team,
   TeamATS,
+  TeamConferenceAffiliation,
+  TeamConferenceChange,
   TeamTalent,
   Venue,
 } from './types';
 import { DivisionClassification } from '../enums';
+
+export const validateAffiliationYearFilters = (
+  year?: number,
+  minYear?: number,
+  maxYear?: number,
+): void => {
+  if (year !== undefined && (minYear !== undefined || maxYear !== undefined)) {
+    throw new ValidateError(
+      {
+        year: {
+          value: year,
+          message: 'year cannot be combined with minYear or maxYear',
+        },
+      },
+      'Validation error',
+    );
+  }
+
+  if (minYear !== undefined && maxYear !== undefined && minYear > maxYear) {
+    throw new ValidateError(
+      {
+        minYear: {
+          value: minYear,
+          message: 'minYear cannot be greater than maxYear',
+        },
+      },
+      'Validation error',
+    );
+  }
+};
+
+export const getTeamConferenceAffiliations = async (
+  team?: string,
+  conference?: string,
+  year?: number,
+  minYear?: number,
+  maxYear?: number,
+  classification?: ConferenceClassification,
+): Promise<TeamConferenceAffiliation[]> => {
+  validateAffiliationYearFilters(year, minYear, maxYear);
+
+  let query = kdb
+    .selectFrom('conferenceTeam as ct')
+    .innerJoin('team', 'ct.teamId', 'team.id')
+    .innerJoin('conference', 'ct.conferenceId', 'conference.id')
+    .select([
+      'team.id as teamId',
+      'team.school as team',
+      'conference.id as conferenceId',
+      'conference.name as conference',
+      'conference.abbreviation as conferenceAbbreviation',
+      'conference.division as classification',
+      'ct.division as conferenceDivision',
+      'ct.startYear',
+      'ct.endYear',
+    ])
+    .orderBy('team.school')
+    .orderBy('ct.startYear')
+    .orderBy('conference.name');
+
+  if (team !== undefined) {
+    query = query.where((eb) =>
+      eb.or([
+        eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
+        eb(eb.fn('lower', ['team.abbreviation']), '=', team.toLowerCase()),
+      ]),
+    );
+  }
+
+  if (conference !== undefined) {
+    query = query.where((eb) =>
+      eb.or([
+        eb(eb.fn('lower', ['conference.name']), '=', conference.toLowerCase()),
+        eb(
+          eb.fn('lower', ['conference.abbreviation']),
+          '=',
+          conference.toLowerCase(),
+        ),
+      ]),
+    );
+  }
+
+  if (classification) {
+    query = query.where('conference.division', '=', classification);
+  }
+
+  if (year !== undefined) {
+    query = query
+      .where('ct.startYear', '<=', year)
+      .where((eb) =>
+        eb.or([eb('ct.endYear', 'is', null), eb('ct.endYear', '>=', year)]),
+      );
+  } else {
+    if (maxYear !== undefined) {
+      query = query.where('ct.startYear', '<=', maxYear);
+    }
+
+    if (minYear !== undefined) {
+      query = query.where((eb) =>
+        eb.or([eb('ct.endYear', 'is', null), eb('ct.endYear', '>=', minYear)]),
+      );
+    }
+  }
+
+  const affiliations = await query.execute();
+
+  return affiliations.map((affiliation): TeamConferenceAffiliation => {
+    if (affiliation.startYear === null) {
+      throw new Error(
+        `Conference affiliation for team ${affiliation.teamId} ` +
+          `and conference ${affiliation.conferenceId} has no start year`,
+      );
+    }
+
+    return {
+      teamId: affiliation.teamId,
+      team: affiliation.team,
+      conferenceId: affiliation.conferenceId,
+      conference: affiliation.conference,
+      conferenceAbbreviation: affiliation.conferenceAbbreviation,
+      classification:
+        affiliation.classification as ConferenceClassification | null,
+      conferenceDivision: affiliation.conferenceDivision,
+      startYear: affiliation.startYear,
+      endYear: affiliation.endYear,
+    };
+  });
+};
+
+export const getTeamConferenceChanges = async (
+  year: number,
+): Promise<TeamConferenceChange[]> => {
+  const changes = await kdb
+    .selectFrom('conferenceTeam as destination')
+    .innerJoin('conferenceTeam as source', (join) =>
+      join
+        .onRef('source.teamId', '=', 'destination.teamId')
+        .on('source.endYear', '=', year - 1)
+        .onRef('source.conferenceId', '!=', 'destination.conferenceId'),
+    )
+    .innerJoin('team', 'destination.teamId', 'team.id')
+    .innerJoin(
+      'conference as fromConference',
+      'source.conferenceId',
+      'fromConference.id',
+    )
+    .innerJoin(
+      'conference as toConference',
+      'destination.conferenceId',
+      'toConference.id',
+    )
+    .where('destination.startYear', '=', year)
+    .select([
+      'team.id as teamId',
+      'team.school as team',
+      'fromConference.id as fromConferenceId',
+      'fromConference.name as fromConference',
+      'fromConference.abbreviation as fromConferenceAbbreviation',
+      'fromConference.division as fromClassification',
+      'toConference.id as toConferenceId',
+      'toConference.name as toConference',
+      'toConference.abbreviation as toConferenceAbbreviation',
+      'toConference.division as toClassification',
+    ])
+    .orderBy('team.school')
+    .execute();
+
+  return changes.map(
+    (change): TeamConferenceChange => ({
+      teamId: change.teamId,
+      team: change.team,
+      fromConferenceId: change.fromConferenceId,
+      fromConference: change.fromConference,
+      fromConferenceAbbreviation: change.fromConferenceAbbreviation,
+      fromClassification:
+        change.fromClassification as ConferenceClassification | null,
+      toConferenceId: change.toConferenceId,
+      toConference: change.toConference,
+      toConferenceAbbreviation: change.toConferenceAbbreviation,
+      toClassification:
+        change.toClassification as ConferenceClassification | null,
+      effectiveYear: year,
+    }),
+  );
+};
 
 export const getTeams = async (
   conference?: string,
@@ -416,16 +604,52 @@ export const getRoster = async (
   );
 };
 
-export const getConferences = async (): Promise<Conference[]> => {
-  const query = kdb
+export const getConferences = async (
+  year?: number,
+  classification?: ConferenceClassification,
+): Promise<Conference[]> => {
+  let query = kdb
     .selectFrom('conference')
+    .leftJoin('conferenceTeam as ct', (join) => {
+      if (year !== undefined) {
+        return join
+          .onRef('conference.id', '=', 'ct.conferenceId')
+          .on('ct.startYear', '<=', year)
+          .on((eb) =>
+            eb.or([eb('ct.endYear', 'is', null), eb('ct.endYear', '>=', year)]),
+          );
+      }
+
+      return join
+        .onRef('conference.id', '=', 'ct.conferenceId')
+        .on('ct.endYear', 'is', null);
+    })
     .select([
-      'id',
-      'name',
-      'shortName',
-      'abbreviation',
-      'division as classification',
-    ]);
+      'conference.id',
+      'conference.name',
+      'conference.shortName',
+      'conference.abbreviation',
+      'conference.division as classification',
+    ])
+    .select((eb) =>
+      eb.fn.count<number>('ct.teamId').distinct().as('memberCount'),
+    )
+    .groupBy([
+      'conference.id',
+      'conference.name',
+      'conference.shortName',
+      'conference.abbreviation',
+      'conference.division',
+    ])
+    .orderBy('conference.name');
+
+  if (year !== undefined) {
+    query = query.where('ct.id', 'is not', null);
+  }
+
+  if (classification) {
+    query = query.where('conference.division', '=', classification);
+  }
 
   const conferences = await query.execute();
 
@@ -435,8 +659,8 @@ export const getConferences = async (): Promise<Conference[]> => {
       name: c.name,
       shortName: c.shortName,
       abbreviation: c.abbreviation,
-      // @ts-ignore
-      classification: c.classification,
+      classification: c.classification as ConferenceClassification | null,
+      memberCount: Number(c.memberCount),
     }),
   );
 };
