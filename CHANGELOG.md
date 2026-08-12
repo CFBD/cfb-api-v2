@@ -1,3 +1,10 @@
+# [5.24.0](https://github.com/CFBD/cfb-api-v2/compare/v5.23.0...v5.24.0) (2026-08-12)
+
+
+### Features
+
+* **conferences:** new conference history and realignment endpoints ([5019c13](https://github.com/CFBD/cfb-api-v2/commit/5019c138bda647dcaa9f2460073c148231a7193c))
+
 # [5.23.0](https://github.com/CFBD/cfb-api-v2/compare/v5.22.0...v5.23.0) (2026-08-08)
 
 
