@@ -200,37 +200,37 @@ describe('getCore', () => {
     expect(expressionBuilder.or).toHaveBeenCalledTimes(1);
   });
 
-  test('maps stored precision, zeroes, boundaries, and nullable conferences', async () => {
+  test('maps stored precision, Week 0 zeroes, and nullable conferences', async () => {
     const builder = createQueryBuilder([
       {
-        year: 2025,
-        throughSeasonType: 'postseason',
-        throughWeek: 1,
+        year: 2026,
+        throughSeasonType: 'regular',
+        throughWeek: 0,
         team: 'Independent State',
         conference: null,
         overall: '0',
         offense: '10.123456789',
         defense: '10.123456789',
-        offensePlays: '418',
-        defensePlays: '402',
-        modelVersion: 'core-v1',
+        offensePlays: '0',
+        defensePlays: '0',
+        modelVersion: 'core-preseason-v1',
       },
     ]);
     selectFrom.mockReturnValue(builder);
 
-    await expect(getCore(2025)).resolves.toEqual([
+    await expect(getCore(2026)).resolves.toEqual([
       {
-        year: 2025,
-        throughSeasonType: 'postseason',
-        throughWeek: 1,
+        year: 2026,
+        throughSeasonType: 'regular',
+        throughWeek: 0,
         team: 'Independent State',
         conference: null,
         overall: 0,
         offense: 10.12,
         defense: 10.12,
-        offensePlays: 418,
-        defensePlays: 402,
-        modelVersion: 'core-v1',
+        offensePlays: 0,
+        defensePlays: 0,
+        modelVersion: 'core-preseason-v1',
       },
     ]);
   });
