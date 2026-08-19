@@ -1,3 +1,10 @@
+## [5.24.1](https://github.com/CFBD/cfb-api-v2/compare/v5.24.0...v5.24.1) (2026-08-19)
+
+
+### Bug Fixes
+
+* division classification filters for ii/iii option ([7765276](https://github.com/CFBD/cfb-api-v2/commit/77652763a1751ab8944b29ada6f6782ccb2bf541))
+
 # [5.24.0](https://github.com/CFBD/cfb-api-v2/compare/v5.23.0...v5.24.0) (2026-08-12)
 
 
