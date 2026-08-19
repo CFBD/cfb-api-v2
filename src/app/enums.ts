@@ -25,6 +25,7 @@ export enum DivisionClassification {
   FBS = 'fbs',
   FCS = 'fcs',
   II = 'ii',
+  IIOrIII = 'ii/iii',
   III = 'iii',
 }
 
