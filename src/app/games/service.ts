@@ -1,4 +1,5 @@
 import { ValidateError } from 'tsoa';
+import { sql } from 'kysely';
 import { kdb } from '../../config/database';
 import {
   DivisionClassification,
@@ -1043,42 +1044,16 @@ export const getRecords = async (
     );
   }
 
-  let query = kdb
+  let recordsQuery = kdb
     .selectFrom('game')
     .innerJoin('gameTeam as gt', 'game.id', 'gt.gameId')
-    .innerJoin('team as t', 'gt.teamId', 't.id')
+    .innerJoin('team as recordTeam', 'gt.teamId', 'recordTeam.id')
     .innerJoin('gameTeam as gt2', (join) =>
       join.onRef('game.id', '=', 'gt2.gameId').onRef('gt2.id', '<>', 'gt.id'),
     )
-    .innerJoin('conferenceTeam as ct', (join) =>
-      join
-        .onRef('t.id', '=', 'ct.teamId')
-        .onRef('ct.startYear', '<=', 'game.season')
-        .on((eb) =>
-          eb.or([
-            eb('ct.endYear', '>=', eb.ref('game.season')),
-            eb('ct.endYear', 'is', null),
-          ]),
-        ),
-    )
-    .innerJoin('conference as c', 'ct.conferenceId', 'c.id')
     .where('game.status', '=', GameStatus.Completed)
-    .groupBy([
-      'game.season',
-      't.id',
-      't.school',
-      'c.division',
-      'c.name',
-      'ct.division',
-    ])
-    .select([
-      'game.season',
-      't.id as teamId',
-      't.school as team',
-      'c.division as classification',
-      'c.name as conference',
-      'ct.division',
-    ])
+    .groupBy(['game.season', 'gt.teamId'])
+    .select(['game.season', 'gt.teamId'])
     .select((eb) => eb.fn.countAll().as('games'))
     .select((eb) =>
       eb.fn.countAll().filterWhere('gt.winner', '=', true).as('wins'),
@@ -1353,7 +1328,83 @@ export const getRecords = async (
     .select((eb) => eb.fn.sum('gt.winProb').as('expectedWins'));
 
   if (year) {
-    query = query.where('game.season', '=', year);
+    recordsQuery = recordsQuery.where('game.season', '=', year);
+  }
+
+  if (team) {
+    recordsQuery = recordsQuery.where((eb) =>
+      eb(eb.fn('lower', ['recordTeam.school']), '=', team.toLowerCase()),
+    );
+  }
+
+  let query = kdb
+    .selectFrom('conferenceTeam as ct')
+    .innerJoin('team as t', 'ct.teamId', 't.id')
+    .innerJoin('conference as c', 'ct.conferenceId', 'c.id')
+    .leftJoin(recordsQuery.as('records'), (join) => {
+      const recordsJoin = join.onRef('ct.teamId', '=', 'records.teamId');
+
+      if (year) {
+        return recordsJoin.on('records.season', '=', year);
+      }
+
+      return recordsJoin
+        .onRef('ct.startYear', '<=', 'records.season')
+        .on((eb) =>
+          eb.or([
+            eb('ct.endYear', '>=', eb.ref('records.season')),
+            eb('ct.endYear', 'is', null),
+          ]),
+        );
+    })
+    .select([
+      year
+        ? sql<number>`${year}`.as('season')
+        : sql<number>`records.season`.as('season'),
+      't.id as teamId',
+      't.school as team',
+      'c.division as classification',
+      'c.name as conference',
+      'ct.division',
+      'records.games',
+      'records.wins',
+      'records.losses',
+      'records.ties',
+      'records.conferenceGames',
+      'records.conferenceWins',
+      'records.conferenceLosses',
+      'records.conferenceTies',
+      'records.homeGames',
+      'records.homeWins',
+      'records.homeLosses',
+      'records.homeTies',
+      'records.awayGames',
+      'records.awayWins',
+      'records.awayLosses',
+      'records.awayTies',
+      'records.neutralGames',
+      'records.neutralWins',
+      'records.neutralLosses',
+      'records.neutralTies',
+      'records.regularSeasonGames',
+      'records.regularSeasonWins',
+      'records.regularSeasonLosses',
+      'records.regularSeasonTies',
+      'records.postseasonGames',
+      'records.postseasonWins',
+      'records.postseasonLosses',
+      'records.postseasonTies',
+      'records.expectedWins',
+    ]);
+
+  if (year) {
+    query = query
+      .where('ct.startYear', '<=', year)
+      .where((eb) =>
+        eb.or([eb('ct.endYear', '>=', year), eb('ct.endYear', 'is', null)]),
+      );
+  } else {
+    query = query.where('records.season', 'is not', null);
   }
 
   if (team) {
@@ -1370,24 +1421,30 @@ export const getRecords = async (
 
   const results = await query.execute();
 
-  const intParseOrConvert = (n: string | number | bigint): number =>
-    typeof n === 'number' || typeof n === 'bigint'
-      ? (n as number)
-      : parseInt(n);
+  const intParseOrConvert = (n: string | number | bigint | null): number =>
+    n === null
+      ? 0
+      : typeof n === 'number' || typeof n === 'bigint'
+        ? (n as number)
+        : parseInt(n);
 
   return results.map(
     (r): TeamRecords => ({
       year: r.season,
       teamId: r.teamId,
       team: r.team,
-      // @ts-ignore
-      classification: r.classification,
+      classification: r.classification as DivisionClassification | null,
       conference: r.conference,
       division: r.division || '',
       expectedWins:
-        typeof r.expectedWins === 'number' || typeof r.expectedWins === 'bigint'
-          ? (r.expectedWins as number)
-          : parseFloat(r.expectedWins),
+        r.games === null
+          ? 0
+          : r.expectedWins === null
+            ? null
+            : typeof r.expectedWins === 'number' ||
+                typeof r.expectedWins === 'bigint'
+              ? (r.expectedWins as number)
+              : parseFloat(r.expectedWins),
       total: {
         games: intParseOrConvert(r.games),
         wins: intParseOrConvert(r.wins),

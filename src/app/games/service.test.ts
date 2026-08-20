@@ -4,6 +4,7 @@ import { SeasonType } from '../enums';
 import { PlayoffCompetition, PlayoffRound } from '../playoffs/types';
 import {
   getGames,
+  getRecords,
   mapGamePlayoff,
   validateGamePlayoffFilters,
 } from './service';
@@ -24,8 +25,10 @@ const createQueryBuilder = () => {
     'innerJoin',
     'leftJoin',
     'orderBy',
+    'groupBy',
     'select',
     'where',
+    'as',
   ]) {
     builder[method] = jest.fn().mockReturnValue(builder);
   }
@@ -145,5 +148,103 @@ describe('getGames playoff query construction', () => {
     const filteredColumns = builder.where.mock.calls.map((call) => call[0]);
     expect(filteredColumns).not.toContain('playoffTournament.competition');
     expect(filteredColumns).not.toContain('playoffRound.code');
+  });
+});
+
+describe('getRecords', () => {
+  test('returns zeroed records for an affiliated team with no completed games', async () => {
+    const recordsBuilder = createQueryBuilder();
+    const queryBuilder = createQueryBuilder();
+    queryBuilder.execute.mockResolvedValue([
+      {
+        season: 2026,
+        teamId: 1,
+        team: 'Example State',
+        classification: 'fbs',
+        conference: 'Example Conference',
+        division: null,
+        games: null,
+        wins: null,
+        losses: null,
+        ties: null,
+        conferenceGames: null,
+        conferenceWins: null,
+        conferenceLosses: null,
+        conferenceTies: null,
+        homeGames: null,
+        homeWins: null,
+        homeLosses: null,
+        homeTies: null,
+        awayGames: null,
+        awayWins: null,
+        awayLosses: null,
+        awayTies: null,
+        neutralGames: null,
+        neutralWins: null,
+        neutralLosses: null,
+        neutralTies: null,
+        regularSeasonGames: null,
+        regularSeasonWins: null,
+        regularSeasonLosses: null,
+        regularSeasonTies: null,
+        postseasonGames: null,
+        postseasonWins: null,
+        postseasonLosses: null,
+        postseasonTies: null,
+        expectedWins: null,
+      },
+    ]);
+    selectFrom
+      .mockReturnValueOnce(recordsBuilder)
+      .mockReturnValueOnce(queryBuilder);
+
+    await expect(getRecords(2026)).resolves.toEqual([
+      {
+        year: 2026,
+        teamId: 1,
+        team: 'Example State',
+        classification: 'fbs',
+        conference: 'Example Conference',
+        division: '',
+        expectedWins: 0,
+        total: { games: 0, wins: 0, losses: 0, ties: 0 },
+        conferenceGames: { games: 0, wins: 0, losses: 0, ties: 0 },
+        homeGames: { games: 0, wins: 0, losses: 0, ties: 0 },
+        awayGames: { games: 0, wins: 0, losses: 0, ties: 0 },
+        neutralSiteGames: { games: 0, wins: 0, losses: 0, ties: 0 },
+        regularSeason: { games: 0, wins: 0, losses: 0, ties: 0 },
+        postseason: { games: 0, wins: 0, losses: 0, ties: 0 },
+      },
+    ]);
+
+    expect(selectFrom.mock.calls).toEqual([['game'], ['conferenceTeam as ct']]);
+    expect(recordsBuilder.where).toHaveBeenCalledWith(
+      'game.status',
+      '=',
+      'completed',
+    );
+    expect(recordsBuilder.where).toHaveBeenCalledWith('game.season', '=', 2026);
+    expect(queryBuilder.where).toHaveBeenCalledWith('ct.startYear', '<=', 2026);
+  });
+
+  test('requires completed records for historical team-only requests', async () => {
+    const recordsBuilder = createQueryBuilder();
+    const queryBuilder = createQueryBuilder();
+    selectFrom
+      .mockReturnValueOnce(recordsBuilder)
+      .mockReturnValueOnce(queryBuilder);
+
+    await getRecords(undefined, 'Example State');
+
+    expect(queryBuilder.where).toHaveBeenCalledWith(
+      'records.season',
+      'is not',
+      null,
+    );
+  });
+
+  test('requires a year or team', async () => {
+    await expect(getRecords()).rejects.toBeInstanceOf(ValidateError);
+    expect(selectFrom).not.toHaveBeenCalled();
   });
 });
