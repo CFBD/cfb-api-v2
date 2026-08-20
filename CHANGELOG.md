@@ -1,3 +1,10 @@
+## [5.24.2](https://github.com/CFBD/cfb-api-v2/compare/v5.24.1...v5.24.2) (2026-08-20)
+
+
+### Bug Fixes
+
+* **records:** display 0 values in preseason instead of an empty list ([7d19435](https://github.com/CFBD/cfb-api-v2/commit/7d19435237d6cfddd62c951e695f63f2cc1909ae))
+
 ## [5.24.1](https://github.com/CFBD/cfb-api-v2/compare/v5.24.0...v5.24.1) (2026-08-19)
 
 
