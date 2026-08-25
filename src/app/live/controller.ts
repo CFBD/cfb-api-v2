@@ -14,6 +14,7 @@ export class LiveController extends Controller {
    */
   @Tags('plays')
   @Get('plays')
+  @Middlewares(middlewares.requirePatreonTier(2))
   public async getLivePlays(@Query() gameId: number): Promise<LiveGame> {
     return getLivePlays(gameId);
   }

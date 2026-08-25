@@ -26,6 +26,7 @@ const buildUser = (overrides: Partial<ApiUser> = {}): ApiUser => ({
   patronLevel: 0,
   remainingCalls: 800,
   isAdmin: false,
+  principalClass: 'individual',
   ...overrides,
 });
 

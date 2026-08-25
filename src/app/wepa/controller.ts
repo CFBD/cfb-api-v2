@@ -21,6 +21,7 @@ export class WepaController extends Controller {
    * @isInt year
    */
   @Get('team/season')
+  @Middlewares(middlewares.requirePatreonTier(1))
   public async getAdjustedTeamSeasonStats(
     @Query() year?: number,
     @Query() team?: string,
@@ -38,6 +39,7 @@ export class WepaController extends Controller {
    * @isInt year
    */
   @Get('players/passing')
+  @Middlewares(middlewares.requirePatreonTier(1))
   public async getAdjustedPlayerPassingStats(
     @Query() year?: number,
     @Query() team?: string,
@@ -56,6 +58,7 @@ export class WepaController extends Controller {
    * @isInt year
    */
   @Get('players/rushing')
+  @Middlewares(middlewares.requirePatreonTier(1))
   public async getAdjustedPlayerRushingStats(
     @Query() year?: number,
     @Query() team?: string,
@@ -73,6 +76,7 @@ export class WepaController extends Controller {
    * @isInt year
    */
   @Get('players/kicking')
+  @Middlewares(middlewares.requirePatreonTier(1))
   public async getKickerPaar(
     @Query() year?: number,
     @Query() team?: string,

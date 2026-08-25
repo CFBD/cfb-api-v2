@@ -1,6 +1,6 @@
 # CFB API v2 Architecture
 
-Last reviewed: 2026-08-04
+Last reviewed: 2026-08-22
 
 ## System Purpose
 
@@ -32,8 +32,12 @@ Docker image through GitHub Actions.
 - `src/config/express.ts`: Express server composition and Swagger exposure.
 - `src/config/documentation.ts`: Zudoku static files, GA redirects, and the
   allowlisted HTML fallback.
-- `src/config/auth.ts`: TSOA bearer authentication and Patreon-gated endpoint
-  checks.
+- `src/config/auth.ts`: strict TSOA bearer authentication and service-principal
+  scope enforcement.
+- `src/config/servicePrincipals.ts`: page/exporter identity classification and
+  exact operation policy.
+- `src/config/redis.ts`: optional Redis connection used by the scoreboard
+  snapshot.
 - `src/config/database.ts`: PostgreSQL connection setup for both `pg-promise`
   and Kysely.
 - `src/config/middleware/`: CORS, quota metering/refunds, bad parameter
@@ -66,23 +70,82 @@ Services are the behavior boundary:
 ## Authentication, Quotas, And Slowdown
 
 TSOA uses `expressAuthentication` from `src/config/auth.ts` for the `apiKey`
-security definition in `tsoa.json`. Requests normally need an
-`Authorization: Bearer <token>` header, with development and configured CORS
-origin exceptions for non-Patreon-locked paths.
+security definition in `tsoa.json`. Data requests require the exact
+`Authorization: Bearer <token>` form. Browser `Origin` and `Host` values are not
+authentication. `POST /auth/key` is explicitly anonymous through TSOA's
+`@NoSecurity()` decorator.
 
-`patreonLocked` in `src/config/auth.ts` maps gated paths to required Patreon
-tiers. Keep this map aligned with endpoint behavior and customer-facing docs
-when changing gated endpoints.
+Two non-admin website service users are classified by configured numeric user
+ID. The page user can call only the explicit public-page operation set. The
+exporter user can call documented GET operations except the reviewed deny set.
+Scope denial happens before successful metrics, quota, controller, or database
+work.
+
+Production requires these private configuration values:
+
+| Variable                           | Purpose                                                        |
+| ---------------------------------- | -------------------------------------------------------------- |
+| `CFBD_PUBLIC_PAGE_SERVICE_USER_ID` | Positive numeric auth-user ID for curated website page traffic |
+| `CFBD_EXPORTER_SERVICE_USER_ID`    | Distinct positive numeric auth-user ID for exporter traffic    |
+| `REDIS_URL`                        | Scoreboard Redis endpoint                                      |
+| `REDIS_PASSWORD`                   | Redis password when required by the endpoint                   |
+
+The IDs classify already authenticated users; they are not credentials. Both
+users must be non-admin, unblacklisted, and have no Patreon tier. The page
+service is limited to these GET operations:
+
+- `/teams`
+- `/conferences`
+- `/games`
+- `/player/search`
+- `/plays/types`
+- `/plays/stats/types`
+- `/ppa/predicted`
+- `/teams/matchup`
+- `/stats/season/advanced`
+- `/player/usage`
+- `/ppa/players/season`
+- `/player/ppa/passing`
+- `/ratings/sp`
+- `/ratings/sp/conferences`
+- `/metrics/wp`
+- `/game/box/advanced`
+
+The exporter service can call generated, documented GET operations except:
+
+- `/games/weather`
+- `/scoreboard`
+- `/live/plays`
+- `/game/box/advanced`
+- `/wepa/team/season`
+- `/wepa/players/passing`
+- `/wepa/players/rushing`
+- `/wepa/players/kicking`
+- `/info`
+
+Patreon checks are operation-bound middleware on the seven existing paid
+handlers. This keeps tier enforcement consistent for canonical, mixed-case,
+and trailing-slash requests without changing the existing tiers.
 
 Quota behavior lives in `src/config/middleware/quotas.ts`:
 
 - `checkCallQuotas` reserves one monthly call for authenticated, non-admin
-  users unless the path is ignored.
+  users unless the matched operation is ignored. The page service is not hard
+  metered; the exporter uses the normal atomic quota path.
 - `updateQuotas` refunds a reserved call for non-2xx responses and writes
   `X-CallLimit-Remaining`.
 
 Per-user slowdown rules are composed in `src/config/middleware/index.ts` with
 `createRateSlowdown`.
+
+## Scoreboard Cache
+
+`GET /scoreboard` remains Tier 1 and quota-exempt. Its service reads a
+versioned, canonical full scoreboard snapshot from Redis with a 60-second TTL,
+then applies classification and conference filtering in memory. A short Redis
+lock coalesces cache misses. Redis connection, read, write, lock, or parse
+failures fall back to the original filtered PostgreSQL query and do not change
+the public `ScoreboardGame[]` contract.
 
 ## Data Access
 
@@ -132,6 +195,18 @@ The pnpm version is pinned in `package.json`, `.github/workflows/release.yml`,
 and `Dockerfile`; keep all three pins aligned when upgrading. Supply-chain
 release-age policy and any approved, version-specific exceptions live in
 `pnpm-workspace.yaml`.
+
+Deploy the CBB API deny-only containment before activating either CFB website
+credential. The CFB web container and monthly reset job must use the same
+service identities configured here. The reset job assigns the exporter a
+100,000-call monthly allowance as an operational backstop.
+
+Rotate the two keys independently: provision the replacement, update only the
+matching private website runtime value, restart and smoke the affected website
+route class, verify an out-of-scope operation returns 401, and then revoke the
+old token. For an exporter incident, disable its website relay with
+`NUXT_EXPORTER_ENABLED=false`; blacklisting a service user is the API-side
+emergency revocation.
 
 ## Change Boundaries
 

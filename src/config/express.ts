@@ -13,10 +13,12 @@ import spec from '../../build/swagger.json';
 import { registerDocumentation } from './documentation';
 import errorHandler from './errors';
 import { updateQuotas } from './middleware/quotas';
+import { validateServicePrincipalConfiguration } from './servicePrincipals';
 
 export const configureServer = async (
   app: Application,
 ): Promise<Application> => {
+  validateServicePrincipalConfiguration();
   app.enable('trust proxy');
 
   app.use(Sentry.Handlers.requestHandler());

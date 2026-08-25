@@ -207,6 +207,7 @@ export class GamesController extends Controller {
    * @isInt gameId
    */
   @Get('weather')
+  @Middlewares(middlewares.requirePatreonTier(1))
   public async getWeather(
     @Query() year?: number,
     @Query() seasonType?: SeasonType,
@@ -274,6 +275,7 @@ export class ScoreboardController extends Controller {
    * @param conference Conference name or abbreviation.
    */
   @Get()
+  @Middlewares(middlewares.requirePatreonTier(1))
   public async getScoreboard(
     @Query() classification?: DivisionClassification,
     @Query() conference?: string,

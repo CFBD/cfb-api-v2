@@ -19,10 +19,11 @@ import {
   GameTeamStats,
   GameTeamStatsTeamStat,
   GameWeather,
-  ScoreboardGame,
   TeamRecords,
 } from './types';
 import { PlayoffCompetition, PlayoffRound } from '../playoffs/types';
+
+export { getScoreboard } from './scoreboard';
 
 export interface GamePlayoffMetadataRecord {
   playoffMatchupId: number | null;
@@ -1430,7 +1431,7 @@ export const getRecords = async (
 
   return results.map(
     (r): TeamRecords => ({
-      year: r.season,
+      year: intParseOrConvert(r.season),
       teamId: r.teamId,
       team: r.team,
       classification: r.classification as DivisionClassification | null,
@@ -1509,101 +1510,6 @@ export const getCalendar = async (year: number): Promise<CalendarWeek[]> => {
       endDate: w.endDate,
       firstGameStart: w.startDate,
       lastGameStart: w.endDate,
-    }),
-  );
-};
-
-export const getScoreboard = async (
-  classification: DivisionClassification = DivisionClassification.FBS,
-  conference?: string,
-): Promise<ScoreboardGame[]> => {
-  let query = kdb
-    .selectFrom('scoreboard')
-    .where((eb) =>
-      eb.or([
-        eb('homeClassification', '=', classification),
-        eb('awayClassification', '=', classification),
-      ]),
-    )
-    .selectAll();
-
-  if (conference) {
-    query = query.where((eb) =>
-      eb.or([
-        eb(
-          eb.fn('lower', ['homeConferenceAbbreviation']),
-          '=',
-          conference.toLowerCase(),
-        ),
-        eb(
-          eb.fn('lower', ['awayConferenceAbbreviation']),
-          '=',
-          conference.toLowerCase(),
-        ),
-      ]),
-    );
-  }
-
-  const scoreboard = await query.execute();
-
-  return scoreboard.map(
-    (s): ScoreboardGame => ({
-      id: s.id,
-      startDate: s.startDate,
-      startTimeTBD: s.startTimeTbd ?? false,
-      tv: s.tv,
-      neutralSite: s.neutralSite,
-      conferenceGame: s.conferenceGame ?? false,
-      // @ts-ignore
-      status: s.status,
-      period: s.currentPeriod,
-      clock: s.currentClock ? String(s.currentClock).substring(3) : null,
-      situation: s.currentSituation,
-      possession: s.currentPossession,
-      lastPlay: s.lastPlay,
-      venue: {
-        name: s.venue,
-        city: s.city,
-        state: s.state,
-      },
-      homeTeam: {
-        id: s.homeId,
-        name: s.homeTeam,
-        conference: s.homeConference,
-        // @ts-ignore
-        classification: s.homeClassification,
-        points: s.homePoints,
-        lineScores: s.homeLineScores,
-        winProbability:
-          s.homeWinProbability && s.status === 'in_progress'
-            ? Math.round(Number(s.homeWinProbability) * 1000) / 1000
-            : null,
-      },
-      awayTeam: {
-        id: s.awayId,
-        name: s.awayTeam,
-        conference: s.awayConference,
-        // @ts-ignore
-        classification: s.awayClassification,
-        points: s.awayPoints,
-        lineScores: s.awayLineScores,
-        winProbability:
-          s.homeWinProbability && s.status === 'in_progress'
-            ? Math.round((1 - Number(s.homeWinProbability)) * 1000) / 1000
-            : null,
-      },
-      weather: {
-        temperature: s.temperature ? parseFloat(s.temperature) : null,
-        description: s.weatherDescription,
-        windSpeed: s.windSpeed ? parseFloat(s.windSpeed) : null,
-        windDirection: s.windDirection ? parseFloat(s.windDirection) : null,
-      },
-      betting: {
-        spread: s.spread ? parseFloat(s.spread) : null,
-        overUnder: s.overUnder ? parseFloat(s.overUnder) : null,
-        homeMoneyline: s.moneylineHome,
-        awayMoneyline: s.moneylineAway,
-      },
     }),
   );
 };

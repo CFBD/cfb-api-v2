@@ -15,6 +15,9 @@ export const ignoredPaths = [
   '/info/usage',
 ];
 
+const getMatchedPath = (req: Request): string | undefined =>
+  typeof req.route?.path === 'string' ? req.route.path : undefined;
+
 const isSuccessfulResponse = (statusCode: number): boolean =>
   statusCode >= 200 && statusCode < 300;
 
@@ -23,7 +26,8 @@ const shouldMeterRequest = (
 ): req is QuotaRequest & { user: ApiUser } =>
   !!req.user &&
   !(req.user as ApiUser).isAdmin &&
-  !ignoredPaths.includes(req.path);
+  (req.user as ApiUser).principalClass !== 'websitePage' &&
+  !ignoredPaths.includes(getMatchedPath(req) ?? req.path);
 
 export const checkCallQuotas = async (
   req: QuotaRequest,
@@ -88,6 +92,7 @@ export const updateQuotas = async (
       req.user &&
       req.quotaReserved
     ) {
+      req.quotaReserved = false;
       const user = req.user as ApiUser;
       try {
         const remaining = await authDb.one(

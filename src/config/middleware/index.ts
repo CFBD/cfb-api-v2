@@ -2,6 +2,7 @@ import { default as cors } from './cors';
 import { checkCallQuotas } from './quotas';
 import { rejectBadParam } from './rejectBadParams';
 import { createRateSlowdown } from './slowdown';
+import { requirePatreonTier } from './patreon';
 
 const rateSlowdown = createRateSlowdown([
   {
@@ -20,4 +21,5 @@ export default {
   checkCallQuotas,
   rateSlowdown,
   rejectBadParam,
+  requirePatreonTier,
 };

@@ -152,12 +152,12 @@ describe('getGames playoff query construction', () => {
 });
 
 describe('getRecords', () => {
-  test('returns zeroed records for an affiliated team with no completed games', async () => {
+  test('returns zeroed records with a numeric year for an affiliated team with no completed games', async () => {
     const recordsBuilder = createQueryBuilder();
     const queryBuilder = createQueryBuilder();
     queryBuilder.execute.mockResolvedValue([
       {
-        season: 2026,
+        season: '2026',
         teamId: 1,
         team: 'Example State',
         classification: 'fbs',

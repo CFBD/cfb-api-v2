@@ -50,8 +50,31 @@ describe('check quotas tests', () => {
     expect(authDb.oneOrNone).not.toHaveBeenCalled();
   });
 
+  test('page service bypasses the monthly quota cutoff', async () => {
+    const req = getMockReq({
+      user: {
+        id: 1,
+        isAdmin: false,
+        remainingCalls: 0,
+        principalClass: 'websitePage',
+      },
+      path: '/teams',
+      route: { path: '/teams' },
+    });
+    const { res, next } = getMockRes();
+
+    await checkCallQuotas(req, res, next);
+
+    expect(next).toHaveBeenCalled();
+    expect(authDb.oneOrNone).not.toHaveBeenCalled();
+  });
+
   test.each(ignoredPaths)('calls next if path is %s', async (path) => {
-    const req = getMockReq({ user: { remainingCalls: 0 }, path });
+    const req = getMockReq({
+      user: { remainingCalls: 0 },
+      path: path.toUpperCase(),
+      route: { path },
+    });
     const { res, next } = getMockRes();
 
     await checkCallQuotas(req, res, next);
@@ -77,6 +100,27 @@ describe('check quotas tests', () => {
 
     expect(quotaReq.quotaReserved).toEqual(true);
     expect(quotaReq.user?.remainingCalls).toEqual(999);
+    expect(next).toHaveBeenCalled();
+  });
+
+  test('meters the exporter service through the normal atomic quota', async () => {
+    const req = getMockReq({
+      user: {
+        id: 2,
+        isAdmin: false,
+        remainingCalls: 100_000,
+        principalClass: 'websiteExporter',
+      },
+      route: { path: '/games' },
+    });
+    const { res, next } = getMockRes();
+
+    await checkCallQuotas(req, res, next);
+
+    expect(authDb.oneOrNone).toHaveBeenCalledWith(
+      expect.stringContaining('remaining_calls = remaining_calls - 1'),
+      [2],
+    );
     expect(next).toHaveBeenCalled();
   });
 
@@ -193,5 +237,19 @@ describe('update quotas tests', () => {
 
     expect(quotaReq.user?.remainingCalls).toEqual(1000);
     expect(res.setHeader).toHaveBeenCalledWith('X-CallLimit-Remaining', 1000);
+  });
+
+  test('does not refund the same reserved call twice', async () => {
+    const req = getMockReq({
+      user: { id: 1, remainingCalls: 999 },
+      quotaReserved: true,
+    });
+    const { res, next } = getMockRes({ statusCode: 500 });
+
+    await updateQuotas(req, res, next);
+    await res.send({});
+    await res.send({});
+
+    expect(authDb.one).toHaveBeenCalledTimes(1);
   });
 });
