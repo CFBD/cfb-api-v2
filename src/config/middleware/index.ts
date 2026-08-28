@@ -1,4 +1,5 @@
 import { default as cors } from './cors';
+import { createConcurrencyLimit } from './concurrency';
 import { checkCallQuotas } from './quotas';
 import { rejectBadParam } from './rejectBadParams';
 import { createRateSlowdown } from './slowdown';
@@ -15,8 +16,18 @@ const rateSlowdown = createRateSlowdown([
   },
 ]);
 
+const concurrencyLimit = createConcurrencyLimit([
+  {
+    path: '/plays/stats',
+    methods: ['GET'],
+    maxConcurrent: 2,
+    leaseMs: 75000,
+  },
+]);
+
 export default {
-  standard: [rateSlowdown, checkCallQuotas],
+  standard: [rateSlowdown, concurrencyLimit, checkCallQuotas],
+  concurrencyLimit,
   cors,
   checkCallQuotas,
   rateSlowdown,
