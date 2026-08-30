@@ -1,3 +1,10 @@
+# [5.25.0](https://github.com/CFBD/cfb-api-v2/compare/v5.24.2...v5.25.0) (2026-08-30)
+
+
+### Features
+
+* **passing:** enhanced passing metrics ([9ab4dff](https://github.com/CFBD/cfb-api-v2/commit/9ab4dffb0de35f6f1ff05b19d08b03ca1c552aa2))
+
 ## [5.24.2](https://github.com/CFBD/cfb-api-v2/compare/v5.24.1...v5.24.2) (2026-08-20)
 
 
