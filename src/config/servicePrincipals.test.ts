@@ -82,6 +82,7 @@ describe('service principal operation policy', () => {
   test('derives exporter GET scope and subtracts every explicit denial', () => {
     expect(getExporterOperations()).toContain('GET /games');
     expect(getExporterOperations()).toContain('GET /info/usage');
+    expect(getExporterOperations()).toContain('GET /passing/plays');
     for (const path of exporterDeniedPaths) {
       expect(getExporterOperations()).not.toContain(`GET ${path}`);
     }
@@ -127,7 +128,7 @@ describe('service principal operation policy', () => {
       );
     }
 
-    expect(generated).toHaveLength(74);
+    expect(generated).toHaveLength(79);
   });
 
   test('fails closed for malformed or duplicate OpenAPI operation metadata', () => {

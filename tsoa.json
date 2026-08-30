@@ -47,6 +47,11 @@
         "description": "Historical and live play-by-play data."
       },
       {
+        "name": "passing",
+        "x-displayName": "Passing",
+        "description": "Enriched pass attempts and player and team passing production."
+      },
+      {
         "name": "teams",
         "x-displayName": "Teams",
         "description": "Teams, rosters, matchups, talent ratings, and ATS records."

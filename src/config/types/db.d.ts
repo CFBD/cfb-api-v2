@@ -501,6 +501,44 @@ export interface LinesProvider {
   name: string;
 }
 
+export interface PassPlay {
+  airYards: number | null;
+  isIntentionalGrounding: boolean;
+  isSpike: boolean;
+  isThrowaway: boolean;
+  outcome: string;
+  parserVersion: number;
+  parseStatus: string;
+  passDepth: string | null;
+  passDirection: string | null;
+  playId: Int8;
+  targetYardsToGoal: number | null;
+}
+
+export interface PassPlayData {
+  airYards: number | null;
+  cpoeEligible: boolean;
+  gameId: number;
+  isIntentionalGrounding: boolean;
+  isSpike: boolean;
+  isThrowaway: boolean;
+  offenseId: number;
+  outcome: string;
+  parserVersion: number;
+  parseStatus: string;
+  passDepth: string | null;
+  passDirection: string | null;
+  passerId: Int8 | null;
+  passLocation: string | null;
+  playId: Int8;
+  startYardline: number;
+  startYardsToGoal: number;
+  targetId: Int8 | null;
+  targetYardsToGoal: number | null;
+  totalYards: number | null;
+  yardsAfterCatch: number | null;
+}
+
 export interface Play {
   awayScore: number;
   awayTimeouts: number | null;
@@ -793,6 +831,24 @@ export interface RecruitSchool {
   name: string;
 }
 
+export interface ReturningProduction {
+  season: number;
+  school: string;
+  conference: string;
+  ppa: number;
+  returningPpa: number;
+  passPpa: number;
+  returningPassPpa: number;
+  receivingPpa: number;
+  returningReceivingPpa: number;
+  rushPpa: number;
+  returningRushPpa: number;
+  returningUsage: number;
+  returningPassUsage: number;
+  returningReceivingUsage: number;
+  returningRushUsage: number;
+}
+
 export interface Scoreboard {
   awayClassification: Division | null;
   awayConference: string | null;
@@ -912,6 +968,11 @@ export interface TeamInfo {
   zip: string | null;
 }
 
+export interface TeamPlayPrefix {
+  prefix: string;
+  teamId: number;
+}
+
 export interface TeamStatType {
   id: Generated<number>;
   name: string;
@@ -962,24 +1023,6 @@ export interface WeatherCondition {
   id: number;
 }
 
-export interface ReturningProduction {
-  season: number;
-  school: string;
-  conference: string;
-  ppa: number;
-  returningPpa: number;
-  passPpa: number;
-  returningPassPpa: number;
-  receivingPpa: number;
-  returningReceivingPpa: number;
-  rushPpa: number;
-  returningRushPpa: number;
-  returningUsage: number;
-  returningPassUsage: number;
-  returningReceivingUsage: number;
-  returningRushUsage: number;
-}
-
 export interface DB {
   adjustedPlayerMetrics: AdjustedPlayerMetrics;
   adjustedTeamMetrics: AdjustedTeamMetrics;
@@ -1015,19 +1058,21 @@ export interface DB {
   havoc: Havoc;
   hometown: Hometown;
   linesProvider: LinesProvider;
+  passPlay: PassPlay;
+  passPlayData: PassPlayData;
   play: Play;
   playerStatCategory: PlayerStatCategory;
   playerStatType: PlayerStatType;
   playerUsageStats: PlayerUsageStats;
   playerUsageStatsFiltered: PlayerUsageStats;
+  playStat: PlayStat;
+  playStatType: PlayStatType;
+  playType: PlayType;
   playoffMatchup: PlayoffMatchup;
   playoffMatchupSlot: PlayoffMatchupSlot;
   playoffParticipant: PlayoffParticipant;
   playoffRound: PlayoffRound;
   playoffTournament: PlayoffTournament;
-  playStat: PlayStat;
-  playStatType: PlayStatType;
-  playType: PlayType;
   poll: Poll;
   pollRank: PollRank;
   pollType: PollType;
@@ -1046,6 +1091,7 @@ export interface DB {
   stateProvince: StateProvince;
   team: Team;
   teamInfo: TeamInfo;
+  teamPlayPrefix: TeamPlayPrefix;
   teamStatType: TeamStatType;
   teamTalent: TeamTalent;
   transfer: Transfer;
