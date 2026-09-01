@@ -221,6 +221,18 @@ export interface Country {
   name: string;
 }
 
+export interface CpoeGameSource {
+  gameId: number | null;
+  season: number | null;
+  sourceKey: string | null;
+}
+
+export interface CpoeSeasonModel {
+  modelVersion: string;
+  scoringMethod: string;
+  season: number;
+}
+
 export interface CurrentConferences {
   abbreviation: string | null;
   classification: Division | null;
@@ -513,6 +525,26 @@ export interface PassPlay {
   passDirection: string | null;
   playId: Int8;
   targetYardsToGoal: number | null;
+}
+
+export interface PassPlayCpoe {
+  completionProbability: number;
+  modelVersion: string;
+  playId: Int8;
+  scoredAt: Generated<Timestamp>;
+  scoringMethod: string;
+  sourceKey: string;
+}
+
+export interface PassPlayCpoeCurrent {
+  completionProbability: number | null;
+  gameId: number | null;
+  modelVersion: string | null;
+  playId: Int8 | null;
+  scoredAt: Timestamp | null;
+  scoringMethod: string | null;
+  season: number | null;
+  sourceKey: string | null;
 }
 
 export interface PassPlayData {
@@ -849,6 +881,52 @@ export interface ReturningProduction {
   returningRushUsage: number;
 }
 
+export interface RushPlay {
+  attributionStatus: string;
+  isKneel: boolean;
+  isRushingTouchdown: boolean | null;
+  isSack: boolean;
+  isTeamRush: boolean;
+  parserVersion: number;
+  parseStatus: string;
+  playId: Int8;
+  rushDirection: string | null;
+  rushingYards: number | null;
+}
+
+export interface RushPlayData {
+  attributionStatus: string | null;
+  clock: Interval | null;
+  defenseId: number | null;
+  directionAnalysisEligible: boolean | null;
+  distance: number | null;
+  down: number | null;
+  driveId: Int8 | null;
+  gameId: number | null;
+  isKneel: boolean | null;
+  isRushingTouchdown: boolean | null;
+  isSack: boolean | null;
+  isTeamRush: boolean | null;
+  offenseId: number | null;
+  parserVersion: number | null;
+  parseStatus: string | null;
+  period: number | null;
+  playId: Int8 | null;
+  playText: string | null;
+  playTypeId: number | null;
+  ppa: Numeric | null;
+  rushDirection: string | null;
+  rusherId: Int8 | null;
+  rusherYards: number | null;
+  rushingYards: number | null;
+  season: number | null;
+  seasonType: SeasonType | null;
+  startYardline: number | null;
+  startYardsToGoal: number | null;
+  success: boolean | null;
+  week: number | null;
+}
+
 export interface Scoreboard {
   awayClassification: Division | null;
   awayConference: string | null;
@@ -1037,6 +1115,8 @@ export interface DB {
   conferenceTeam: ConferenceTeam;
   coreRatings: CoreRatings;
   country: Country;
+  cpoeGameSource: CpoeGameSource;
+  cpoeSeasonModel: CpoeSeasonModel;
   currentConferences: CurrentConferences;
   draftPicks: DraftPicks;
   draftPosition: DraftPosition;
@@ -1059,20 +1139,22 @@ export interface DB {
   hometown: Hometown;
   linesProvider: LinesProvider;
   passPlay: PassPlay;
+  passPlayCpoe: PassPlayCpoe;
+  passPlayCpoeCurrent: PassPlayCpoeCurrent;
   passPlayData: PassPlayData;
   play: Play;
   playerStatCategory: PlayerStatCategory;
   playerStatType: PlayerStatType;
   playerUsageStats: PlayerUsageStats;
   playerUsageStatsFiltered: PlayerUsageStats;
-  playStat: PlayStat;
-  playStatType: PlayStatType;
-  playType: PlayType;
   playoffMatchup: PlayoffMatchup;
   playoffMatchupSlot: PlayoffMatchupSlot;
   playoffParticipant: PlayoffParticipant;
   playoffRound: PlayoffRound;
   playoffTournament: PlayoffTournament;
+  playStat: PlayStat;
+  playStatType: PlayStatType;
+  playType: PlayType;
   poll: Poll;
   pollRank: PollRank;
   pollType: PollType;
@@ -1085,6 +1167,8 @@ export interface DB {
   recruitPosition: RecruitPosition;
   recruitSchool: RecruitSchool;
   returningProduction: ReturningProduction;
+  rushPlay: RushPlay;
+  rushPlayData: RushPlayData;
   scoreboard: Scoreboard;
   srs: Srs;
   srsFull: SrsFull;

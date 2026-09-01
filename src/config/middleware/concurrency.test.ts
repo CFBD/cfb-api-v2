@@ -160,6 +160,36 @@ describe('per-user concurrency limit middleware', () => {
     expect(admittedNext).toHaveBeenCalledTimes(1);
   });
 
+  test.each([
+    '/stats/player/season',
+    '/stats/season/advanced',
+    '/stats/game/advanced',
+    '/stats/player/success/game',
+  ])('limits concurrent requests to %s', (path) => {
+    const first = createResponse();
+    const second = createResponse();
+    const third = createResponse();
+    const firstNext = jest.fn();
+    const secondNext = jest.fn();
+    const thirdNext = jest.fn();
+
+    middlewares.concurrencyLimit(createRequest(1, path), first.res, firstNext);
+    middlewares.concurrencyLimit(
+      createRequest(1, path),
+      second.res,
+      secondNext,
+    );
+    middlewares.concurrencyLimit(createRequest(1, path), third.res, thirdNext);
+
+    expect(firstNext).toHaveBeenCalledTimes(1);
+    expect(secondNext).toHaveBeenCalledTimes(1);
+    expect(thirdNext).not.toHaveBeenCalled();
+    expect(third.status).toHaveBeenCalledWith(429);
+
+    first.res.emit('finish');
+    second.res.emit('finish');
+  });
+
   test('runs before quota reservation in the standard middleware chain', () => {
     expect(middlewares.standard).toEqual([
       middlewares.rateSlowdown,
