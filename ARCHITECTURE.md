@@ -1,6 +1,6 @@
 # CFB API v2 Architecture
 
-Last reviewed: 2026-08-22
+Last reviewed: 2026-09-01
 
 ## System Purpose
 
@@ -149,10 +149,21 @@ the public `ScoreboardGame[]` contract.
 
 ## Data Access
 
-The primary API database and auth database are configured from environment
-variables in `src/config/database.ts`.
+The primary API database, optional read replica, and auth database are
+configured from environment variables in `src/config/database.ts`.
 
 - Use `kdb` for new Kysely query work.
+- Use `replicaKdb` for endpoint query paths that can tolerate replica lag. Use
+  `replicaDb` for equivalent legacy `pg-promise` paths.
+- Set both `DATABASE_REPLICA_HOST` and `DATABASE_REPLICA_PORT` to create the
+  replica connections. They reuse the primary `DATABASE_USER`,
+  `DATABASE_PASSWORD`, and `DATABASE` values.
+- If either replica setting is missing at initialization, `replicaKdb` and
+  `replicaDb` alias their primary counterparts. This keeps opt-in endpoints on
+  the primary without creating a redundant pool.
+- The following read endpoints opt into the replica connections:
+  `/plays/stats`, `/stats/player/season`, `/stats/season/advanced`,
+  `/stats/game/advanced`, and `/stats/player/success/game`.
 - `db` and `authDb` remain available for existing `pg-promise` paths and auth
   database queries.
 - Refresh generated database types with `pnpm build:db` when schema changes are

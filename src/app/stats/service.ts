@@ -1,5 +1,5 @@
 import { ValidateError } from 'tsoa';
-import { db, kdb } from '../../config/database';
+import { kdb, replicaDb, replicaKdb } from '../../config/database';
 import { DivisionClassification, SeasonType } from '../enums';
 import {
   AdvancedGameStat,
@@ -119,7 +119,7 @@ export const getPlayerSeasonStats = async (
   category?: string,
   playerId?: number,
 ): Promise<PlayerStat[]> => {
-  let baseQuery = kdb
+  let baseQuery = replicaKdb
     .selectFrom('game')
     .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
     .innerJoin('gamePlayerStat', 'gameTeam.id', 'gamePlayerStat.gameTeamId')
@@ -805,7 +805,7 @@ export const getPlayerGameSuccessRates = async (
     );
   }
 
-  let query = kdb
+  let query = replicaKdb
     .with('creditedPlayerPlays', (eb) => {
       let withClause = eb
         .selectFrom('game as g')
@@ -1352,7 +1352,7 @@ export const getAdvancedStats = async (
   const params = [];
   let index = 1;
 
-  let havocTaskQuery = kdb
+  let havocTaskQuery = replicaKdb
     .selectFrom('gameHavocStats')
     .groupBy(['season', 'team'])
     .select(['season', 'team'])
@@ -1413,7 +1413,7 @@ export const getAdvancedStats = async (
   const mainTaskParams = [...params, classification];
   const classificationParam = mainTaskParams.length;
 
-  const mainTask = db.any(
+  const mainTask = replicaDb.any(
     `
         WITH plays AS (
             SELECT  g.id,
@@ -1508,7 +1508,7 @@ export const getAdvancedStats = async (
     mainTaskParams,
   );
 
-  const scoringOppTasks = db.any(
+  const scoringOppTasks = replicaDb.any(
     `
             WITH drive_data AS (
                 SELECT 	p.drive_id,
@@ -1554,7 +1554,7 @@ export const getAdvancedStats = async (
     params,
   );
 
-  const fieldPositionTask = db.any(
+  const fieldPositionTask = replicaDb.any(
     `
             WITH offensive_drives AS (
                 SELECT 	g.season,
@@ -1602,7 +1602,7 @@ export const getAdvancedStats = async (
     params,
   );
 
-  const fullResults = await db.task(async (t) => {
+  const fullResults = await replicaDb.task(async (t) => {
     return await t.batch([mainTask, scoringOppTasks, fieldPositionTask]);
   });
 
@@ -1841,7 +1841,7 @@ export const getAdvancedGameStats = async (
     );
   }
 
-  let query = kdb
+  let query = replicaKdb
     .with('plays', (eb) => {
       let withClause = eb
         .selectFrom('game')

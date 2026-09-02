@@ -1,5 +1,5 @@
 import { sql } from 'kysely';
-import { kdb } from '../../config/database';
+import { kdb, replicaKdb } from '../../config/database';
 import { DivisionClassification, SeasonType } from '../enums';
 import { Play, PlayStat, PlayStatType, PlayType } from './types';
 
@@ -280,7 +280,7 @@ export const getPlayStats = async (
   seasonType?: SeasonType,
   conference?: string,
 ) => {
-  let query = kdb
+  let query = replicaKdb
     .selectFrom('team')
     .innerJoin('gameTeam as gt', 'team.id', 'gt.teamId')
     .innerJoin('gameTeam as gt2', (join) =>
