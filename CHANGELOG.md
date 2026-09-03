@@ -1,3 +1,10 @@
+# [5.26.0](https://github.com/CFBD/cfb-api-v2/compare/v5.25.0...v5.26.0) (2026-09-03)
+
+
+### Features
+
+* **rushing:** enhanced rushing api ([e701255](https://github.com/CFBD/cfb-api-v2/commit/e7012554ef51475c6d1e03847226251dd8127e84))
+
 # [5.25.0](https://github.com/CFBD/cfb-api-v2/compare/v5.24.2...v5.25.0) (2026-08-30)
 
 
