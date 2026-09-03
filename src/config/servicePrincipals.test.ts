@@ -128,7 +128,7 @@ describe('service principal operation policy', () => {
       );
     }
 
-    expect(generated).toHaveLength(79);
+    expect(generated).toHaveLength(84);
   });
 
   test('fails closed for malformed or duplicate OpenAPI operation metadata', () => {

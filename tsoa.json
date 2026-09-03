@@ -52,6 +52,11 @@
         "description": "Enriched pass attempts and player and team passing production."
       },
       {
+        "name": "rushing",
+        "x-displayName": "Rushing",
+        "description": "Enriched rushing attempts and player and team rushing production."
+      },
+      {
         "name": "teams",
         "x-displayName": "Teams",
         "description": "Teams, rosters, matchups, talent ratings, and ATS records."
