@@ -115,6 +115,7 @@ const authoredRoutes = [
   'getting-started.html',
   'authentication.html',
   'usage-and-access.html',
+  'data-availability.html',
   'methodology-overview.html',
   'metrics-and-definitions.html',
   'ppa.html',
