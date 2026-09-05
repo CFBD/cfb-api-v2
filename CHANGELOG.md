@@ -1,3 +1,10 @@
+## [5.26.1](https://github.com/CFBD/cfb-api-v2/compare/v5.26.0...v5.26.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **live:** limit concurrent play requests per user ([5b1d8bc](https://github.com/CFBD/cfb-api-v2/commit/5b1d8bc2cac65b2ed4b364fb0a20c2afdff5bb66))
+
 # [5.26.0](https://github.com/CFBD/cfb-api-v2/compare/v5.25.0...v5.26.0) (2026-09-03)
 
 
