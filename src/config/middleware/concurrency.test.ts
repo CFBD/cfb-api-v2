@@ -161,6 +161,7 @@ describe('per-user concurrency limit middleware', () => {
   });
 
   test.each([
+    '/live/plays',
     '/stats/player/season',
     '/stats/season/advanced',
     '/stats/game/advanced',
@@ -188,6 +189,38 @@ describe('per-user concurrency limit middleware', () => {
 
     first.res.emit('finish');
     second.res.emit('finish');
+  });
+
+  test('shares live-play slots across games and route variants, independently per user', () => {
+    const responses = Array.from({ length: 5 }, createResponse);
+    const next = responses.map(() => jest.fn());
+    const requests = [1, 1, 1, 2, 1].map((userId, index) => {
+      const req = createRequest(userId, '/LiVe/PlAyS/');
+      req.route = { path: '/live/plays' };
+      req.query = { gameId: String(index + 1) };
+      return req;
+    });
+
+    for (let index = 0; index < 4; index += 1) {
+      middlewares.concurrencyLimit(
+        requests[index],
+        responses[index].res,
+        next[index],
+      );
+    }
+
+    expect(next[0]).toHaveBeenCalledTimes(1);
+    expect(next[1]).toHaveBeenCalledTimes(1);
+    expect(next[2]).not.toHaveBeenCalled();
+    expect(responses[2].status).toHaveBeenCalledWith(429);
+    expect(responses[2].setHeader).toHaveBeenCalledWith('Retry-After', '1');
+    expect(next[3]).toHaveBeenCalledTimes(1);
+
+    responses[0].res.emit('finish');
+    middlewares.concurrencyLimit(requests[4], responses[4].res, next[4]);
+    expect(next[4]).toHaveBeenCalledTimes(1);
+
+    responses.forEach(({ res }) => res.emit('finish'));
   });
 
   test('runs before quota reservation in the standard middleware chain', () => {

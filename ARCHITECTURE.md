@@ -138,6 +138,12 @@ Quota behavior lives in `src/config/middleware/quotas.ts`:
 Per-user slowdown rules are composed in `src/config/middleware/index.ts` with
 `createRateSlowdown`.
 
+`GET /live/plays` uses the standard per-user concurrency limiter: two active
+requests per authenticated user across all game IDs, per API process. Excess
+requests receive 429 with `Retry-After: 1` before quota reservation. Slots are
+released when responses finish, or after the existing 75-second safety lease.
+Lease expiry does not cancel unfinished upstream work.
+
 ## Scoreboard Cache
 
 `GET /scoreboard` remains Tier 1 and quota-exempt. Its service reads a

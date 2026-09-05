@@ -18,6 +18,12 @@ const rateSlowdown = createRateSlowdown([
 
 const concurrencyLimit = createConcurrencyLimit([
   {
+    path: '/live/plays',
+    methods: ['GET'],
+    maxConcurrent: 2,
+    leaseMs: 75000,
+  },
+  {
     path: '/plays/stats',
     methods: ['GET'],
     maxConcurrent: 2,
