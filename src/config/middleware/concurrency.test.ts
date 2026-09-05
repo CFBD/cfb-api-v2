@@ -43,7 +43,7 @@ describe('per-user concurrency limit middleware', () => {
     jest.restoreAllMocks();
   });
 
-  test('rejects requests above the configured per-user limit', () => {
+  test('rejects requests above the configured per-user limit', async () => {
     const middleware = createConcurrencyLimit([rule]);
     const first = createResponse();
     const second = createResponse();
@@ -52,9 +52,9 @@ describe('per-user concurrency limit middleware', () => {
     const secondNext = jest.fn();
     const thirdNext = jest.fn();
 
-    middleware(createRequest(1), first.res, firstNext);
-    middleware(createRequest(1), second.res, secondNext);
-    middleware(createRequest(1), third.res, thirdNext);
+    await middleware(createRequest(1), first.res, firstNext);
+    await middleware(createRequest(1), second.res, secondNext);
+    await middleware(createRequest(1), third.res, thirdNext);
 
     expect(firstNext).toHaveBeenCalledTimes(1);
     expect(secondNext).toHaveBeenCalledTimes(1);
@@ -66,21 +66,21 @@ describe('per-user concurrency limit middleware', () => {
     });
   });
 
-  test('tracks each user independently', () => {
+  test('tracks each user independently', async () => {
     const middleware = createConcurrencyLimit([{ ...rule, maxConcurrent: 1 }]);
     const first = createResponse();
     const second = createResponse();
     const firstNext = jest.fn();
     const secondNext = jest.fn();
 
-    middleware(createRequest(1), first.res, firstNext);
-    middleware(createRequest(2), second.res, secondNext);
+    await middleware(createRequest(1), first.res, firstNext);
+    await middleware(createRequest(2), second.res, secondNext);
 
     expect(firstNext).toHaveBeenCalledTimes(1);
     expect(secondNext).toHaveBeenCalledTimes(1);
   });
 
-  test('skips unmatched paths, methods, and unauthenticated requests', () => {
+  test('skips unmatched paths, methods, and unauthenticated requests', async () => {
     const middleware = createConcurrencyLimit([rule]);
     const requests = [
       createRequest(1, '/games'),
@@ -92,69 +92,69 @@ describe('per-user concurrency limit middleware', () => {
       const response = createResponse();
       const next = jest.fn();
 
-      middleware(req, response.res, next);
+      await middleware(req, response.res, next);
 
       expect(next).toHaveBeenCalledTimes(1);
       expect(response.status).not.toHaveBeenCalled();
     }
   });
 
-  test('uses the canonical matched route for path comparison', () => {
+  test('uses the canonical matched route for path comparison', async () => {
     const middleware = createConcurrencyLimit([{ ...rule, maxConcurrent: 1 }]);
     const first = createResponse();
     const second = createResponse();
     const request = createRequest(1, '/PlAyS/StAtS/');
     request.route = { path: '/plays/stats' };
 
-    middleware(request, first.res, jest.fn());
-    middleware(request, second.res, jest.fn());
+    await middleware(request, first.res, jest.fn());
+    await middleware(request, second.res, jest.fn());
 
     expect(second.status).toHaveBeenCalledWith(429);
   });
 
-  test('releases a slot when the response finishes', () => {
+  test('releases a slot when the response finishes', async () => {
     const middleware = createConcurrencyLimit([{ ...rule, maxConcurrent: 1 }]);
     const first = createResponse();
     const blocked = createResponse();
     const admitted = createResponse();
     const admittedNext = jest.fn();
 
-    middleware(createRequest(1), first.res, jest.fn());
-    middleware(createRequest(1), blocked.res, jest.fn());
+    await middleware(createRequest(1), first.res, jest.fn());
+    await middleware(createRequest(1), blocked.res, jest.fn());
     first.res.emit('finish');
-    middleware(createRequest(1), admitted.res, admittedNext);
+    await middleware(createRequest(1), admitted.res, admittedNext);
 
     expect(blocked.status).toHaveBeenCalledWith(429);
     expect(admittedNext).toHaveBeenCalledTimes(1);
   });
 
-  test('releases each request at most once', () => {
+  test('releases each request at most once', async () => {
     const middleware = createConcurrencyLimit([{ ...rule, maxConcurrent: 1 }]);
     const first = createResponse();
     const second = createResponse();
     const blocked = createResponse();
 
-    middleware(createRequest(1), first.res, jest.fn());
+    await middleware(createRequest(1), first.res, jest.fn());
     first.res.emit('finish');
-    middleware(createRequest(1), second.res, jest.fn());
+    await middleware(createRequest(1), second.res, jest.fn());
     first.res.emit('finish');
-    middleware(createRequest(1), blocked.res, jest.fn());
+    await middleware(createRequest(1), blocked.res, jest.fn());
 
     expect(blocked.status).toHaveBeenCalledWith(429);
   });
 
-  test('retains an abandoned slot until its safety lease expires', () => {
+  test('retains an abandoned slot until its safety lease expires', async () => {
     const middleware = createConcurrencyLimit([{ ...rule, maxConcurrent: 1 }]);
     const first = createResponse();
     const blocked = createResponse();
     const admitted = createResponse();
     const admittedNext = jest.fn();
 
-    middleware(createRequest(1), first.res, jest.fn());
+    await middleware(createRequest(1), first.res, jest.fn());
     first.res.emit('close');
-    middleware(createRequest(1), blocked.res, jest.fn());
+    await middleware(createRequest(1), blocked.res, jest.fn());
     jest.advanceTimersByTime(rule.leaseMs);
-    middleware(createRequest(1), admitted.res, admittedNext);
+    await middleware(createRequest(1), admitted.res, admittedNext);
 
     expect(blocked.status).toHaveBeenCalledWith(429);
     expect(admittedNext).toHaveBeenCalledTimes(1);
@@ -166,7 +166,7 @@ describe('per-user concurrency limit middleware', () => {
     '/stats/season/advanced',
     '/stats/game/advanced',
     '/stats/player/success/game',
-  ])('limits concurrent requests to %s', (path) => {
+  ])('limits concurrent requests to %s', async (path) => {
     const first = createResponse();
     const second = createResponse();
     const third = createResponse();
@@ -174,13 +174,21 @@ describe('per-user concurrency limit middleware', () => {
     const secondNext = jest.fn();
     const thirdNext = jest.fn();
 
-    middlewares.concurrencyLimit(createRequest(1, path), first.res, firstNext);
-    middlewares.concurrencyLimit(
+    await middlewares.concurrencyLimit(
+      createRequest(1, path),
+      first.res,
+      firstNext,
+    );
+    await middlewares.concurrencyLimit(
       createRequest(1, path),
       second.res,
       secondNext,
     );
-    middlewares.concurrencyLimit(createRequest(1, path), third.res, thirdNext);
+    await middlewares.concurrencyLimit(
+      createRequest(1, path),
+      third.res,
+      thirdNext,
+    );
 
     expect(firstNext).toHaveBeenCalledTimes(1);
     expect(secondNext).toHaveBeenCalledTimes(1);
@@ -191,7 +199,7 @@ describe('per-user concurrency limit middleware', () => {
     second.res.emit('finish');
   });
 
-  test('shares live-play slots across games and route variants, independently per user', () => {
+  test('shares live-play slots across games and route variants, independently per user', async () => {
     const responses = Array.from({ length: 5 }, createResponse);
     const next = responses.map(() => jest.fn());
     const requests = [1, 1, 1, 2, 1].map((userId, index) => {
@@ -202,7 +210,7 @@ describe('per-user concurrency limit middleware', () => {
     });
 
     for (let index = 0; index < 4; index += 1) {
-      middlewares.concurrencyLimit(
+      await middlewares.concurrencyLimit(
         requests[index],
         responses[index].res,
         next[index],
@@ -217,10 +225,46 @@ describe('per-user concurrency limit middleware', () => {
     expect(next[3]).toHaveBeenCalledTimes(1);
 
     responses[0].res.emit('finish');
-    middlewares.concurrencyLimit(requests[4], responses[4].res, next[4]);
+    await middlewares.concurrencyLimit(requests[4], responses[4].res, next[4]);
     expect(next[4]).toHaveBeenCalledTimes(1);
 
     responses.forEach(({ res }) => res.emit('finish'));
+  });
+
+  test('returns 503 without running the endpoint when admission is unavailable', async () => {
+    const backend = {
+      acquire: jest.fn().mockRejectedValue(new Error('IPC unavailable')),
+    };
+    const middleware = createConcurrencyLimit([rule], undefined, backend);
+    const response = createResponse();
+    const next = jest.fn();
+    await middleware(createRequest(1), response.res, next);
+    expect(response.status).toHaveBeenCalledWith(503);
+    expect(response.setHeader).toHaveBeenCalledWith('Retry-After', '1');
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  test('releases admission if the request disconnected while waiting', async () => {
+    const release = jest.fn();
+    let grant!: (value: typeof release) => void;
+    const backend = {
+      acquire: jest.fn(
+        () =>
+          new Promise<typeof release>((resolve) => {
+            grant = resolve;
+          }),
+      ),
+    };
+    const middleware = createConcurrencyLimit([rule], undefined, backend);
+    const response = createResponse();
+    const next = jest.fn();
+    const req = createRequest(1);
+    const admission = middleware(req, response.res, next);
+    req.aborted = true;
+    grant(release);
+    await admission;
+    expect(release).toHaveBeenCalledTimes(1);
+    expect(next).not.toHaveBeenCalled();
   });
 
   test('runs before quota reservation in the standard middleware chain', () => {

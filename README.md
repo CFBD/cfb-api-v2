@@ -20,6 +20,7 @@ run `pnpm docs:dev` in a second terminal.
 ## Common Commands
 
 ```bash
+pnpm start         # run the compiled API with up to two workers
 pnpm build         # generate TSOA routes/specs and compile TypeScript
 pnpm docs:build    # generate OpenAPI and build the Zudoku site
 pnpm docs:dev      # generate OpenAPI and start the Zudoku dev server
@@ -29,6 +30,21 @@ pnpm prettify      # format code with Prettier
 pnpm docs:check    # verify required docs, AGENTS.md size, and local doc links
 pnpm build:db      # regenerate Kysely database types
 ```
+
+## Production Workers
+
+After `pnpm build`, `pnpm start` runs two Node workers sharing the existing
+`PORT` (one worker when only one CPU is available). The Docker image starts
+the same launcher directly so it receives stop signals. No proxy, port, or
+required environment changes are needed. Set `API_WORKERS=1` to opt into one
+worker. Development with `pnpm dev` remains a single process.
+
+The primary process coordinates per-user concurrency across its workers and
+replaces workers that exit unexpectedly. Database pools split their existing
+total connection budget between workers. Workers drain active HTTP requests
+and close database/Redis connections on shutdown, with an eight-second worker
+deadline and a nine-second primary deadline. See
+[ARCHITECTURE.md](ARCHITECTURE.md) for cache and admission behavior.
 
 ## Documentation Map
 

@@ -1,6 +1,6 @@
 # CFB API v2 Architecture
 
-Last reviewed: 2026-09-01
+Last reviewed: 2026-09-05
 
 ## System Purpose
 
@@ -11,8 +11,10 @@ Docker image through GitHub Actions.
 
 ## Request Flow
 
-1. `src/app.ts` loads environment variables, creates an Express application,
-   and delegates setup to `configureServer`.
+1. Production starts `src/cluster.ts`, which launches up to two workers sharing
+   the existing listening port. Each worker runs `src/app.ts`, loads environment
+   variables, creates an Express application, and delegates setup to
+   `configureServer`. Development runs `src/app.ts` directly.
 2. `src/config/express.ts` configures proxy trust, Sentry, Helmet, cookie and
    body parsing, CORS, quota refund handling, generated TSOA routes, the shared
    error handler, `/api-docs.json`, Swagger UI at `/swagger`, and Zudoku
@@ -28,7 +30,13 @@ Docker image through GitHub Actions.
 
 ## Source Layout
 
-- `src/app.ts`: application entrypoint.
+- `src/cluster.ts`: production launcher; `src/config/clusterRuntime.ts` manages
+  worker replacement and shutdown.
+- `src/app.ts`: worker and development application entrypoint.
+- `src/config/concurrencyCoordinator.ts`: primary-owned admission leases and
+  worker IPC client.
+- `src/config/serverLifecycle.ts`: HTTP draining and resource cleanup.
+- `src/config/workers.ts`: worker count and database pool budgets.
 - `src/config/express.ts`: Express server composition and Swagger exposure.
 - `src/config/documentation.ts`: Zudoku static files, GA redirects, and the
   allowlisted HTML fallback.
@@ -136,13 +144,25 @@ Quota behavior lives in `src/config/middleware/quotas.ts`:
   `X-CallLimit-Remaining`.
 
 Per-user slowdown rules are composed in `src/config/middleware/index.ts` with
-`createRateSlowdown`.
+`createRateSlowdown`. Slowdown counters remain per worker; their thresholds
+apply independently in each process. Monthly quotas remain database-backed.
 
-`GET /live/plays` uses the standard per-user concurrency limiter: two active
-requests per authenticated user across all game IDs, per API process. Excess
-requests receive 429 with `Retry-After: 1` before quota reservation. Slots are
-released when responses finish, or after the existing 75-second safety lease.
-Lease expiry does not cancel unfinished upstream work.
+The standard concurrency limiter allows two active requests per authenticated
+user per configured endpoint across both workers in one API container. This
+covers `/live/plays` (across all game IDs), `/plays/stats`,
+`/stats/player/season`, `/stats/season/advanced`, `/stats/game/advanced`, and
+`/stats/player/success/game`. Separate containers have independent coordinators.
+The primary owns admission leases; workers acquire and release them over IPC.
+Excess requests receive 429 with `Retry-After: 1` before quota reservation.
+Unavailable or timed-out admission returns 503 with `Retry-After: 1`, without
+running the endpoint or reserving quota. Direct development starts use a local
+store with the same semantics.
+
+Slots are released when responses finish, when the owning worker exits, or
+after the existing 75-second safety lease. Disconnect alone does not release
+active work; an IPC-disconnected worker shuts down. Each lease has its own
+identifier so late completion cannot release another request's slot. Lease
+expiry does not cancel unfinished upstream work.
 
 ## Live Play Cache
 
@@ -169,6 +189,13 @@ lock coalesces cache misses. Redis connection, read, write, lock, or parse
 failures fall back to the original filtered PostgreSQL query and do not change
 the public `ScoreboardGame[]` contract.
 
+Each worker retains the parsed snapshot for up to one second and coalesces
+concurrent Redis reads. This avoids repeated JSON parsing and date conversion
+while Redis remains the canonical shared cache. Local retention never extends
+the snapshot's original 60-second lifetime; Redis updates can take up to one
+second to become visible in a worker. Database fallback results are not cached
+locally. Filtering, authentication, and tier checks retain their behavior.
+
 ## Data Access
 
 The primary API database, optional read replica, and auth database are
@@ -188,6 +215,10 @@ configured from environment variables in `src/config/database.ts`.
   `/stats/game/advanced`, and `/stats/player/success/game`.
 - `db` and `authDb` remain available for existing `pg-promise` paths and auth
   database queries.
+- Each distinct Kysely or `pg-promise` pool keeps an aggregate maximum of ten
+  connections per API container: five per worker with two workers, ten with
+  one. The launcher sets internal `CFBD_WORKER_COUNT`; it is not an operator
+  setting. Shutdown closes each distinct pool once.
 - Refresh generated database types with `pnpm build:db` when schema changes are
   available to the local environment.
 
@@ -214,6 +245,20 @@ tested without a live database; mock `src/config/database.ts` as current tests
 do.
 
 ## Release And Deployment
+
+`pnpm start` and the Docker image launch `build/src/cluster.js`. The default
+worker count is two, capped by available CPU parallelism; optional
+`API_WORKERS=1` or `API_WORKERS=2` overrides it. No required environment or
+nginx/port changes are introduced. Invalid worker settings fail startup.
+
+The primary uses round-robin connection distribution. Unexpected worker exits
+trigger replacements with bounded exponential backoff. SIGTERM/SIGINT stops
+replacement, signals workers, and allows active HTTP requests to drain before
+closing database and Redis connections. Workers force exit after eight seconds;
+the primary kills remaining workers after nine seconds to fit within Docker's
+usual ten-second stop window. In-memory EPA/live/scoreboard caches belong to
+each worker and warm independently. Two workers increase application memory
+usage; they do not eliminate CPU-heavy response serialization.
 
 `.github/workflows/release.yml` runs on pushes to `main`. It installs
 dependencies, checks documentation, validates the commit message with

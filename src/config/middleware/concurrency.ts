@@ -1,3 +1,10 @@
+import cluster from 'node:cluster';
+import {
+  ConcurrencyBackend,
+  ReleaseSlot,
+  localConcurrencyBackend,
+  WorkerConcurrencyClient,
+} from '../concurrencyCoordinator';
 import { NextFunction, Request, Response } from 'express';
 
 import { ApiUser } from 'src/globals';
@@ -42,16 +49,26 @@ const defaultKeyGenerator = (
   return `${req.method.toUpperCase()}:${normalizePath(rule.path)}:${user.id}`;
 };
 
+let workerBackend: ConcurrencyBackend | undefined;
+const defaultBackend = (): ConcurrencyBackend => {
+  if (!cluster.isWorker) return localConcurrencyBackend();
+  workerBackend ??= new WorkerConcurrencyClient(process);
+  return workerBackend;
+};
+
 export const createConcurrencyLimit = (
   rules: ConcurrencyLimitRule[],
   keyGenerator: (
     req: Request,
     rule: ConcurrencyLimitRule,
   ) => string | null = defaultKeyGenerator,
+  backend: ConcurrencyBackend = defaultBackend(),
 ) => {
-  const activeRequests = new Map<string, number>();
-
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     const rule = rules.find((candidate) => matchesRule(req, candidate));
 
     if (!rule) {
@@ -65,8 +82,25 @@ export const createConcurrencyLimit = (
       return;
     }
 
-    const active = activeRequests.get(key) ?? 0;
-    if (active >= rule.maxConcurrent) {
+    if (req.aborted || res.destroyed || res.writableEnded) return;
+    let release: ReleaseSlot | null;
+    try {
+      release = await backend.acquire(key, rule.maxConcurrent, rule.leaseMs);
+    } catch {
+      // Never fall back to independent worker counts after losing coordination.
+      if (!res.destroyed && !res.writableEnded) {
+        res.setHeader('Retry-After', '1');
+        res
+          .status(503)
+          .send({ message: 'Request admission unavailable. Please retry.' });
+      }
+      return;
+    }
+    if (req.aborted || res.destroyed || res.writableEnded) {
+      release?.();
+      return;
+    }
+    if (!release) {
       console.info(
         JSON.stringify({
           event: 'api_concurrency_limit',
@@ -81,26 +115,6 @@ export const createConcurrencyLimit = (
       });
       return;
     }
-
-    activeRequests.set(key, active + 1);
-
-    let released = false;
-    const release = (): void => {
-      if (released) {
-        return;
-      }
-      released = true;
-      clearTimeout(lease);
-
-      const current = activeRequests.get(key) ?? 0;
-      if (current <= 1) {
-        activeRequests.delete(key);
-        return;
-      }
-
-      activeRequests.set(key, current - 1);
-    };
-    const lease = setTimeout(release, rule.leaseMs);
 
     res.once('finish', release);
     next();

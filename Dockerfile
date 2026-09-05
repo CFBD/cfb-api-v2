@@ -10,4 +10,4 @@ WORKDIR /usr/src/app
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm run build
 
-CMD [ "pnpm", "start" ]
+CMD [ "node", "./build/src/cluster.js" ]

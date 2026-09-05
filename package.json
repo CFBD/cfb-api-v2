@@ -12,7 +12,7 @@
     "build": "tsoa spec-and-routes && tsc --skipLibCheck && pnpm --dir docs-site build && node scripts/check-docs-build.mjs",
     "build:db": "pnpm kysely-codegen --camel-case --out-file=src/config/types/db.d.ts",
     "dev": "concurrently \"nodemon\" \"nodemon -x tsoa spec-and-routes\"",
-    "start": "node ./build/src/app.js",
+    "start": "node ./build/src/cluster.js",
     "pretest": "tsoa spec-and-routes",
     "test": "jest",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --ignore-path .gitignore .",

@@ -36,3 +36,9 @@ export const getRedisClient = async (): Promise<RedisClientType | null> => {
 
   return connection;
 };
+
+export const closeRedisConnection = async (): Promise<void> => {
+  if (client?.isOpen) await client.disconnect();
+  client = undefined;
+  connection = undefined;
+};

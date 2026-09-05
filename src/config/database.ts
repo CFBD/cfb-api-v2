@@ -1,3 +1,4 @@
+import { databasePoolMax } from './workers';
 import { Promise } from 'bluebird';
 import pgp from 'pg-promise';
 import { Pool } from 'pg';
@@ -21,13 +22,23 @@ const getConnectionString = (config: DatabaseConnectionConfig): string =>
 
 const authConnectionString = `postgres://${authDbUser}:${authDbPassword}@${authDbHost}:${primary.port}/${authDbName}`;
 const createPgPromiseDatabase = pgp({ promiseLib: Promise });
+const poolMax = databasePoolMax();
 
-export const db = createPgPromiseDatabase(getConnectionString(primary));
+export const db = createPgPromiseDatabase({
+  connectionString: getConnectionString(primary),
+  max: poolMax,
+});
 export const replicaDb =
   replica === primary
     ? db
-    : createPgPromiseDatabase(getConnectionString(replica));
-export const authDb = createPgPromiseDatabase(authConnectionString);
+    : createPgPromiseDatabase({
+        connectionString: getConnectionString(replica),
+        max: poolMax,
+      });
+export const authDb = createPgPromiseDatabase({
+  connectionString: authConnectionString,
+  max: poolMax,
+});
 
 const createKyselyDatabase = (config: DatabaseConnectionConfig): Kysely<DB> =>
   new Kysely<DB>({
@@ -38,7 +49,7 @@ const createKyselyDatabase = (config: DatabaseConnectionConfig): Kysely<DB> =>
         port: Number.parseInt(config.port, 10),
         user: config.user,
         password: config.password,
-        max: 10,
+        max: poolMax,
       }),
     }),
     plugins: [new CamelCasePlugin()],
@@ -47,3 +58,13 @@ const createKyselyDatabase = (config: DatabaseConnectionConfig): Kysely<DB> =>
 export const kdb = createKyselyDatabase(primary);
 export const replicaKdb =
   replica === primary ? kdb : createKyselyDatabase(replica);
+
+export const closeDatabaseConnections = async (): Promise<void> => {
+  await globalThis.Promise.all([
+    kdb.destroy(),
+    ...(replicaKdb === kdb ? [] : [replicaKdb.destroy()]),
+    ...Array.from(new Set([db, replicaDb, authDb]), (database) =>
+      database.$pool.end(),
+    ),
+  ]);
+};

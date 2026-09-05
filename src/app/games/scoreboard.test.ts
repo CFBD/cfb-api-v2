@@ -163,4 +163,90 @@ describe('scoreboard cache', () => {
     );
     expect(result).toHaveLength(1);
   });
+  test('reuses the parsed snapshot for one second, then sees Redis updates', async () => {
+    const redis = new MemoryRedis();
+    const read = jest.spyOn(redis, 'get');
+    let time = Date.parse('2026-08-21T16:00:30Z');
+    const dependencies = {
+      redis,
+      queryAll: jest.fn().mockResolvedValue([row]),
+      queryFiltered: jest.fn(),
+      now: () => new Date(time),
+    };
+    const first = await getScoreboard(
+      DivisionClassification.FBS,
+      undefined,
+      dependencies,
+    );
+    read.mockClear();
+    const snapshotKey = 'cfb-api:v1:scoreboard:snapshot';
+    const updated = JSON.parse(redis.values.get(snapshotKey)!);
+    updated.games[0].response.homeTeam.points = 21;
+    redis.values.set(snapshotKey, JSON.stringify(updated));
+    time += 999;
+    expect(
+      (await getScoreboard(DivisionClassification.FBS, 'b1g', dependencies))[0],
+    ).toBe(first[0]);
+    expect(read).not.toHaveBeenCalled();
+    time += 1;
+    const [second, concurrent] = await Promise.all([
+      getScoreboard(DivisionClassification.FBS, undefined, dependencies),
+      getScoreboard(DivisionClassification.FCS, 'OTH', dependencies),
+    ]);
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(second[0].homeTeam.points).toBe(21);
+    expect(concurrent[0]).toBe(second[0]);
+    expect(second[0].startDate).toEqual(row.startDate);
+    expect(dependencies.queryAll).toHaveBeenCalledTimes(1);
+  });
+
+  test('never extends the original sixty-second snapshot lifetime', async () => {
+    const redis = new MemoryRedis();
+    let time = Date.parse('2026-08-21T16:00:00Z');
+    const queryAll = jest.fn().mockResolvedValue([row]);
+    const dependencies = {
+      redis,
+      queryAll,
+      queryFiltered: jest.fn(),
+      now: () => new Date(time),
+    };
+    await getScoreboard(DivisionClassification.FBS, undefined, dependencies);
+    time += 59_500;
+    await getScoreboard(DivisionClassification.FBS, undefined, dependencies);
+    expect(queryAll).toHaveBeenCalledTimes(1);
+    time += 500;
+    await getScoreboard(DivisionClassification.FBS, undefined, dependencies);
+    expect(queryAll).toHaveBeenCalledTimes(2);
+  });
+
+  test('retries Redis after an error and isolates snapshots by client', async () => {
+    const redis = new MemoryRedis();
+    const queryFiltered = jest
+      .fn()
+      .mockResolvedValue([{ ...row, homePoints: 99 }]);
+    const queryAll = jest.fn().mockResolvedValue([row]);
+    const read = jest
+      .spyOn(redis, 'get')
+      .mockRejectedValueOnce(new Error('offline'));
+    const dependencies = { redis, queryAll, queryFiltered };
+    expect(
+      (
+        await getScoreboard(DivisionClassification.FBS, undefined, dependencies)
+      )[0].homeTeam.points,
+    ).toBe(99);
+    expect(
+      (
+        await getScoreboard(DivisionClassification.FBS, undefined, dependencies)
+      )[0].homeTeam.points,
+    ).toBe(14);
+    expect(read).toHaveBeenCalledTimes(2);
+    const otherQuery = jest.fn().mockResolvedValue([]);
+    expect(
+      await getScoreboard(DivisionClassification.FBS, undefined, {
+        redis: new MemoryRedis(),
+        queryAll: otherQuery,
+      }),
+    ).toEqual([]);
+    expect(otherQuery).toHaveBeenCalledTimes(1);
+  });
 });

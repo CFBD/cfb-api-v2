@@ -12,6 +12,7 @@ const SNAPSHOT_TTL_SECONDS = 60;
 const LOCK_TTL_MS = 30_000;
 const FOLLOWER_WAIT_MS = 5_000;
 const FOLLOWER_POLL_MS = 50;
+const LOCAL_SNAPSHOT_TTL_MS = 1000;
 
 export interface ScoreboardSnapshotV1 {
   version: 1;
@@ -190,7 +191,7 @@ const parseSnapshot = (
       !Array.isArray(snapshot.games) ||
       !Number.isFinite(generatedAt) ||
       generatedAt > now.getTime() ||
-      now.getTime() - generatedAt > SNAPSHOT_TTL_SECONDS * 1000 ||
+      now.getTime() - generatedAt >= SNAPSHOT_TTL_SECONDS * 1000 ||
       snapshot.games.some(
         (game) =>
           !game ||
@@ -212,6 +213,58 @@ const parseSnapshot = (
   } catch {
     return null;
   }
+};
+
+const localSnapshots = new WeakMap<
+  ScoreboardRedis,
+  {
+    snapshot: ScoreboardSnapshotV1;
+    checkedAt: number;
+    expiresAt: number;
+  }
+>();
+const pendingSnapshotReads = new WeakMap<
+  ScoreboardRedis,
+  Promise<ScoreboardSnapshotV1 | null>
+>();
+
+const rememberSnapshot = (
+  redis: ScoreboardRedis,
+  snapshot: ScoreboardSnapshotV1,
+  now: Date,
+): void => {
+  localSnapshots.set(redis, {
+    snapshot,
+    checkedAt: now.getTime(),
+    expiresAt: Math.min(
+      now.getTime() + LOCAL_SNAPSHOT_TTL_MS,
+      Date.parse(snapshot.generatedAt) + SNAPSHOT_TTL_SECONDS * 1000,
+    ),
+  });
+};
+
+const readSnapshot = async (
+  redis: ScoreboardRedis,
+  now: () => Date,
+): Promise<ScoreboardSnapshotV1 | null> => {
+  const time = now().getTime();
+  const local = localSnapshots.get(redis);
+  if (local && time >= local.checkedAt && time < local.expiresAt)
+    return local.snapshot;
+  localSnapshots.delete(redis);
+  const pending = pendingSnapshotReads.get(redis);
+  if (pending) return pending;
+  const read = redis
+    .get(SNAPSHOT_KEY)
+    .then((value) => {
+      const checkedAt = now();
+      const snapshot = parseSnapshot(value, checkedAt);
+      if (snapshot) rememberSnapshot(redis, snapshot, checkedAt);
+      return snapshot;
+    })
+    .finally(() => pendingSnapshotReads.delete(redis));
+  pendingSnapshotReads.set(redis, read);
+  return read;
 };
 
 export const filterScoreboardSnapshot = (
@@ -279,7 +332,7 @@ export const getScoreboard = async (
   }
 
   try {
-    const cached = parseSnapshot(await redis.get(SNAPSHOT_KEY), now());
+    const cached = await readSnapshot(redis, now);
     if (cached) {
       logCache('hit', cached.games.length);
       return filterScoreboardSnapshot(cached, classification, conference);
@@ -298,6 +351,7 @@ export const getScoreboard = async (
           await redis.set(SNAPSHOT_KEY, JSON.stringify(snapshot), {
             EX: SNAPSHOT_TTL_SECONDS,
           });
+          rememberSnapshot(redis, snapshot, now());
           logCache('refresh_success', snapshot.games.length);
         } catch {
           logCache('refresh_failure');
@@ -316,7 +370,7 @@ export const getScoreboard = async (
     const deadline = now().getTime() + FOLLOWER_WAIT_MS;
     while (now().getTime() < deadline) {
       await sleep(FOLLOWER_POLL_MS);
-      const published = parseSnapshot(await redis.get(SNAPSHOT_KEY), now());
+      const published = await readSnapshot(redis, now);
       if (published) {
         logCache('hit', published.games.length);
         return filterScoreboardSnapshot(published, classification, conference);
