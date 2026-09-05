@@ -9,6 +9,7 @@ import { getLivePlays } from './service';
 export class LiveController extends Controller {
   /**
    * Returns live play-by-play data and advanced metrics for a game.
+   * Results may be cached for up to five seconds after calculation.
    * @param gameId Game ID.
    * @isInt gameId
    */

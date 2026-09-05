@@ -19,18 +19,75 @@ const epaTypes = [
 const passTypes = [3, 4, 6, 7, 24, 26, 36, 37, 38, 39, 51, 67];
 const rushTypes = [5, 9, 29, 39, 68];
 const unsuccessfulTypes = [20, 26, 34, 36, 37, 38, 39, 63];
-let ppas:
-  | { yardLine: number; distance: number; down: number; ppa: number }[]
-  | null = null;
+const resultTtlMs = 5_000;
+const maxCachedGames = 128;
+const feedTimeoutMs = 10_000;
+const mlTimeoutMs = 2_000;
 
-const loadPpas = async () => {
-  ppas = await kdb
-    .selectFrom('ppa')
-    .select(['yardLine', 'down', 'distance'])
-    .select((eb) =>
-      eb.fn<number>('round', ['predictedPoints', eb.lit(3)]).as('ppa'),
-    )
-    .execute();
+const gameCache = new Map<number, { expiresAt: number; game: LiveGame }>();
+const pendingGames = new Map<number, Promise<LiveGame>>();
+let ppas: Map<string, { ppa: number }> | undefined;
+let ppaLoad: Promise<void> | undefined;
+
+const ppaKey = (down: number, distance: number, yardLine: number): string => {
+  if (down == null || distance == null || yardLine == null) return '';
+  return `${Number(down)}:${Number(distance)}:${Number(yardLine)}`;
+};
+
+const loadPpas = (): Promise<void> => {
+  if (!ppaLoad) {
+    ppaLoad = kdb
+      .selectFrom('ppa')
+      .select(['yardLine', 'down', 'distance'])
+      .select((eb) =>
+        eb.fn<number>('round', ['predictedPoints', eb.lit(3)]).as('ppa'),
+      )
+      .execute()
+      .then((rows) => {
+        const lookup = new Map<string, { ppa: number }>();
+        for (const row of rows) {
+          const key = ppaKey(row.down, row.distance, row.yardLine);
+          // Preserve the first match used by the original array lookup.
+          if (!lookup.has(key)) lookup.set(key, { ppa: row.ppa });
+        }
+        ppas = lookup;
+      })
+      .catch((error: unknown) => {
+        ppaLoad = undefined;
+        throw error;
+      });
+  }
+  return ppaLoad;
+};
+
+// Auth, tier checks, concurrency limits, and quotas run before this service.
+export const getLivePlays = (gameId: number): Promise<LiveGame> => {
+  const cached = gameCache.get(gameId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return Promise.resolve(cached.game);
+  }
+  gameCache.delete(gameId);
+
+  const pending = pendingGames.get(gameId);
+  if (pending) return pending;
+
+  const request = fetchLivePlays(gameId)
+    .then((game) => {
+      const now = Date.now();
+      for (const [id, entry] of gameCache) {
+        if (entry.expiresAt <= now) gameCache.delete(id);
+      }
+      gameCache.set(gameId, { game, expiresAt: now + resultTtlMs });
+      if (gameCache.size > maxCachedGames) {
+        const oldest = gameCache.keys().next();
+        if (!oldest.done) gameCache.delete(oldest.value);
+      }
+      return game;
+    })
+    .finally(() => pendingGames.delete(gameId));
+
+  pendingGames.set(gameId, request);
+  return request;
 };
 
 const getPlaySuccess = (play: GamePlay): boolean => {
@@ -80,7 +137,7 @@ const getGarbageTime = (play: GamePlay): boolean => {
   );
 };
 
-export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
+const fetchLivePlays = async (gameId: number): Promise<LiveGame> => {
   if (!ppas) {
     await loadPpas();
   }
@@ -89,6 +146,8 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
     params: {
       event: gameId,
     },
+    timeout: feedTimeoutMs,
+    signal: AbortSignal.timeout(feedTimeoutMs),
   });
 
   const comp = response.data.header.competitions[0];
@@ -151,11 +210,12 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
         play.start.team.id === offense?.team.id ? offense.team : defense?.team;
       let epa = null;
       if (epaTypes.includes(Number(play.type.id))) {
-        const startingEP = ppas?.find(
-          (ppa) =>
-            ppa.down == play.start.down &&
-            ppa.distance == play.start.distance &&
-            ppa.yardLine == play.start.yardsToEndzone,
+        const startingEP = ppas?.get(
+          ppaKey(
+            play.start.down,
+            play.start.distance,
+            play.start.yardsToEndzone,
+          ),
         );
         let endingEP = null;
 
@@ -167,11 +227,8 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
             endingEP = { ppa: 3 };
           }
         } else {
-          endingEP = ppas?.find(
-            (ppa) =>
-              ppa.down == play.end.down &&
-              ppa.distance == play.end.distance &&
-              ppa.yardLine == play.end.yardsToEndzone,
+          endingEP = ppas?.get(
+            ppaKey(play.end.down, play.end.distance, play.end.yardsToEndzone),
           );
         }
 
@@ -434,7 +491,10 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
           avg_start_away: away.averageStartYardLine,
         };
 
-        const mlResp = await axios.post(`${ML_URL}/predict/pgwe`, payload);
+        const mlResp = await axios.post(`${ML_URL}/predict/pgwe`, payload, {
+          timeout: mlTimeoutMs,
+          signal: AbortSignal.timeout(mlTimeoutMs),
+        });
         if (mlResp?.data && typeof mlResp.data.prediction === 'number') {
           const pred: number = Math.round(mlResp.data.prediction * 1000) / 1000;
           deserveToWinByTeam = {
@@ -444,8 +504,8 @@ export const getLivePlays = async (gameId: number): Promise<LiveGame> => {
         }
       }
     }
-  } catch (_e) {
-    // Swallow eML API errors to avoid breaking base response
+  } catch {
+    // Swallow ML API errors to avoid breaking base response
     // eslint-disable-next-line no-empty
   }
 

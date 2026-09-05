@@ -144,6 +144,22 @@ requests receive 429 with `Retry-After: 1` before quota reservation. Slots are
 released when responses finish, or after the existing 75-second safety lease.
 Lease expiry does not cancel unfinished upstream work.
 
+## Live Play Cache
+
+`GET /live/plays` caches successful computed game results in process memory for
+five seconds after completion, with at most 128 games retained. Concurrent
+requests for the same game share one upstream fetch and calculation. Failed
+calculations are not cached; subsequent requests can retry. Authentication,
+Tier 2 checks, concurrency enforcement, and per-request quotas still run before
+cache access. Each API process maintains its own cache.
+
+The EPA table is loaded through one shared promise and indexed in memory by
+down, distance, and yards to the end zone. Failed table loads can retry. This
+preserves the previous first-match semantics without scanning the entire table
+for every play. The upstream game feed has a 10-second timeout; the optional ML
+prediction has a two-second timeout and retains its existing fallback of
+omitting `deserveToWin` when unavailable.
+
 ## Scoreboard Cache
 
 `GET /scoreboard` remains Tier 1 and quota-exempt. Its service reads a
