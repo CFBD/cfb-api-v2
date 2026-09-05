@@ -1,3 +1,10 @@
+## [5.26.2](https://github.com/CFBD/cfb-api-v2/compare/v5.26.1...v5.26.2) (2026-09-05)
+
+
+### Performance Improvements
+
+* **live:** cache game results and index EPA lookups ([de4afdc](https://github.com/CFBD/cfb-api-v2/commit/de4afdc13bf0a30288488e0daccda35cef9e6441))
+
 ## [5.26.1](https://github.com/CFBD/cfb-api-v2/compare/v5.26.0...v5.26.1) (2026-09-05)
 
 
