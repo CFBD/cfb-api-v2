@@ -1,6 +1,6 @@
 {
   "name": "cfb-api",
-  "version": "5.26.2",
+  "version": "5.26.3",
   "packageManager": "pnpm@11.20.0",
   "repository": {
     "type": "git",

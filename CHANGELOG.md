@@ -1,3 +1,10 @@
+## [5.26.3](https://github.com/CFBD/cfb-api-v2/compare/v5.26.2...v5.26.3) (2026-09-05)
+
+
+### Performance Improvements
+
+* **api:** run two coordinated workers and cache parsed scoreboard ([76262f2](https://github.com/CFBD/cfb-api-v2/commit/76262f2f865580d50c652320d857817b80b4daec))
+
 ## [5.26.2](https://github.com/CFBD/cfb-api-v2/compare/v5.26.1...v5.26.2) (2026-09-05)
 
 
