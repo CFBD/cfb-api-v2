@@ -24,12 +24,28 @@ pnpm start         # run the compiled API with up to two workers
 pnpm build         # generate TSOA routes/specs and compile TypeScript
 pnpm docs:build    # generate OpenAPI and build the Zudoku site
 pnpm docs:dev      # generate OpenAPI and start the Zudoku dev server
-pnpm test          # run all Jest tests
+pnpm test          # run Jest with at most two workers; no database access
+pnpm typecheck     # run full TypeScript checking separately
 pnpm lint          # run ESLint
 pnpm prettify      # format code with Prettier
 pnpm docs:check    # verify required docs, AGENTS.md size, and local doc links
 pnpm build:db      # regenerate Kysely database types
 ```
+
+## Tests and database isolation
+
+Jest uses per-file TypeScript transpilation with at most two workers. Run
+`pnpm typecheck` for full type checking; CI runs it after the tests, and
+`pnpm build` also compiles the complete project. `pnpm test` still generates
+TSOA routes/specs first because the generated-contract tests require them.
+Use `pnpm test --runInBand` when you need an even smaller test process count.
+
+All Jest suites load `src/test/setup.ts`, which blocks PostgreSQL client/pool
+connections and queries, including Kysely and pg-promise execution. Mock
+`src/config/database.ts` or use Kysely's `DummyDriver` to inspect compiled
+queries. Tests must not load real database credentials or connect to a live
+database. The former `PASSING_DATABASE_TESTS` opt-in has been removed.
+Local HTTP and cluster/IPC fixtures remain supported.
 
 ## Production Workers
 

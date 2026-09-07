@@ -63,6 +63,75 @@ const createCompileDatabase = (
     },
   });
 
+const locationNames = [
+  'short left',
+  'short middle',
+  'short right',
+  'deep left',
+  'deep middle',
+  'deep right',
+  'unknown',
+] as const;
+const bucketPrefixes = [
+  'shortLeft',
+  'shortMiddle',
+  'shortRight',
+  'deepLeft',
+  'deepMiddle',
+  'deepRight',
+  'unknown',
+];
+const prefixFields = (prefix: string, fields: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(fields).map(([key, value]) => [
+      `${prefix}${key[0].toUpperCase()}${key.slice(1)}`,
+      value,
+    ]),
+  );
+const emptyAdvanced = {
+  successRate: 0,
+  ppa: 0,
+  totalPpa: 0,
+  explosiveness: 0,
+  ppaAttemptsAvailable: 0,
+  successAttemptsAvailable: 0,
+  successfulAttempts: 0,
+  successfulPpaAttemptsAvailable: 0,
+};
+const emptyBaseRow = {
+  attempts: 0,
+  completions: 0,
+  incompletions: 0,
+  interceptions: 0,
+  airYardsAttemptsAvailable: 0,
+  totalAirYards: null,
+  averageDepthOfTarget: null,
+  totalYardsAttemptsAvailable: 0,
+  totalYards: null,
+  yardsAfterCatchAttemptsAvailable: 0,
+  totalYardsAfterCatch: null,
+  averageYardsAfterCatch: null,
+};
+const emptyLocation = {
+  ...emptyBaseRow,
+  ...emptyAdvanced,
+  completionRate: null,
+  yardsPerAttempt: null,
+  airYardsPerAttempt: null,
+};
+const emptyAggregateRow = {
+  ...emptyBaseRow,
+  ...emptyAdvanced,
+  locationEligibleAttempts: 0,
+  locationAvailableAttempts: 0,
+  ...Object.assign(
+    {},
+    ...bucketPrefixes.map((prefix) =>
+      prefixFields(prefix, { ...emptyBaseRow, ...emptyAdvanced }),
+    ),
+  ),
+};
+
 const passingPlayRow = {
   gameId: 401752820,
   playId: '401752820104849901',
@@ -102,9 +171,13 @@ const passingPlayRow = {
   // CPOE fixtures and assertions stay disabled until CPOE goes live.
   // cpoeEligible: true,
   parseStatus: 'complete',
+  ppa: '1.23456',
+  success: true,
+  locationAnalysisEligible: true,
 };
 
 const productionRow = {
+  ...emptyAggregateRow,
   attempts: '4',
   completions: '2',
   incompletions: '1',
@@ -214,6 +287,9 @@ describe('getPassingPlays', () => {
         isIntentionalGrounding: false,
         // cpoeEligible: true,
         parseStatus: 'complete',
+        ppa: 1.23456,
+        success: true,
+        locationAnalysisEligible: true,
       },
     ]);
 
@@ -510,7 +586,7 @@ describe('player passing aggregates', () => {
     ]);
     selectFrom.mockReturnValue(builder);
 
-    await expect(getPlayerPassingBySeason(2026)).resolves.toEqual([
+    await expect(getPlayerPassingBySeason(2026)).resolves.toMatchObject([
       {
         season: 2026,
         playerId: '4685151',
@@ -615,10 +691,10 @@ describe('player passing aggregates', () => {
       expect(sql).not.toContain('play_stat');
       expect(sql).not.toContain('lateral');
       expect(sql).toContain(
-        'filter(where "play"."offense_id" = "represented_team"."id"',
+        'filter(where ("play"."offense_id" = "represented_team"."id"',
       );
       expect(sql).toContain(
-        'filter(where "play"."defense_id" = "represented_team"."id"',
+        'filter(where ("play"."defense_id" = "represented_team"."id"',
       );
       expect(sql).toContain('and "pp"."outcome" =');
     }
@@ -793,6 +869,8 @@ describe('team passing aggregates', () => {
         season: 2026,
         team: 'Michigan State',
         conference: 'B1G',
+        ...prefixFields('offense', emptyAggregateRow),
+        ...prefixFields('defense', emptyAggregateRow),
         offenseAttempts: '4',
         offenseCompletions: '2',
         offenseIncompletions: '1',
@@ -825,7 +903,7 @@ describe('team passing aggregates', () => {
 
     const [result] = await getTeamPassingBySeason(2026);
 
-    expect(result.offense).toEqual({
+    expect(result.offense).toMatchObject({
       attempts: 4,
       completions: 2,
       incompletions: 1,
@@ -841,7 +919,7 @@ describe('team passing aggregates', () => {
       totalYardsAfterCatch: 0,
       averageYardsAfterCatch: 0,
     });
-    expect(result.defense).toEqual({
+    expect(result.defense).toMatchObject({
       attempts: 0,
       completions: 0,
       incompletions: 0,
@@ -900,5 +978,167 @@ describe('team passing aggregates', () => {
       'opponentGt.teamId',
       'opponentTeam.id',
     );
+  });
+});
+
+describe('passing advanced metrics and location mapping', () => {
+  test.each([
+    { run: () => getPlayerPassingBySeason(2026), team: false },
+    { run: () => getPlayerPassingByGame(2026, 1), team: false },
+    { run: () => getTeamPassingBySeason(2026), team: true },
+    { run: () => getTeamPassingByGame(2026, 1), team: true },
+  ])('maps all metrics and every bucket for $run', async ({ run, team }) => {
+    const advancedRow = {
+      successRate: '0.333333',
+      ppa: '-0.123456',
+      totalPpa: '-0.246912',
+      explosiveness: '1.234567',
+      ppaAttemptsAvailable: '2',
+      successAttemptsAvailable: '2',
+      successfulAttempts: '1',
+      successfulPpaAttemptsAvailable: '1',
+    };
+    const row = {
+      ...productionRow,
+      ...advancedRow,
+      locationEligibleAttempts: '3',
+      locationAvailableAttempts: '3',
+      ...prefixFields('shortLeft', {
+        ...emptyBaseRow,
+        ...advancedRow,
+        attempts: '3',
+        completions: '1',
+        incompletions: '1',
+        interceptions: '1',
+        totalYardsAttemptsAvailable: '3',
+        totalYards: '10',
+        airYardsAttemptsAvailable: '2',
+        totalAirYards: '-1',
+        averageDepthOfTarget: '-0.5',
+      }),
+    };
+    selectFrom.mockReturnValue(
+      createQueryBuilder([
+        team
+          ? {
+              ...prefixFields('offense', row),
+              ...prefixFields('defense', emptyAggregateRow),
+            }
+          : row,
+      ]),
+    );
+    const [result] = await run();
+    const production = 'offense' in result ? result.offense : result;
+    expect(production).toMatchObject({
+      attempts: 4,
+      locationEligibleAttempts: 3,
+      locationAvailableAttempts: 3,
+      successRate: 0.333,
+      ppa: -0.123,
+      totalPpa: -0.247,
+      explosiveness: 1.235,
+      ppaAttemptsAvailable: 2,
+      successAttemptsAvailable: 2,
+      successfulAttempts: 1,
+      successfulPpaAttemptsAvailable: 1,
+    });
+    expect(Object.keys(production.locations)).toEqual(locationNames);
+    expect(production.locations['short left']).toEqual({
+      ...emptyLocation,
+      attempts: 3,
+      completions: 1,
+      incompletions: 1,
+      interceptions: 1,
+      completionRate: 0.333,
+      totalYardsAttemptsAvailable: 3,
+      totalYards: 10,
+      yardsPerAttempt: 3.3,
+      airYardsAttemptsAvailable: 2,
+      totalAirYards: -1,
+      averageDepthOfTarget: -0.5,
+      airYardsPerAttempt: -0.5,
+      successRate: 0.333,
+      ppa: -0.123,
+      totalPpa: -0.247,
+      explosiveness: 1.235,
+      ppaAttemptsAvailable: 2,
+      successAttemptsAvailable: 2,
+      successfulAttempts: 1,
+      successfulPpaAttemptsAvailable: 1,
+    });
+    for (const location of locationNames.slice(1)) {
+      expect(production.locations[location]).toEqual(emptyLocation);
+    }
+    if ('defense' in result) {
+      expect(result.defense).toEqual({
+        ...emptyBaseRow,
+        ...emptyAdvanced,
+        completionRate: null,
+        locationEligibleAttempts: 0,
+        locationAvailableAttempts: 0,
+        locations: Object.fromEntries(
+          locationNames.map((name) => [name, emptyLocation]),
+        ),
+      });
+    }
+  });
+
+  test.each([null, false, true])(
+    'preserves stored success=%s and raw PPA on ineligible plays',
+    async (success) => {
+      selectFrom.mockReturnValue(
+        createQueryBuilder([
+          {
+            ...passingPlayRow,
+            success,
+            ppa: success === null ? null : '-0.25',
+            isSpike: true,
+            locationAnalysisEligible: false,
+          },
+        ]),
+      );
+      const [result] = await getPassingPlays(undefined, 2026, 1);
+      expect(result).toMatchObject({
+        success,
+        ppa: success === null ? null : -0.25,
+        isSpike: true,
+        locationAnalysisEligible: false,
+      });
+    },
+  );
+
+  test('compiles every bucket with eligibility, nullable coverage, and unique PostgreSQL-safe aliases', async () => {
+    const compiledQueries: CompiledQuery<unknown>[] = [];
+    const compileDb = createCompileDatabase(compiledQueries);
+    selectFrom.mockImplementation(compileDb.selectFrom.bind(compileDb));
+    await getTeamPassingBySeason(2026);
+    expect(compiledQueries).toHaveLength(1);
+    const [{ sql, parameters }] = compiledQueries;
+    expect(sql).toContain('not case when');
+    expect(sql).toContain('"pp"."pass_depth" in');
+    expect(sql).toContain('"pp"."pass_direction" in');
+    expect(sql).not.toContain('"pp"."is_throwaway"');
+    expect(sql).toContain('"pp"."is_spike" =');
+    expect(sql).toContain('"pp"."is_intentional_grounding" =');
+    expect(sql).toContain('"pp"."parse_status" <>');
+    expect(sql).toContain('count("play"."success") filter');
+    expect(sql).toContain('count("play"."ppa") filter');
+    const aliases = [...sql.matchAll(/ as "((?:offense|defense)_\w+)"/g)].map(
+      (match) => match[1],
+    );
+    expect(new Set(aliases).size).toBe(aliases.length);
+    expect(aliases.every((alias) => Buffer.byteLength(alias) <= 63)).toBe(true);
+    for (const side of ['offense', 'defense']) {
+      for (const location of locationNames) {
+        expect(aliases).toContain(
+          `${side}_${location.replace(' ', '_')}_total_ppa`,
+        );
+        expect(aliases).toContain(
+          `${side}_${location.replace(' ', '_')}_total_air_yards`,
+        );
+      }
+    }
+    expect(parameters).not.toContain(undefined);
+    await compileDb.destroy();
   });
 });

@@ -15,6 +15,7 @@
     "start": "node ./build/src/cluster.js",
     "pretest": "tsoa spec-and-routes",
     "test": "jest",
+    "typecheck": "tsc --noEmit --skipLibCheck",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --ignore-path .gitignore .",
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint --ignore-path .gitignore . --fix",
     "docs:build": "tsoa spec && pnpm --dir docs-site build && node scripts/check-docs-build.mjs",

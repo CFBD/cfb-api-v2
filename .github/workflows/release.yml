@@ -44,8 +44,10 @@ jobs:
       #   run: pnpm docs:check
       - name: Validate current commit
         run: npx commitlint --last --verbose
-      - name: Run tests
-        run: pnpm test
+      - name: Run tests and typecheck
+        run: |
+          pnpm test
+          pnpm typecheck
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

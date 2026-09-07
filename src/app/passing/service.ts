@@ -1,4 +1,9 @@
-import { expressionBuilder } from 'kysely';
+import {
+  AliasedExpression,
+  Expression,
+  SqlBool,
+  expressionBuilder,
+} from 'kysely';
 import { ValidateError } from 'tsoa';
 
 import { kdb } from '../../config/database';
@@ -11,6 +16,9 @@ import {
   PassOutcome,
   PassParseStatus,
   PassingPlay,
+  PassingBaseProduction,
+  PassingAdvancedProduction,
+  PassingLocationProduction,
   PassingProduction,
   PlayerPassingGame,
   PlayerPassingSeason,
@@ -117,15 +125,45 @@ const validateTeamPassingSeasonScope = (year?: number, team?: string): void => {
   }
 };
 
-const aggregateSelections = () => {
+const locationBuckets: (PassLocation | 'unknown')[] = [
+  'short left',
+  'short middle',
+  'short right',
+  'deep left',
+  'deep middle',
+  'deep right',
+  'unknown',
+];
+
+const fieldName = (prefix: string, name: string): string =>
+  prefix ? `${prefix}${name[0].toUpperCase()}${name.slice(1)}` : name;
+
+const locationPrefix = (prefix: string, location: PassLocation | 'unknown') =>
+  fieldName(
+    prefix,
+    location.replace(/ ([a-z])/g, (_, letter: string) => letter.toUpperCase()),
+  );
+
+const passingExpressions = () => {
   const eb = expressionBuilder<PassingAggregateTables, 'pp' | 'play'>();
-  const cpoeEligible = eb.and([
-    eb('pp.parseStatus', '=', 'complete'),
-    eb('pp.airYards', 'is not', null),
+  const eligible = eb.and([
     eb('pp.isSpike', '=', false),
-    eb('pp.isThrowaway', '=', false),
     eb('pp.isIntentionalGrounding', '=', false),
+    eb('pp.parseStatus', '<>', 'invalid'),
   ]);
+  // CASE makes unknown components false rather than SQL NULL, so negating
+  // this predicate puts every unrecognized location in the unknown bucket.
+  const knownLocation = eb
+    .case()
+    .when(
+      eb.and([
+        eb('pp.passDepth', 'in', ['short', 'deep']),
+        eb('pp.passDirection', 'in', ['left', 'middle', 'right']),
+      ]),
+    )
+    .then(true)
+    .else(false)
+    .end();
   const totalYards = eb
     .case()
     .when(
@@ -150,186 +188,173 @@ const aggregateSelections = () => {
     .then(eb(eb.ref('play.yardsGained'), '-', eb.ref('pp.airYards')))
     .end();
 
-  return [
-    eb.fn.countAll<number>().as('attempts'),
-    eb.fn
-      .countAll<number>()
-      .filterWhere('pp.outcome', '=', 'completion')
-      .as('completions'),
-    eb.fn
-      .countAll<number>()
-      .filterWhere('pp.outcome', '=', 'incompletion')
-      .as('incompletions'),
-    eb.fn
-      .countAll<number>()
-      .filterWhere('pp.outcome', '=', 'interception')
-      .as('interceptions'),
-    eb.fn
-      .countAll<number>()
-      .filterWhere(cpoeEligible)
-      .as('cpoeEligibleAttempts'),
-    eb.fn.count<number>('pp.airYards').as('airYardsAttemptsAvailable'),
-    eb.fn.sum<number | string | null>('pp.airYards').as('totalAirYards'),
-    eb.fn.avg<number | string | null>('pp.airYards').as('averageDepthOfTarget'),
-    eb.fn.count<number>(totalYards).as('totalYardsAttemptsAvailable'),
-    eb.fn.sum<number | string | null>(totalYards).as('totalYards'),
-    eb.fn.count<number>(yardsAfterCatch).as('yardsAfterCatchAttemptsAvailable'),
-    eb.fn
-      .sum<number | string | null>(yardsAfterCatch)
-      .as('totalYardsAfterCatch'),
-    eb.fn
-      .avg<number | string | null>(yardsAfterCatch)
-      .as('averageYardsAfterCatch'),
-  ];
+  return { eligible, knownLocation, totalYards, yardsAfterCatch };
 };
 
-const teamAggregateSelections = () => {
+type AggregateCondition = Expression<SqlBool>;
+type AggregateSelection = AliasedExpression<number | string | null, string>;
+type AggregateSide = 'offense' | 'defense';
+
+const aggregateSelections = (side?: AggregateSide): AggregateSelection[] => {
   const eb = expressionBuilder<
     PassingAggregateTables,
-    'pp' | 'play' | 'representedTeam'
+    keyof PassingAggregateTables
   >();
-  const offense = eb('play.offenseId', '=', eb.ref('representedTeam.id'));
-  const defense = eb('play.defenseId', '=', eb.ref('representedTeam.id'));
-  const cpoeEligible = eb.and([
-    eb('pp.parseStatus', '=', 'complete'),
-    eb('pp.airYards', 'is not', null),
-    eb('pp.isSpike', '=', false),
-    eb('pp.isThrowaway', '=', false),
-    eb('pp.isIntentionalGrounding', '=', false),
-  ]);
-  const totalYards = eb
-    .case()
-    .when(
-      eb.and([
-        eb('pp.outcome', '=', 'completion'),
-        eb('pp.parseStatus', '<>', 'invalid'),
-      ]),
-    )
-    .then(eb.ref('play.yardsGained'))
-    .when('pp.outcome', 'in', ['incompletion', 'interception'])
-    .then(0)
-    .end();
-  const yardsAfterCatch = eb
-    .case()
-    .when(
-      eb.and([
-        eb('pp.outcome', '=', 'completion'),
-        eb('pp.parseStatus', '<>', 'invalid'),
-        eb('pp.airYards', 'is not', null),
-      ]),
-    )
-    .then(eb(eb.ref('play.yardsGained'), '-', eb.ref('pp.airYards')))
-    .end();
+  const prefix = side ?? '';
+  const { eligible, knownLocation, totalYards, yardsAfterCatch } =
+    passingExpressions();
+  const sideConditions = side
+    ? [
+        eb(
+          side === 'offense' ? 'play.offenseId' : 'play.defenseId',
+          '=',
+          eb.ref('representedTeam.id'),
+        ),
+      ]
+    : [];
+  const count = (conditions: AggregateCondition[]) => {
+    const aggregate = eb.fn.countAll<number>();
+    return conditions.length
+      ? aggregate.filterWhere(eb.and(conditions))
+      : aggregate;
+  };
+  const columnCount = (
+    value: Expression<number | string | boolean | null>,
+    conditions: AggregateCondition[],
+  ) => {
+    const aggregate = eb.fn.count<number>(value);
+    return conditions.length
+      ? aggregate.filterWhere(eb.and(conditions))
+      : aggregate;
+  };
+  const sum = (
+    value: Expression<number | string | null>,
+    conditions: AggregateCondition[],
+  ) => {
+    const aggregate = eb.fn.sum<number | string | null>(value);
+    return conditions.length
+      ? aggregate.filterWhere(eb.and(conditions))
+      : aggregate;
+  };
+  const average = (
+    value: Expression<number | string | null>,
+    conditions: AggregateCondition[],
+  ) => {
+    const aggregate = eb.fn.avg<number | string | null>(value);
+    return conditions.length
+      ? aggregate.filterWhere(eb.and(conditions))
+      : aggregate;
+  };
+  const production = (
+    conditions: AggregateCondition[],
+    productionPrefix: string,
+  ): AggregateSelection[] => {
+    const alias = (name: string) => fieldName(productionPrefix, name);
+    return [
+      count(conditions).as(alias('attempts')),
+      count([...conditions, eb('pp.outcome', '=', 'completion')]).as(
+        alias('completions'),
+      ),
+      count([...conditions, eb('pp.outcome', '=', 'incompletion')]).as(
+        alias('incompletions'),
+      ),
+      count([...conditions, eb('pp.outcome', '=', 'interception')]).as(
+        alias('interceptions'),
+      ),
+      columnCount(eb.ref('pp.airYards'), conditions).as(
+        alias('airYardsAttemptsAvailable'),
+      ),
+      sum(eb.ref('pp.airYards'), conditions).as(alias('totalAirYards')),
+      average(eb.ref('pp.airYards'), conditions).as(
+        alias('averageDepthOfTarget'),
+      ),
+      columnCount(totalYards, conditions).as(
+        alias('totalYardsAttemptsAvailable'),
+      ),
+      sum(totalYards, conditions).as(alias('totalYards')),
+      columnCount(yardsAfterCatch, conditions).as(
+        alias('yardsAfterCatchAttemptsAvailable'),
+      ),
+      sum(yardsAfterCatch, conditions).as(alias('totalYardsAfterCatch')),
+      average(yardsAfterCatch, conditions).as(alias('averageYardsAfterCatch')),
+    ];
+  };
+  const advanced = (
+    conditions: AggregateCondition[],
+    productionPrefix: string,
+  ): AggregateSelection[] => {
+    const alias = (name: string) => fieldName(productionPrefix, name);
+    const successful = [...conditions, eb('play.success', '=', true)];
+    const attemptCount = count(conditions);
+    const safeAttemptCount = eb
+      .case()
+      .when(attemptCount, '=', 0)
+      .then(1)
+      .else(attemptCount)
+      .end();
+    return [
+      eb
+        .parens(
+          eb(
+            eb.cast<number>(count(successful), 'numeric'),
+            '/',
+            safeAttemptCount,
+          ),
+        )
+        .as(alias('successRate')),
+      eb.fn
+        .coalesce(average(eb.ref('play.ppa'), conditions), eb.val(0))
+        .as(alias('ppa')),
+      eb.fn
+        .coalesce(sum(eb.ref('play.ppa'), conditions), eb.val(0))
+        .as(alias('totalPpa')),
+      eb.fn
+        .coalesce(average(eb.ref('play.ppa'), successful), eb.val(0))
+        .as(alias('explosiveness')),
+      columnCount(eb.ref('play.ppa'), conditions).as(
+        alias('ppaAttemptsAvailable'),
+      ),
+      columnCount(eb.ref('play.success'), conditions).as(
+        alias('successAttemptsAvailable'),
+      ),
+      count(successful).as(alias('successfulAttempts')),
+      columnCount(eb.ref('play.ppa'), successful).as(
+        alias('successfulPpaAttemptsAvailable'),
+      ),
+    ];
+  };
+  const eligibleConditions = [...sideConditions, eligible];
 
   return [
-    eb.fn.countAll<number>().filterWhere(offense).as('offenseAttempts'),
-    eb.fn
-      .countAll<number>()
-      .filterWhere(offense)
-      .filterWhere('pp.outcome', '=', 'completion')
-      .as('offenseCompletions'),
-    eb.fn
-      .countAll<number>()
-      .filterWhere(offense)
-      .filterWhere('pp.outcome', '=', 'incompletion')
-      .as('offenseIncompletions'),
-    eb.fn
-      .countAll<number>()
-      .filterWhere(offense)
-      .filterWhere('pp.outcome', '=', 'interception')
-      .as('offenseInterceptions'),
-    eb.fn
-      .countAll<number>()
-      .filterWhere(offense)
-      .filterWhere(cpoeEligible)
-      .as('offenseCpoeEligibleAttempts'),
-    eb.fn
-      .count<number>('pp.airYards')
-      .filterWhere(offense)
-      .as('offenseAirYardsAttemptsAvailable'),
-    eb.fn
-      .sum<number | string | null>('pp.airYards')
-      .filterWhere(offense)
-      .as('offenseTotalAirYards'),
-    eb.fn
-      .avg<number | string | null>('pp.airYards')
-      .filterWhere(offense)
-      .as('offenseAverageDepthOfTarget'),
-    eb.fn
-      .count<number>(totalYards)
-      .filterWhere(offense)
-      .as('offenseTotalYardsAttemptsAvailable'),
-    eb.fn
-      .sum<number | string | null>(totalYards)
-      .filterWhere(offense)
-      .as('offenseTotalYards'),
-    eb.fn
-      .count<number>(yardsAfterCatch)
-      .filterWhere(offense)
-      .as('offenseYardsAfterCatchAttemptsAvailable'),
-    eb.fn
-      .sum<number | string | null>(yardsAfterCatch)
-      .filterWhere(offense)
-      .as('offenseTotalYardsAfterCatch'),
-    eb.fn
-      .avg<number | string | null>(yardsAfterCatch)
-      .filterWhere(offense)
-      .as('offenseAverageYardsAfterCatch'),
-    eb.fn.countAll<number>().filterWhere(defense).as('defenseAttempts'),
-    eb.fn
-      .countAll<number>()
-      .filterWhere(defense)
-      .filterWhere('pp.outcome', '=', 'completion')
-      .as('defenseCompletions'),
-    eb.fn
-      .countAll<number>()
-      .filterWhere(defense)
-      .filterWhere('pp.outcome', '=', 'incompletion')
-      .as('defenseIncompletions'),
-    eb.fn
-      .countAll<number>()
-      .filterWhere(defense)
-      .filterWhere('pp.outcome', '=', 'interception')
-      .as('defenseInterceptions'),
-    eb.fn
-      .countAll<number>()
-      .filterWhere(defense)
-      .filterWhere(cpoeEligible)
-      .as('defenseCpoeEligibleAttempts'),
-    eb.fn
-      .count<number>('pp.airYards')
-      .filterWhere(defense)
-      .as('defenseAirYardsAttemptsAvailable'),
-    eb.fn
-      .sum<number | string | null>('pp.airYards')
-      .filterWhere(defense)
-      .as('defenseTotalAirYards'),
-    eb.fn
-      .avg<number | string | null>('pp.airYards')
-      .filterWhere(defense)
-      .as('defenseAverageDepthOfTarget'),
-    eb.fn
-      .count<number>(totalYards)
-      .filterWhere(defense)
-      .as('defenseTotalYardsAttemptsAvailable'),
-    eb.fn
-      .sum<number | string | null>(totalYards)
-      .filterWhere(defense)
-      .as('defenseTotalYards'),
-    eb.fn
-      .count<number>(yardsAfterCatch)
-      .filterWhere(defense)
-      .as('defenseYardsAfterCatchAttemptsAvailable'),
-    eb.fn
-      .sum<number | string | null>(yardsAfterCatch)
-      .filterWhere(defense)
-      .as('defenseTotalYardsAfterCatch'),
-    eb.fn
-      .avg<number | string | null>(yardsAfterCatch)
-      .filterWhere(defense)
-      .as('defenseAverageYardsAfterCatch'),
+    ...production(sideConditions, prefix),
+    ...advanced(eligibleConditions, prefix),
+    count(eligibleConditions).as(fieldName(prefix, 'locationEligibleAttempts')),
+    count([...eligibleConditions, knownLocation]).as(
+      fieldName(prefix, 'locationAvailableAttempts'),
+    ),
+    ...locationBuckets.flatMap((location) => {
+      const [depth, direction] = location.split(' ');
+      const condition =
+        location === 'unknown'
+          ? eb.not(knownLocation)
+          : eb.and([
+              eb('pp.passDepth', '=', depth),
+              eb('pp.passDirection', '=', direction),
+            ]);
+      const conditions = [...eligibleConditions, condition];
+      const bucketPrefix = locationPrefix(prefix, location);
+      return [
+        ...production(conditions, bucketPrefix),
+        ...advanced(conditions, bucketPrefix),
+      ];
+    }),
   ];
 };
+
+const teamAggregateSelections = (): AggregateSelection[] => [
+  ...aggregateSelections('offense'),
+  ...aggregateSelections('defense'),
+];
 
 const numericValue = (row: AggregateRow, field: string): number =>
   Number(row[field]);
@@ -347,9 +372,11 @@ const round = (value: number, places: number): number => {
   return Math.round((value + Number.EPSILON) * scale) / scale;
 };
 
-const mapProduction = (row: AggregateRow, prefix = ''): PassingProduction => {
-  const field = (name: string): string =>
-    prefix ? `${prefix}${name[0].toUpperCase()}${name.slice(1)}` : name;
+const mapBaseProduction = (
+  row: AggregateRow,
+  prefix = '',
+): PassingBaseProduction => {
+  const field = (name: string): string => fieldName(prefix, name);
   const attempts = numericValue(row, field('attempts'));
   const completions = numericValue(row, field('completions'));
   const airYardsAttemptsAvailable = numericValue(
@@ -403,6 +430,63 @@ const mapProduction = (row: AggregateRow, prefix = ''): PassingProduction => {
           ),
   };
 };
+
+const mapAdvancedProduction = (
+  row: AggregateRow,
+  prefix: string,
+): PassingAdvancedProduction => {
+  const value = (name: string) => numericValue(row, fieldName(prefix, name));
+  return {
+    successRate: round(value('successRate'), 3),
+    ppa: round(value('ppa'), 3),
+    totalPpa: round(value('totalPpa'), 3),
+    explosiveness: round(value('explosiveness'), 3),
+    ppaAttemptsAvailable: value('ppaAttemptsAvailable'),
+    successAttemptsAvailable: value('successAttemptsAvailable'),
+    successfulAttempts: value('successfulAttempts'),
+    successfulPpaAttemptsAvailable: value('successfulPpaAttemptsAvailable'),
+  };
+};
+
+const mapLocationProduction = (
+  row: AggregateRow,
+  prefix: string,
+  location: PassLocation | 'unknown',
+): PassingLocationProduction => {
+  const bucketPrefix = locationPrefix(prefix, location);
+  const base = mapBaseProduction(row, bucketPrefix);
+  return {
+    ...base,
+    ...mapAdvancedProduction(row, bucketPrefix),
+    yardsPerAttempt:
+      base.totalYards === null || base.totalYardsAttemptsAvailable === 0
+        ? null
+        : round(base.totalYards / base.totalYardsAttemptsAvailable, 1),
+    airYardsPerAttempt: base.averageDepthOfTarget,
+  };
+};
+
+const mapProduction = (row: AggregateRow, prefix = ''): PassingProduction => ({
+  ...mapBaseProduction(row, prefix),
+  ...mapAdvancedProduction(row, prefix),
+  locationEligibleAttempts: numericValue(
+    row,
+    fieldName(prefix, 'locationEligibleAttempts'),
+  ),
+  locationAvailableAttempts: numericValue(
+    row,
+    fieldName(prefix, 'locationAvailableAttempts'),
+  ),
+  locations: {
+    'short left': mapLocationProduction(row, prefix, 'short left'),
+    'short middle': mapLocationProduction(row, prefix, 'short middle'),
+    'short right': mapLocationProduction(row, prefix, 'short right'),
+    'deep left': mapLocationProduction(row, prefix, 'deep left'),
+    'deep middle': mapLocationProduction(row, prefix, 'deep middle'),
+    'deep right': mapLocationProduction(row, prefix, 'deep right'),
+    unknown: mapLocationProduction(row, prefix, 'unknown'),
+  },
+});
 
 export const getPassingPlays = async (
   gameId?: number,
@@ -623,6 +707,11 @@ export const getPassingPlays = async (
         )
         .as('cpoeEligible'),
       'pp.parseStatus',
+      'play.ppa',
+      'play.success',
+      eb
+        .cast<boolean>(passingExpressions().eligible, 'boolean')
+        .as('locationAnalysisEligible'),
     ])
     .where('offenseConference.division', '=', classification)
     .orderBy('game.season', 'desc')
@@ -752,6 +841,9 @@ export const getPassingPlays = async (
       isIntentionalGrounding: row.isIntentionalGrounding,
       // cpoeEligible: row.cpoeEligible,
       parseStatus: row.parseStatus as PassParseStatus,
+      ppa: row.ppa === null ? null : Number(row.ppa),
+      success: row.success,
+      locationAnalysisEligible: row.locationAnalysisEligible,
     }),
   );
 };

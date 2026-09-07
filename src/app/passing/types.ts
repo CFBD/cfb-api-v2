@@ -74,9 +74,18 @@ export interface PassingPlay {
   isIntentionalGrounding: boolean;
   // cpoeEligible: boolean;
   parseStatus: PassParseStatus;
+  /** Stored offensive PPA, including zero and negative values. */
+  ppa: number | null;
+  /** Stored success classification; null means unavailable. */
+  success: boolean | null;
+  /**
+   * Excludes spikes, intentional grounding, and invalid parses. Throwaways,
+   * partial parses, and attempts with missing location or air yards qualify.
+   */
+  locationAnalysisEligible: boolean;
 }
 
-export interface PassingProduction {
+export interface PassingBaseProduction {
   /** @isInt */
   attempts: number;
   /** @isInt */
@@ -113,6 +122,81 @@ export interface PassingProduction {
   /** @isInt */
   totalYardsAfterCatch: number | null;
   averageYardsAfterCatch: number | null;
+}
+
+export interface PassingAdvancedProduction {
+  /** Successful eligible attempts / all eligible attempts; zero if empty. */
+  successRate: number;
+  /** Average available PPA on eligible attempts; zero if unavailable. */
+  ppa: number;
+  /** Sum of available PPA on eligible attempts; zero if unavailable. */
+  totalPpa: number;
+  /** Average available PPA on successful eligible attempts; zero if unavailable. */
+  explosiveness: number;
+  /**
+   * Eligible attempts with non-null PPA, including zero and negative values.
+   * @isInt
+   */
+  ppaAttemptsAvailable: number;
+  /**
+   * Eligible attempts with non-null success. Missing success remains in the
+   * success-rate denominator but does not count as successful.
+   * @isInt
+   */
+  successAttemptsAvailable: number;
+  /**
+   * Eligible attempts with stored success equal to true.
+   * @isInt
+   */
+  successfulAttempts: number;
+  /**
+   * Successful eligible attempts with non-null PPA; explosiveness denominator.
+   * @isInt
+   */
+  successfulPpaAttemptsAvailable: number;
+}
+
+/** Production for analysis-eligible attempts in one location bucket. */
+export interface PassingLocationProduction
+  extends PassingBaseProduction,
+    PassingAdvancedProduction {
+  /** Total yards / attempts with total yards available; null if unavailable. */
+  yardsPerAttempt: number | null;
+  /**
+   * Total air yards / attempts with air yards available; null if unavailable.
+   * Equivalent to averageDepthOfTarget. Yardage averages use one decimal.
+   */
+  airYardsPerAttempt: number | null;
+}
+
+export interface PassingLocations {
+  'short left': PassingLocationProduction;
+  'short middle': PassingLocationProduction;
+  'short right': PassingLocationProduction;
+  'deep left': PassingLocationProduction;
+  'deep middle': PassingLocationProduction;
+  'deep right': PassingLocationProduction;
+  /** Eligible attempts without both recognized depth and direction. */
+  unknown: PassingLocationProduction;
+}
+
+/** Defense reports opponent production allowed without inverting PPA signs. */
+export interface PassingProduction
+  extends PassingBaseProduction,
+    PassingAdvancedProduction {
+  /**
+   * Attempts eligible for advanced metrics and location analysis. Existing
+   * overall production includes ineligible attempts; location buckets do not.
+   * @isInt
+   */
+  locationEligibleAttempts: number;
+  /**
+   * Eligible attempts with both recognized source depth and direction.
+   * @isInt
+   */
+  locationAvailableAttempts: number;
+  /** All seven buckets are present, including empty buckets. */
+  locations: PassingLocations;
 }
 
 export interface PlayerPassingSeason extends PassingProduction {

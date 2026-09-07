@@ -18,6 +18,7 @@ access patterns unless a task explicitly calls for a different shape.
 - Install dependencies: `pnpm install`
 - Build API spec/routes and TypeScript: `pnpm build`
 - Run all tests: `pnpm test`
+- Full TypeScript check: `pnpm typecheck` (Jest only transpiles files)
 - Run one test file: `pnpm test <filename>`
 - Lint: `pnpm lint`
 - Format: `pnpm prettify`
@@ -36,6 +37,8 @@ access patterns unless a task explicitly calls for a different shape.
 - Use `kdb` from `src/config/database.ts` for Kysely queries unless existing
   code in the touched area still relies on `pg-promise`.
 - Add or update co-located Jest tests for changed behavior where practical.
+- Tests must not connect to live databases. Mock database services or use a
+  Kysely `DummyDriver`; the shared Jest setup blocks PostgreSQL I/O.
 - Update docs and generated references when behavior, commands, or source of
   truth changes.
 

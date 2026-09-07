@@ -23,7 +23,7 @@ import { DivisionClassification, SeasonType } from '../enums';
 @Tags('passing')
 export class PassingController extends Controller {
   /**
-   * Returns enriched pass attempts.
+   * Returns enriched pass attempts with stored PPA, success, and location-analysis eligibility.
    * @param year Season year.
    * @param team Team name on either side of the pass. Either team or week is required.
    * @param week Week number. Either team or week is required.
@@ -72,7 +72,7 @@ export class PassingController extends Controller {
   }
 
   /**
-   * Returns passer production by season.
+   * Returns passer production, advanced metrics, and pass-location breakdowns by season.
    * @param year Season year. Required unless passerId is specified.
    * @param seasonType Season type.
    * @param team Team name.
@@ -101,7 +101,7 @@ export class PassingController extends Controller {
   }
 
   /**
-   * Returns passer production by game.
+   * Returns passer production, advanced metrics, and pass-location breakdowns by game.
    * @param year Season year. Required.
    * @param week Week number. Either passerId, team, or week is required.
    * @param seasonType Season type.
@@ -134,7 +134,8 @@ export class PassingController extends Controller {
   }
 
   /**
-   * Returns team passing production by season.
+   * Returns team passing production, advanced metrics, and pass-location
+   * breakdowns by season for offense and defense.
    * @param year Season year. Required unless team is specified.
    * @param seasonType Season type.
    * @param team Team name. Required unless year is specified.
@@ -160,7 +161,8 @@ export class PassingController extends Controller {
   }
 
   /**
-   * Returns team passing production by game.
+   * Returns team passing production, advanced metrics, and pass-location
+   * breakdowns by game for offense and defense.
    * @param year Season year. Required.
    * @param week Week number. Either team or week is required.
    * @param seasonType Season type.

@@ -238,11 +238,25 @@ uncommitted.
 
 ## Testing
 
-Jest tests are co-located with the source under `src/**/*.test.ts`. Existing
-coverage focuses on auth, middleware, and selected service behavior. When
-changing endpoint behavior, add focused service tests when the logic can be
-tested without a live database; mock `src/config/database.ts` as current tests
-do.
+Jest tests are co-located with source under `src/**/*.test.ts`; generated
+copies under `build/` are excluded from discovery. `pnpm test` generates TSOA
+routes/specs before Jest so generated-contract tests use current artifacts.
+
+`jest.config.ts` caps workers at two and recycles workers that exceed 512 MB
+of idle heap between suites. This is not a hard per-test memory limit.
+`tsconfig.test.json` enables per-file transpilation so each worker avoids
+retaining a full TypeScript compiler program. Full type checking is a separate
+`pnpm typecheck` step in CI and remains part of `pnpm build`.
+
+Every suite loads `src/test/setup.ts` before application imports. Its `pg`
+guard throws on client/pool connect or query calls and native-driver access;
+it reapplies after module resets and survives mock restoration. This blocks
+primary, replica, and auth database access through Kysely and pg-promise too.
+Database service tests must use explicit mocks or a Kysely `DummyDriver`.
+The passing live-database opt-in has been removed; no test loads `.env` to
+establish a database connection. Guard regression tests cover both raw drivers
+and the application adapters. Local HTTP and the database-free cluster/IPC
+subprocess fixture continue to run normally.
 
 ## Release And Deployment
 
