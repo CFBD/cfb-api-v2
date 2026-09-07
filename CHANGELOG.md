@@ -1,3 +1,10 @@
+# [5.27.0](https://github.com/CFBD/cfb-api-v2/compare/v5.26.3...v5.27.0) (2026-09-07)
+
+
+### Features
+
+* **passing:** pass locations advanced stats breakdowns ([ce5436a](https://github.com/CFBD/cfb-api-v2/commit/ce5436a429fbe8ab737bf7798e2d5750d4a03e94))
+
 ## [5.26.3](https://github.com/CFBD/cfb-api-v2/compare/v5.26.2...v5.26.3) (2026-09-05)
 
 
