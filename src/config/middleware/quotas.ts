@@ -79,14 +79,40 @@ export const checkCallQuotas = async (
   }
 };
 
-export const updateQuotas = async (
+export const updateQuotas = (
   req: QuotaRequest,
   res: Response,
   next: NextFunction,
-) => {
+): void => {
   const send = res.send.bind(res);
+  let responseStarted = false;
+  let sending = false;
 
-  res.send = (async (body?: unknown) => {
+  const responseClosed = () =>
+    res.headersSent || res.writableEnded || res.destroyed;
+
+  const sendResponse = (body: unknown) => {
+    if (responseClosed()) return res;
+    if (req.user) {
+      const user = req.user as ApiUser;
+      res.setHeader('X-CallLimit-Remaining', user.remainingCalls);
+    }
+
+    // Express send(object) calls json(), which calls send(string) internally.
+    // Permit that synchronous recursion, but reject later response attempts.
+    sending = true;
+    try {
+      return send(body);
+    } finally {
+      sending = false;
+    }
+  };
+
+  res.send = (body?: unknown): Response => {
+    if (sending) return send(body);
+    if (responseStarted || responseClosed()) return res;
+    responseStarted = true;
+
     if (
       !isSuccessfulResponse(res.statusCode) &&
       req.user &&
@@ -94,24 +120,34 @@ export const updateQuotas = async (
     ) {
       req.quotaReserved = false;
       const user = req.user as ApiUser;
-      try {
-        const remaining = await authDb.one(
-          `UPDATE "user" SET remaining_calls = (remaining_calls + 1) WHERE id = $1 RETURNING remaining_calls`,
-          [user.id],
-        );
-        user.remainingCalls = remaining.remaining_calls;
-      } catch (error) {
-        console.error('Error refunding remaining calls', error);
-      }
+      const refundAndSend = async () => {
+        try {
+          const remaining = await authDb.one(
+            `UPDATE "user" SET remaining_calls = (remaining_calls + 1) WHERE id = $1 RETURNING remaining_calls`,
+            [user.id],
+          );
+          user.remainingCalls = remaining.remaining_calls;
+        } catch (error) {
+          console.error('Error refunding remaining calls', error);
+        }
+        sendResponse(body);
+      };
+      // Express does not await send(). Keep its synchronous return contract
+      // and route asynchronous send failures through the error middleware.
+      void refundAndSend().catch((error) => {
+        responseStarted = false;
+        next(error);
+      });
+      return res;
     }
 
-    if (req.user) {
-      const user = req.user as ApiUser;
-      res.setHeader('X-CallLimit-Remaining', user.remainingCalls);
+    try {
+      return sendResponse(body);
+    } catch (error) {
+      responseStarted = false;
+      throw error;
     }
-
-    return send(body);
-  }) as unknown as Response['send'];
+  };
 
   next();
 };

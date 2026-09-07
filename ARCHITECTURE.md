@@ -141,7 +141,11 @@ Quota behavior lives in `src/config/middleware/quotas.ts`:
   users unless the matched operation is ignored. The page service is not hard
   metered; the exporter uses the normal atomic quota path.
 - `updateQuotas` refunds a reserved call for non-2xx responses and writes
-  `X-CallLimit-Remaining`.
+  `X-CallLimit-Remaining`. The send wrapper returns the Express response
+  synchronously, permits only the first response attempt, and waits for any
+  refund before sending. It checks for committed or closed responses after the
+  refund and forwards asynchronous send failures to Express error handling.
+  Refunds already started still complete if the client disconnects.
 
 Per-user slowdown rules are composed in `src/config/middleware/index.ts` with
 `createRateSlowdown`. Slowdown counters remain per worker; their thresholds
