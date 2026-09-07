@@ -1,3 +1,10 @@
+## [5.27.1](https://github.com/CFBD/cfb-api-v2/compare/v5.27.0...v5.27.1) (2026-09-07)
+
+
+### Bug Fixes
+
+* bad gateway fixes ([01d33bb](https://github.com/CFBD/cfb-api-v2/commit/01d33bb6eabfaa3067a043d9c2beb0819d25985c))
+
 # [5.27.0](https://github.com/CFBD/cfb-api-v2/compare/v5.26.3...v5.27.0) (2026-09-07)
 
 
