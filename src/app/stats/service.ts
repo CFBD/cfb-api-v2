@@ -1226,7 +1226,7 @@ export const getTeamStats = async (
         .where('teamStatType.id', '=', 8)
         .select('teamStatType.name as statType')
         .select(
-          sql<number>`SUM(EXTRACT(epoch FROM CAST('00:' || game_team_stat.stat AS INTERVAL)))`.as(
+          sql<number>`SUM(EXTRACT(epoch FROM CAST('00:' || BTRIM(game_team_stat.stat) AS INTERVAL)))`.as(
             'stat',
           ),
         ),
@@ -1301,7 +1301,7 @@ export const getTeamStats = async (
         .where('teamStatType.id', '=', 8)
         .select(sql<string>`team_stat_type.name || \'Opponent\'`.as('statType'))
         .select(
-          sql<number>`SUM(EXTRACT(epoch FROM CAST('00:' || game_team_stat.stat AS INTERVAL)))`.as(
+          sql<number>`SUM(EXTRACT(epoch FROM CAST('00:' || BTRIM(game_team_stat.stat) AS INTERVAL)))`.as(
             'stat',
           ),
         ),
