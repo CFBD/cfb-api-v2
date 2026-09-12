@@ -80,6 +80,51 @@ describe('per-user concurrency limit middleware', () => {
     expect(secondNext).toHaveBeenCalledTimes(1);
   });
 
+  test.each(['websitePage', 'websiteExporter'])(
+    'exempts authenticated %s requests without acquiring slots',
+    async (principalClass) => {
+      const backend = {
+        acquire: jest.fn().mockRejectedValue(new Error('IPC unavailable')),
+      };
+      const middleware = createConcurrencyLimit([rule], undefined, backend);
+
+      for (let index = 0; index < rule.maxConcurrent + 1; index += 1) {
+        const req = createRequest(1);
+        req.user = { id: 1, principalClass };
+        const response = createResponse();
+        const next = jest.fn();
+
+        await middleware(req, response.res, next);
+
+        expect(next).toHaveBeenCalledTimes(1);
+        expect(response.status).not.toHaveBeenCalled();
+      }
+
+      expect(backend.acquire).not.toHaveBeenCalled();
+    },
+  );
+
+  test('still limits individuals sending website headers or parameters', async () => {
+    const middleware = createConcurrencyLimit([{ ...rule, maxConcurrent: 1 }]);
+    const req = createRequest(1);
+    req.user = { id: 1, principalClass: 'individual' };
+    req.headers = {
+      origin: 'https://collegefootballdata.com',
+      'x-principal-class': 'websiteExporter',
+    };
+    req.query = { principalClass: 'websiteExporter' };
+    const first = createResponse();
+    const blocked = createResponse();
+    const next = jest.fn();
+
+    await middleware(req, first.res, jest.fn());
+    await middleware(req, blocked.res, next);
+
+    expect(blocked.status).toHaveBeenCalledWith(429);
+    expect(next).not.toHaveBeenCalled();
+    first.res.emit('finish');
+  });
+
   test('skips unmatched paths, methods, and unauthenticated requests', async () => {
     const middleware = createConcurrencyLimit([rule]);
     const requests = [

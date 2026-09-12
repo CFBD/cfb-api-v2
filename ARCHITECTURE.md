@@ -1,6 +1,6 @@
 # CFB API v2 Architecture
 
-Last reviewed: 2026-09-05
+Last reviewed: 2026-09-12
 
 ## System Purpose
 
@@ -151,8 +151,8 @@ Per-user slowdown rules are composed in `src/config/middleware/index.ts` with
 `createRateSlowdown`. Slowdown counters remain per worker; their thresholds
 apply independently in each process. Monthly quotas remain database-backed.
 
-The standard concurrency limiter allows two active requests per authenticated
-user per configured endpoint across both workers in one API container. This
+The standard concurrency limiter allows two active requests per individual
+API user per configured endpoint across both workers in one API container. This
 covers `/live/plays` (across all game IDs), `/plays/stats`,
 `/stats/player/season`, `/stats/season/advanced`, `/stats/game/advanced`, and
 `/stats/player/success/game`. Separate containers have independent coordinators.
@@ -161,6 +161,15 @@ Excess requests receive 429 with `Retry-After: 1` before quota reservation.
 Unavailable or timed-out admission returns 503 with `Retry-After: 1`, without
 running the endpoint or reserving quota. Direct development starts use a local
 store with the same semantics.
+
+Authenticated `websitePage` and `websiteExporter` service principals bypass
+this concurrency limiter because each identity serves many website visitors.
+The exemption uses the principal class assigned by bearer authentication from
+the configured service user IDs, never browser headers or query parameters.
+Service operation scopes and existing quota rules still apply, including the
+exporter's monthly quota. The website relay retains its separate per-IP export
+rate and concurrency limits. API slowdown rules remain separate and still
+apply to service users.
 
 Slots are released when responses finish, when the owning worker exits, or
 after the existing 75-second safety lease. Disconnect alone does not release

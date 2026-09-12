@@ -69,6 +69,16 @@ export const createConcurrencyLimit = (
     res: Response,
     next: NextFunction,
   ): Promise<void> => {
+    const user = req.user as ApiUser | undefined;
+    // Shared website identities serve many visitors; auth assigns this class.
+    if (
+      user?.principalClass === 'websitePage' ||
+      user?.principalClass === 'websiteExporter'
+    ) {
+      next();
+      return;
+    }
+
     const rule = rules.find((candidate) => matchesRule(req, candidate));
 
     if (!rule) {
