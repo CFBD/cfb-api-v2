@@ -1,3 +1,10 @@
+# [5.28.0](https://github.com/CFBD/cfb-api-v2/compare/v5.27.1...v5.28.0) (2026-09-12)
+
+
+### Features
+
+* **elo:** enable preseason elo values ([ae212b9](https://github.com/CFBD/cfb-api-v2/commit/ae212b9ad41324259c7508826ceee928241bdcc6))
+
 ## [5.27.1](https://github.com/CFBD/cfb-api-v2/compare/v5.27.0...v5.27.1) (2026-09-07)
 
 
