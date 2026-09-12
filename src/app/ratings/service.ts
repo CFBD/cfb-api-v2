@@ -513,8 +513,38 @@ export const getElo = async (
   seasonType?: SeasonType,
   team?: string,
   conference?: string,
+  preseason = false,
 ): Promise<TeamElo[]> => {
-  const query = kdb
+  if (preseason && week !== undefined) {
+    throw new ValidateError(
+      {
+        week: {
+          value: week,
+          message: 'week cannot be combined with preseason',
+        },
+      },
+      'Validation error',
+    );
+  }
+
+  if (
+    preseason &&
+    seasonType !== undefined &&
+    seasonType !== SeasonType.Regular &&
+    seasonType !== SeasonType.Both
+  ) {
+    throw new ValidateError(
+      {
+        seasonType: {
+          value: seasonType,
+          message: 'seasonType must be regular or both for preseason ratings',
+        },
+      },
+      'Validation error',
+    );
+  }
+
+  let query = kdb
     .with('elos', (eb) => {
       let cte = eb
         .selectFrom('game')
@@ -532,15 +562,18 @@ export const getElo = async (
             ),
         )
         .innerJoin('conference', 'conferenceTeam.conferenceId', 'conference.id')
-        .where('gameTeam.endElo', 'is not', null)
-        .where('game.status', '=', 'completed')
         .select((eb) =>
           eb.fn
-            .agg<number>('rank')
+            .agg<number>(preseason ? 'row_number' : 'rank')
             .over((over) =>
-              over
-                .partitionBy(['game.season', 'team.school'])
-                .orderBy('game.startDate', 'desc'),
+              preseason
+                ? over
+                    .partitionBy(['game.season', 'team.id'])
+                    .orderBy('game.startDate', 'asc')
+                    .orderBy('game.id', 'asc')
+                : over
+                    .partitionBy(['game.season', 'team.school'])
+                    .orderBy('game.startDate', 'desc'),
             )
             .as('rowNum'),
         )
@@ -548,8 +581,16 @@ export const getElo = async (
           'game.season as year',
           'team.school as team',
           'conference.name as conference',
-          'gameTeam.endElo as elo',
+          preseason ? 'gameTeam.startElo as elo' : 'gameTeam.endElo as elo',
         ]);
+
+      if (preseason) {
+        cte = cte.where('game.seasonType', '=', 'regular');
+      } else {
+        cte = cte
+          .where('gameTeam.endElo', 'is not', null)
+          .where('game.status', '=', 'completed');
+      }
 
       if (year) {
         cte = cte.where('game.season', '=', year);
@@ -584,6 +625,11 @@ export const getElo = async (
     .selectFrom('elos')
     .select(['year', 'team', 'conference', 'elo'])
     .where('rowNum', '=', 1);
+
+  if (preseason) {
+    // Filter after ranking so a missing opener cannot expose an in-season Elo.
+    query = query.where('elo', 'is not', null);
+  }
 
   const results = await query.execute();
   return results;

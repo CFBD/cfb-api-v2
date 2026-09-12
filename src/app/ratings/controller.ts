@@ -114,6 +114,9 @@ export class RatingsController extends Controller {
    * @param seasonType Season type.
    * @param team Team name.
    * @param conference Conference name or abbreviation.
+   * @param preseason Return initial ratings from each team's opening regular-season
+   * game. Missing opening ratings are omitted. Cannot be combined with week;
+   * seasonType must be regular or both when specified. Defaults to false.
    * @isInt year
    * @isInt week
    */
@@ -124,8 +127,9 @@ export class RatingsController extends Controller {
     @Query() seasonType?: SeasonType,
     @Query() team?: string,
     @Query() conference?: string,
+    @Query() preseason: boolean = false,
   ): Promise<TeamElo[]> {
-    return await getElo(year, week, seasonType, team, conference);
+    return await getElo(year, week, seasonType, team, conference, preseason);
   }
 
   /**
