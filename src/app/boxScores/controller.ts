@@ -1,4 +1,13 @@
-import { Controller, Get, Middlewares, Query, Route, Tags } from 'tsoa';
+import {
+  Controller,
+  Get,
+  Middlewares,
+  Query,
+  Route,
+  Tags,
+  Res,
+  TsoaResponse,
+} from 'tsoa';
 
 import middlewares from '../../config/middleware';
 import { AdvancedBoxScore } from './types';
@@ -16,7 +25,10 @@ export class BoxScoresController extends Controller {
   @Get('box/advanced')
   public async getAdvancedBoxScore(
     @Query() id: number,
-  ): Promise<AdvancedBoxScore> {
+    // Document the established public schema while retaining legacy wire nulls.
+    @Res() _response: TsoaResponse<200, AdvancedBoxScore>,
+  ): Promise<unknown> {
+    void _response;
     return await getAdvancedBoxScore(id);
   }
 }

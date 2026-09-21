@@ -1,4 +1,5 @@
 import {
+  Kysely,
   AliasedExpression,
   Expression,
   SqlBool,
@@ -26,7 +27,15 @@ import {
   TeamPassingSeason,
 } from './types';
 
-type AggregateRow = Record<string, unknown>;
+const mapGameSeasonType = (value: string): SeasonType => {
+  const seasonType = Object.values(SeasonType).find(
+    (candidate) => candidate === value,
+  );
+  if (!seasonType) throw new Error('Unsupported game season type');
+  return seasonType;
+};
+
+type AggregateRow = Record<string, string | number | null>;
 
 interface PassingAggregateTables {
   pp: DB['passPlay'];
@@ -213,7 +222,7 @@ const aggregateSelections = (side?: AggregateSide): AggregateSelection[] => {
       ]
     : [];
   const count = (conditions: AggregateCondition[]) => {
-    const aggregate = eb.fn.countAll<number>();
+    const aggregate = eb.fn.countAll<number | string>();
     return conditions.length
       ? aggregate.filterWhere(eb.and(conditions))
       : aggregate;
@@ -222,7 +231,7 @@ const aggregateSelections = (side?: AggregateSide): AggregateSelection[] => {
     value: Expression<number | string | boolean | null>,
     conditions: AggregateCondition[],
   ) => {
-    const aggregate = eb.fn.count<number>(value);
+    const aggregate = eb.fn.count<number | string>(value);
     return conditions.length
       ? aggregate.filterWhere(eb.and(conditions))
       : aggregate;
@@ -296,7 +305,7 @@ const aggregateSelections = (side?: AggregateSide): AggregateSelection[] => {
       eb
         .parens(
           eb(
-            eb.cast<number>(count(successful), 'numeric'),
+            eb.cast<number | string>(count(successful), 'numeric'),
             '/',
             safeAttemptCount,
           ),
@@ -547,11 +556,11 @@ export const getPassingPlays = async (
               ]),
             ]);
             const passerCount = roleEb.fn
-              .count<number>('ps.athleteId')
+              .count<number | string>('ps.athleteId')
               .distinct()
               .filterWhere(passerStat);
             const targetCount = roleEb.fn
-              .count<number>('ps.athleteId')
+              .count<number | string>('ps.athleteId')
               .distinct()
               .filterWhere(targetStat);
 
@@ -883,7 +892,7 @@ export const getPlayerPassingBySeason = async (
               ]),
             ]);
             const passerCount = roleEb.fn
-              .count<number>('ps.athleteId')
+              .count<number | string>('ps.athleteId')
               .distinct()
               .filterWhere(passerStat);
 
@@ -978,18 +987,8 @@ export const getPlayerPassingBySeason = async (
   }));
 };
 
-export const getPlayerPassingByGame = async (
-  year?: number,
-  week?: number,
-  seasonType?: SeasonType,
-  team?: string,
-  conference?: string,
-  passerId?: string,
-  classification: DivisionClassification = DivisionClassification.FBS,
-): Promise<PlayerPassingGame[]> => {
-  validatePlayerPassingGameScope(year, week, team, passerId);
-
-  let query = kdb
+const buildPlayerPassingGameQuery = (executor: Kysely<DB>, year?: number) => {
+  return executor
     .selectFrom('game')
     .innerJoin('drive', 'drive.gameId', 'game.id')
     .innerJoin('play', 'play.driveId', 'drive.id')
@@ -1014,7 +1013,7 @@ export const getPlayerPassingByGame = async (
               ]),
             ]);
             const passerCount = roleEb.fn
-              .count<number>('ps.athleteId')
+              .count<number | string>('ps.athleteId')
               .distinct()
               .filterWhere(passerStat);
 
@@ -1062,7 +1061,6 @@ export const getPlayerPassingByGame = async (
       'defenseTeam.school as opponent',
     ])
     .select(aggregateSelections())
-    .where('offenseConference.division', '=', classification)
     .groupBy([
       'game.id',
       'game.season',
@@ -1079,6 +1077,45 @@ export const getPlayerPassingByGame = async (
     .orderBy('game.id')
     .orderBy('offenseTeam.school')
     .orderBy('passer.name');
+};
+
+export const getPlayerPassingForGame = async (
+  executor: Kysely<DB>,
+  gameId: number,
+): Promise<PlayerPassingGame[]> => {
+  const rows = await buildPlayerPassingGameQuery(executor)
+    .where('game.id', '=', gameId)
+    .execute();
+  return rows.map((row) => ({
+    gameId: row.gameId,
+    season: row.season,
+    week: row.week,
+    seasonType: mapGameSeasonType(row.seasonType),
+    playerId: row.playerId,
+    player: row.player,
+    team: row.team,
+    conference: row.conference,
+    opponent: row.opponent,
+    ...mapProduction(row),
+  }));
+};
+
+export const getPlayerPassingByGame = async (
+  year?: number,
+  week?: number,
+  seasonType?: SeasonType,
+  team?: string,
+  conference?: string,
+  passerId?: string,
+  classification: DivisionClassification = DivisionClassification.FBS,
+): Promise<PlayerPassingGame[]> => {
+  validatePlayerPassingGameScope(year, week, team, passerId);
+
+  let query = buildPlayerPassingGameQuery(kdb, year).where(
+    'offenseConference.division',
+    '=',
+    classification,
+  );
 
   if (year !== undefined) {
     query = query.where('game.season', '=', year);
@@ -1220,17 +1257,8 @@ export const getTeamPassingBySeason = async (
   }));
 };
 
-export const getTeamPassingByGame = async (
-  year?: number,
-  week?: number,
-  seasonType?: SeasonType,
-  team?: string,
-  conference?: string,
-  classification: DivisionClassification = DivisionClassification.FBS,
-): Promise<TeamPassingGame[]> => {
-  validatePassingTeamWeekScope(year, week, team);
-
-  let query = kdb
+const buildTeamPassingGameQuery = (executor: Kysely<DB>, year?: number) => {
+  return executor
     .selectFrom('game')
     .innerJoin('drive', 'drive.gameId', 'game.id')
     .innerJoin('play', 'play.driveId', 'drive.id')
@@ -1269,7 +1297,6 @@ export const getTeamPassingByGame = async (
         eb('play.defenseId', '=', eb.ref('representedTeam.id')),
       ]),
     )
-    .where('representedConference.division', '=', classification)
     .select([
       'game.id as gameId',
       'game.season',
@@ -1293,6 +1320,43 @@ export const getTeamPassingByGame = async (
     .orderBy('game.week')
     .orderBy('game.id')
     .orderBy('representedTeam.school');
+};
+
+export const getTeamPassingForGame = async (
+  executor: Kysely<DB>,
+  gameId: number,
+): Promise<TeamPassingGame[]> => {
+  const rows = await buildTeamPassingGameQuery(executor)
+    .where('game.id', '=', gameId)
+    .execute();
+  return rows.map((row) => ({
+    gameId: row.gameId,
+    season: row.season,
+    week: row.week,
+    seasonType: mapGameSeasonType(row.seasonType),
+    team: row.team,
+    conference: row.conference,
+    opponent: row.opponent,
+    offense: mapProduction(row, 'offense'),
+    defense: mapProduction(row, 'defense'),
+  }));
+};
+
+export const getTeamPassingByGame = async (
+  year?: number,
+  week?: number,
+  seasonType?: SeasonType,
+  team?: string,
+  conference?: string,
+  classification: DivisionClassification = DivisionClassification.FBS,
+): Promise<TeamPassingGame[]> => {
+  validatePassingTeamWeekScope(year, week, team);
+
+  let query = buildTeamPassingGameQuery(kdb, year).where(
+    'representedConference.division',
+    '=',
+    classification,
+  );
 
   if (year !== undefined) {
     query = query.where('game.season', '=', year);

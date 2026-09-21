@@ -1,0 +1,252 @@
+{
+  "teams": {
+    "passing": [],
+    "rushingAdvanced": [],
+    "ppa": [
+      {
+        "team": "Ohio State",
+        "plays": 54,
+        "overall": {
+          "total": 0.1295,
+          "quarter1": 0.119,
+          "quarter2": 0.049,
+          "quarter3": 0.26,
+          "quarter4": 0
+        },
+        "passing": {
+          "total": 0.284,
+          "quarter1": 0.431,
+          "quarter2": 0.035,
+          "quarter3": 0.496,
+          "quarter4": 0
+        },
+        "rushing": {
+          "total": 0.042,
+          "quarter1": -0.034,
+          "quarter2": 0.102,
+          "quarter3": 0.112,
+          "quarter4": 0
+        }
+      },
+      {
+        "team": "Youngstown State",
+        "plays": 25,
+        "overall": {
+          "total": -0.2588,
+          "quarter1": -0.216,
+          "quarter2": -0.316,
+          "quarter3": -0.213,
+          "quarter4": 0
+        },
+        "passing": {
+          "total": 0.029,
+          "quarter1": -0.189,
+          "quarter2": -0.101,
+          "quarter3": 0.451,
+          "quarter4": 0
+        },
+        "rushing": {
+          "total": -0.451,
+          "quarter1": -0.269,
+          "quarter2": -0.396,
+          "quarter3": -0.611,
+          "quarter4": 0
+        }
+      }
+    ],
+    "cumulativePpa": [
+      {
+        "team": "Ohio State",
+        "plays": 54,
+        "overall": {
+          "total": 7,
+          "quarter1": 2.7,
+          "quarter2": 0.9,
+          "quarter3": 3.4,
+          "quarter4": 0
+        },
+        "passing": {
+          "total": 6.2,
+          "quarter1": 3.4,
+          "quarter2": 0.3,
+          "quarter3": 2.5,
+          "quarter4": 0
+        },
+        "rushing": {
+          "total": 1.2,
+          "quarter1": -0.4,
+          "quarter2": 0.7,
+          "quarter3": 0.9,
+          "quarter4": 0
+        }
+      },
+      {
+        "team": "Youngstown State",
+        "plays": 25,
+        "overall": {
+          "total": -6.5,
+          "quarter1": -1.3,
+          "quarter2": -3.5,
+          "quarter3": -1.7,
+          "quarter4": 0
+        },
+        "passing": {
+          "total": 0.3,
+          "quarter1": -0.8,
+          "quarter2": -0.3,
+          "quarter3": 1.4,
+          "quarter4": 0
+        },
+        "rushing": {
+          "total": -6.8,
+          "quarter1": -0.5,
+          "quarter2": -3.2,
+          "quarter3": -3.1,
+          "quarter4": 0
+        }
+      }
+    ],
+    "successRates": [
+      {
+        "team": "Ohio State",
+        "overall": {
+          "total": 0.537,
+          "quarter1": 0.478,
+          "quarter2": 0.5,
+          "quarter3": 0.692,
+          "quarter4": null
+        },
+        "standardDowns": {
+          "total": 0.538,
+          "quarter1": 0.5,
+          "quarter2": 0.429,
+          "quarter3": 0.727,
+          "quarter4": null
+        },
+        "passingDowns": {
+          "total": 0.533,
+          "quarter1": 0.444,
+          "quarter2": 0.75,
+          "quarter3": 0.5,
+          "quarter4": null
+        }
+      },
+      {
+        "team": "Youngstown State",
+        "overall": {
+          "total": 0.08,
+          "quarter1": 0.167,
+          "quarter2": 0,
+          "quarter3": 0.125,
+          "quarter4": null
+        },
+        "standardDowns": {
+          "total": 0.071,
+          "quarter1": 0.2,
+          "quarter2": 0,
+          "quarter3": 0,
+          "quarter4": null
+        },
+        "passingDowns": {
+          "total": 0.091,
+          "quarter1": 0,
+          "quarter2": 0,
+          "quarter3": 0.2,
+          "quarter4": null
+        }
+      }
+    ],
+    "explosiveness": [
+      {
+        "team": "Ohio State",
+        "overall": {
+          "total": 0.68,
+          "quarter1": 0.76,
+          "quarter2": 0.65,
+          "quarter3": 0.6,
+          "quarter4": 0
+        }
+      },
+      {
+        "team": "Youngstown State",
+        "overall": {
+          "total": 0.77,
+          "quarter1": 0.07,
+          "quarter2": null,
+          "quarter3": 1.47,
+          "quarter4": 0
+        }
+      }
+    ],
+    "rushing": [
+      {
+        "team": "Ohio State",
+        "powerSuccess": 0.833,
+        "stuffRate": 0.143,
+        "lineYards": 80,
+        "lineYardsAverage": 2.9,
+        "secondLevelYards": 23,
+        "secondLevelYardsAverage": 0.8,
+        "openFieldYards": 29,
+        "openFieldYardsAverage": 1
+      },
+      {
+        "team": "Youngstown State",
+        "powerSuccess": 0,
+        "stuffRate": 0.4,
+        "lineYards": 9,
+        "lineYardsAverage": 0.6,
+        "secondLevelYards": 0,
+        "secondLevelYardsAverage": 0,
+        "openFieldYards": 0,
+        "openFieldYardsAverage": 0
+      }
+    ],
+    "havoc": [
+      {
+        "team": "Youngstown State",
+        "total": 0,
+        "frontSeven": 0,
+        "db": 0
+      },
+      {
+        "team": "Ohio State",
+        "total": 0,
+        "frontSeven": 0,
+        "db": 0
+      }
+    ],
+    "scoringOpportunities": [
+      {
+        "team": "Ohio State",
+        "opportunities": 11,
+        "points": 0,
+        "pointsPerOpportunity": 0
+      },
+      {
+        "team": "Youngstown State",
+        "opportunities": 0,
+        "points": 0,
+        "pointsPerOpportunity": 0
+      }
+    ],
+    "fieldPosition": [
+      {
+        "team": "Ohio State",
+        "averageStart": 57,
+        "averageStartingPredictedPoints": 2.45
+      },
+      {
+        "team": "Youngstown State",
+        "averageStart": 77.5,
+        "averageStartingPredictedPoints": 0.87
+      }
+    ]
+  },
+  "players": {
+    "passing": [],
+    "rushing": [],
+    "usage": [],
+    "ppa": []
+  }
+}

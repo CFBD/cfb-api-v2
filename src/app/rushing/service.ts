@@ -1,4 +1,5 @@
 import {
+  Kysely,
   AliasedExpression,
   Expression,
   SqlBool,
@@ -23,7 +24,15 @@ import {
   TeamRushingSeason,
 } from './types';
 
-type AggregateRow = Record<string, unknown>;
+const mapGameSeasonType = (value: string): SeasonType => {
+  const seasonType = Object.values(SeasonType).find(
+    (candidate) => candidate === value,
+  );
+  if (!seasonType) throw new Error('Unsupported game season type');
+  return seasonType;
+};
+
+type AggregateRow = Record<string, string | number | null>;
 interface RushingAggregateTables {
   play: DB['play'];
   representedTeam: DB['team'];
@@ -83,7 +92,7 @@ const guardedRusherRoles = () => {
         otherPrimaryStatType,
       );
       const primaryAthleteCount = roleEb.fn
-        .count<number>('ps.athleteId')
+        .count<number | string>('ps.athleteId')
         .distinct()
         .filterWhere(primaryStat);
       const matchingPrimaryYards = roleEb.fn
@@ -95,7 +104,7 @@ const guardedRusherRoles = () => {
         ])
         .filterWhere(primaryStat);
       const otherPrimaryCount = roleEb.fn
-        .countAll<number>()
+        .countAll<number | string>()
         .filterWhere(otherPrimaryStat);
       const rusherId = roleEb.fn
         .min<string>('ps.athleteId')
@@ -308,14 +317,14 @@ const aggregateSelections = (
           .end()
       : eb.ref('rp.rushingYards');
   const filteredCount = (conditions: AggregateCondition[]) => {
-    const aggregate = eb.fn.countAll<number>();
+    const aggregate = eb.fn.countAll<number | string>();
 
     return conditions.length
       ? aggregate.filterWhere(eb.and(conditions))
       : aggregate;
   };
   const filteredColumnCount = (conditions: AggregateCondition[]) => {
-    const aggregate = eb.fn.count<number>(yardage);
+    const aggregate = eb.fn.count<number | string>(yardage);
 
     return conditions.length
       ? aggregate.filterWhere(eb.and(conditions))
@@ -325,7 +334,7 @@ const aggregateSelections = (
     expression: Expression<number | string | null>,
     conditions: AggregateCondition[],
   ) => {
-    const aggregate = eb.fn.sum<number>(expression);
+    const aggregate = eb.fn.sum<number | string>(expression);
 
     return conditions.length
       ? aggregate.filterWhere(eb.and(conditions))
@@ -335,7 +344,7 @@ const aggregateSelections = (
     expression: Expression<number | string | null>,
     conditions: AggregateCondition[],
   ) => {
-    const aggregate = eb.fn.avg<number>(expression);
+    const aggregate = eb.fn.avg<number | string>(expression);
 
     return conditions.length
       ? aggregate.filterWhere(eb.and(conditions))
@@ -388,7 +397,7 @@ const aggregateSelections = (
       .else(shortYardageAttemptCount)
       .end();
     const successful = eb('play.success', '=', true);
-    const numericYardage = eb.cast<number>(yardage, 'numeric');
+    const numericYardage = eb.cast<number | string>(yardage, 'numeric');
     const lineYards = eb
       .case()
       .when(yardage, 'is', null)
@@ -399,7 +408,11 @@ const aggregateSelections = (
       .then(numericYardage)
       .when(yardage, '<', 11)
       .then(
-        eb(eb.val(4), '+', eb(eb.parens(eb(numericYardage, '-', 4)), '*', 0.5)),
+        eb(
+          eb.val<number | string>(4),
+          '+',
+          eb(eb.parens(eb(numericYardage, '-', 4)), '*', 0.5),
+        ),
       )
       .else(7)
       .end();
@@ -435,7 +448,10 @@ const aggregateSelections = (
     return [
       as(
         eb(
-          eb.cast<number>(filteredCount(withConditions(successful)), 'numeric'),
+          eb.cast<number | string>(
+            filteredCount(withConditions(successful)),
+            'numeric',
+          ),
           '/',
           safeAttemptCount,
         ),
@@ -445,7 +461,11 @@ const aggregateSelections = (
       as(eb.fn.coalesce(totalPpa, zero), 'totalPpa'),
       as(
         eb.fn.coalesce(
-          eb(eb.cast<number>(totalLineYards, 'numeric'), '/', safeAttemptCount),
+          eb(
+            eb.cast<number | string>(totalLineYards, 'numeric'),
+            '/',
+            safeAttemptCount,
+          ),
           zero,
         ),
         'lineYards',
@@ -454,7 +474,7 @@ const aggregateSelections = (
       as(
         eb.fn.coalesce(
           eb(
-            eb.cast<number>(totalSecondLevelYards, 'numeric'),
+            eb.cast<number | string>(totalSecondLevelYards, 'numeric'),
             '/',
             safeAttemptCount,
           ),
@@ -466,7 +486,7 @@ const aggregateSelections = (
       as(
         eb.fn.coalesce(
           eb(
-            eb.cast<number>(totalOpenFieldYards, 'numeric'),
+            eb.cast<number | string>(totalOpenFieldYards, 'numeric'),
             '/',
             safeAttemptCount,
           ),
@@ -477,7 +497,7 @@ const aggregateSelections = (
       as(eb.fn.coalesce(totalOpenFieldYards, zero), 'openFieldYardsTotal'),
       as(
         eb(
-          eb.cast<number>(
+          eb.cast<number | string>(
             filteredCount(withConditions(eb(yardage, '<=', 0))),
             'numeric',
           ),
@@ -488,7 +508,7 @@ const aggregateSelections = (
       ),
       as(
         eb(
-          eb.cast<number>(
+          eb.cast<number | string>(
             filteredCount(withConditions(shortYardage, successful)),
             'numeric',
           ),
@@ -1025,18 +1045,8 @@ export const getPlayerRushingBySeason = async (
   }));
 };
 
-export const getPlayerRushingByGame = async (
-  year?: number,
-  week?: number,
-  seasonType?: SeasonType,
-  team?: string,
-  conference?: string,
-  rusherId?: string,
-  classification: DivisionClassification = DivisionClassification.FBS,
-): Promise<PlayerRushingGame[]> => {
-  validatePlayerRushingGameScope(year, week, team, rusherId);
-
-  let query = kdb
+const buildPlayerRushingGameQuery = (executor: Kysely<DB>) => {
+  return executor
     .selectFrom('game')
     .innerJoin('drive', 'drive.gameId', 'game.id')
     .innerJoin('play', 'play.driveId', 'drive.id')
@@ -1072,7 +1082,6 @@ export const getPlayerRushingByGame = async (
     ])
     .select(aggregateSelections('player'))
     .where('roles.rusherId', 'is not', null)
-    .where('offenseConference.division', '=', classification)
     .groupBy([
       'game.id',
       'game.season',
@@ -1089,6 +1098,45 @@ export const getPlayerRushingByGame = async (
     .orderBy('game.id')
     .orderBy('offenseTeam.school')
     .orderBy('rusher.name');
+};
+
+export const getPlayerRushingForGame = async (
+  executor: Kysely<DB>,
+  gameId: number,
+): Promise<PlayerRushingGame[]> => {
+  const rows = await buildPlayerRushingGameQuery(executor)
+    .where('game.id', '=', gameId)
+    .execute();
+  return rows.map((row) => ({
+    gameId: row.gameId,
+    season: row.season,
+    week: row.week,
+    seasonType: mapGameSeasonType(row.seasonType),
+    playerId: row.playerId,
+    player: row.player,
+    team: row.team,
+    conference: row.conference,
+    opponent: row.opponent,
+    ...mapProduction(row),
+  }));
+};
+
+export const getPlayerRushingByGame = async (
+  year?: number,
+  week?: number,
+  seasonType?: SeasonType,
+  team?: string,
+  conference?: string,
+  rusherId?: string,
+  classification: DivisionClassification = DivisionClassification.FBS,
+): Promise<PlayerRushingGame[]> => {
+  validatePlayerRushingGameScope(year, week, team, rusherId);
+
+  let query = buildPlayerRushingGameQuery(kdb).where(
+    'offenseConference.division',
+    '=',
+    classification,
+  );
 
   if (year !== undefined) {
     query = query.where('game.season', '=', year);
@@ -1232,17 +1280,8 @@ export const getTeamRushingBySeason = async (
   }));
 };
 
-export const getTeamRushingByGame = async (
-  year?: number,
-  week?: number,
-  seasonType?: SeasonType,
-  team?: string,
-  conference?: string,
-  classification: DivisionClassification = DivisionClassification.FBS,
-): Promise<TeamRushingGame[]> => {
-  validateTeamRushingGameScope(year, week, team);
-
-  let query = kdb
+const buildTeamRushingGameQuery = (executor: Kysely<DB>) => {
+  return executor
     .selectFrom('game')
     .innerJoin('drive', 'drive.gameId', 'game.id')
     .innerJoin('play', 'play.driveId', 'drive.id')
@@ -1280,7 +1319,6 @@ export const getTeamRushingByGame = async (
         eb('play.defenseId', '=', eb.ref('representedTeam.id')),
       ]),
     )
-    .where('representedConference.division', '=', classification)
     .select([
       'game.id as gameId',
       'game.season',
@@ -1307,6 +1345,43 @@ export const getTeamRushingByGame = async (
     .orderBy('game.week')
     .orderBy('game.id')
     .orderBy('representedTeam.school');
+};
+
+export const getTeamRushingForGame = async (
+  executor: Kysely<DB>,
+  gameId: number,
+): Promise<TeamRushingGame[]> => {
+  const rows = await buildTeamRushingGameQuery(executor)
+    .where('game.id', '=', gameId)
+    .execute();
+  return rows.map((row) => ({
+    gameId: row.gameId,
+    season: row.season,
+    week: row.week,
+    seasonType: mapGameSeasonType(row.seasonType),
+    team: row.team,
+    conference: row.conference,
+    opponent: row.opponent,
+    offense: mapTeamProduction(row, 'offense'),
+    defense: mapTeamProduction(row, 'defense'),
+  }));
+};
+
+export const getTeamRushingByGame = async (
+  year?: number,
+  week?: number,
+  seasonType?: SeasonType,
+  team?: string,
+  conference?: string,
+  classification: DivisionClassification = DivisionClassification.FBS,
+): Promise<TeamRushingGame[]> => {
+  validateTeamRushingGameScope(year, week, team);
+
+  let query = buildTeamRushingGameQuery(kdb).where(
+    'representedConference.division',
+    '=',
+    classification,
+  );
 
   if (year !== undefined) {
     query = query.where('game.season', '=', year);

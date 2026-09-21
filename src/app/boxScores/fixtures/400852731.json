@@ -1,0 +1,938 @@
+{
+  "capturedAt": "2026-09-14T23:26:17.194Z",
+  "game": {
+    "id": 400852731,
+    "season": 2015,
+    "week": 1,
+    "seasonType": "postseason"
+  },
+  "legacy": {
+    "gameInfo": {
+      "homeTeam": "Florida State",
+      "homePoints": 24,
+      "homeWinProb": 0.028437400439433005,
+      "awayTeam": "Houston",
+      "awayPoints": 38,
+      "awayWinProb": 0.971562599560567,
+      "homeWinner": false,
+      "excitement": 5.74428080639999
+    },
+    "teams": {
+      "ppa": [
+        {
+          "team": "Florida State",
+          "plays": 72,
+          "overall": {
+            "total": 0.0984,
+            "quarter1": 0.162,
+            "quarter2": -0.681,
+            "quarter3": 0.102,
+            "quarter4": 0.664
+          },
+          "passing": {
+            "total": 0.272,
+            "quarter1": 0.72,
+            "quarter2": -0.825,
+            "quarter3": 0.149,
+            "quarter4": 0.664
+          },
+          "rushing": {
+            "total": -0.285,
+            "quarter1": -0.56,
+            "quarter2": -0.442,
+            "quarter3": 0.039,
+            "quarter4": 0
+          }
+        },
+        {
+          "team": "Houston",
+          "plays": 100,
+          "overall": {
+            "total": 0.1406,
+            "quarter1": 0.28,
+            "quarter2": 0.263,
+            "quarter3": -0.421,
+            "quarter4": 0.276
+          },
+          "passing": {
+            "total": 0.293,
+            "quarter1": -0.022,
+            "quarter2": 0.261,
+            "quarter3": -0.097,
+            "quarter4": 0.9
+          },
+          "rushing": {
+            "total": -0.005,
+            "quarter1": 0.507,
+            "quarter2": 0.267,
+            "quarter3": -0.781,
+            "quarter4": -0.191
+          }
+        }
+      ],
+      "cumulativePpa": [
+        {
+          "team": "Florida State",
+          "plays": 72,
+          "overall": {
+            "total": 7.1,
+            "quarter1": 2.8,
+            "quarter2": -10.9,
+            "quarter3": 1.9,
+            "quarter4": 13.3
+          },
+          "passing": {
+            "total": 13.9,
+            "quarter1": 7.2,
+            "quarter2": -8.2,
+            "quarter3": 1.6,
+            "quarter4": 13.3
+          },
+          "rushing": {
+            "total": -5.7,
+            "quarter1": -3.4,
+            "quarter2": -2.7,
+            "quarter3": 0.3,
+            "quarter4": 0
+          }
+        },
+        {
+          "team": "Houston",
+          "plays": 100,
+          "overall": {
+            "total": 14.1,
+            "quarter1": 5.9,
+            "quarter2": 8.2,
+            "quarter3": -8,
+            "quarter4": 8
+          },
+          "passing": {
+            "total": 14.1,
+            "quarter1": -0.2,
+            "quarter2": 4.4,
+            "quarter3": -1,
+            "quarter4": 10.8
+          },
+          "rushing": {
+            "total": -0.3,
+            "quarter1": 6.1,
+            "quarter2": 3.7,
+            "quarter3": -7,
+            "quarter4": -3.1
+          }
+        }
+      ],
+      "successRates": [
+        {
+          "team": "Florida State",
+          "overall": {
+            "total": 0.319,
+            "quarter1": 0.353,
+            "quarter2": 0,
+            "quarter3": 0.316,
+            "quarter4": 0.55
+          },
+          "standardDowns": {
+            "total": 0.333,
+            "quarter1": 0.444,
+            "quarter2": 0,
+            "quarter3": 0.286,
+            "quarter4": 0.545
+          },
+          "passingDowns": {
+            "total": 0.3,
+            "quarter1": 0.25,
+            "quarter2": 0,
+            "quarter3": 0.4,
+            "quarter4": 0.556
+          }
+        },
+        {
+          "team": "Houston",
+          "overall": {
+            "total": 0.35,
+            "quarter1": 0.476,
+            "quarter2": 0.387,
+            "quarter3": 0.105,
+            "quarter4": 0.379
+          },
+          "standardDowns": {
+            "total": 0.339,
+            "quarter1": 0.5,
+            "quarter2": 0.4,
+            "quarter3": 0.111,
+            "quarter4": 0.214
+          },
+          "passingDowns": {
+            "total": 0.366,
+            "quarter1": 0.4,
+            "quarter2": 0.364,
+            "quarter3": 0.1,
+            "quarter4": 0.533
+          }
+        }
+      ],
+      "explosiveness": [
+        {
+          "team": "Florida State",
+          "overall": {
+            "total": 1.65,
+            "quarter1": 1.51,
+            "quarter2": null,
+            "quarter3": 1.5,
+            "quarter4": 1.8
+          }
+        },
+        {
+          "team": "Houston",
+          "overall": {
+            "total": 1.52,
+            "quarter1": 1.05,
+            "quarter2": 1.5,
+            "quarter3": 2.29,
+            "quarter4": 1.82
+          }
+        }
+      ],
+      "rushing": [
+        {
+          "team": "Florida State",
+          "powerSuccess": 0.5,
+          "stuffRate": 0.3,
+          "lineYards": 33,
+          "lineYardsAverage": 1.6,
+          "secondLevelYards": 4,
+          "secondLevelYardsAverage": 0.2,
+          "openFieldYards": 0,
+          "openFieldYardsAverage": 0
+        },
+        {
+          "team": "Houston",
+          "powerSuccess": 1,
+          "stuffRate": 0.216,
+          "lineYards": 123,
+          "lineYardsAverage": 2.4,
+          "secondLevelYards": 42,
+          "secondLevelYardsAverage": 0.8,
+          "openFieldYards": 32,
+          "openFieldYardsAverage": 0.6
+        }
+      ],
+      "havoc": [
+        {
+          "team": "Houston",
+          "total": 0.056,
+          "frontSeven": 0,
+          "db": 0.056
+        },
+        {
+          "team": "Florida State",
+          "total": 0.01,
+          "frontSeven": 0,
+          "db": 0.01
+        }
+      ],
+      "scoringOpportunities": [
+        {
+          "team": "Florida State",
+          "opportunities": 6,
+          "points": 17,
+          "pointsPerOpportunity": 2.83
+        },
+        {
+          "team": "Houston",
+          "opportunities": 10,
+          "points": 38,
+          "pointsPerOpportunity": 3.8
+        }
+      ],
+      "fieldPosition": [
+        {
+          "team": "Florida State",
+          "averageStart": 72,
+          "averageStartingPredictedPoints": 1.33
+        },
+        {
+          "team": "Houston",
+          "averageStart": 67.6,
+          "averageStartingPredictedPoints": 1.6
+        }
+      ]
+    },
+    "players": {
+      "usage": [
+        {
+          "player": "Kenneth Farrow",
+          "team": "Houston",
+          "position": "RB",
+          "total": 0.03,
+          "quarter1": 0,
+          "quarter2": 0.097,
+          "quarter3": 0,
+          "quarter4": 0,
+          "rushing": 0.059,
+          "passing": 0
+        },
+        {
+          "player": "Sean Maguire",
+          "team": "Florida State",
+          "position": "QB",
+          "total": 0.625,
+          "quarter1": 0.529,
+          "quarter2": 0.313,
+          "quarter3": 0.579,
+          "quarter4": 1,
+          "rushing": 0,
+          "passing": 0.882
+        },
+        {
+          "player": "Chance Allen",
+          "team": "Houston",
+          "position": "WR",
+          "total": 0.07,
+          "quarter1": 0.048,
+          "quarter2": 0.097,
+          "quarter3": 0,
+          "quarter4": 0.103,
+          "rushing": 0,
+          "passing": 0.146
+        },
+        {
+          "player": "Ryan Jackson",
+          "team": "Houston",
+          "position": "RB",
+          "total": 0.24,
+          "quarter1": 0.429,
+          "quarter2": 0.161,
+          "quarter3": 0.211,
+          "quarter4": 0.207,
+          "rushing": 0.314,
+          "passing": 0.167
+        },
+        {
+          "player": "Demarcus Ayers",
+          "team": "Houston",
+          "position": "WR",
+          "total": 0.19,
+          "quarter1": 0.238,
+          "quarter2": 0.161,
+          "quarter3": 0.211,
+          "quarter4": 0.172,
+          "rushing": 0.118,
+          "passing": 0.271
+        },
+        {
+          "player": "Greg Ward Jr.",
+          "team": "Houston",
+          "position": "QB",
+          "total": 0.62,
+          "quarter1": 0.667,
+          "quarter2": 0.677,
+          "quarter3": 0.684,
+          "quarter4": 0.483,
+          "rushing": 0.353,
+          "passing": 0.917
+        },
+        {
+          "player": "Tyler McCloskey",
+          "team": "Houston",
+          "position": "TE",
+          "total": 0.01,
+          "quarter1": 0,
+          "quarter2": 0,
+          "quarter3": 0,
+          "quarter4": 0.034,
+          "rushing": 0,
+          "passing": 0.021
+        },
+        {
+          "player": "Donald Gage",
+          "team": "Houston",
+          "position": "WR",
+          "total": 0.03,
+          "quarter1": 0,
+          "quarter2": 0.065,
+          "quarter3": 0.053,
+          "quarter4": 0,
+          "rushing": 0,
+          "passing": 0.063
+        },
+        {
+          "player": "Freddie Stevenson",
+          "team": "Florida State",
+          "position": "FB",
+          "total": 0.014,
+          "quarter1": 0.059,
+          "quarter2": 0,
+          "quarter3": 0,
+          "quarter4": 0,
+          "rushing": 0,
+          "passing": 0.02
+        },
+        {
+          "player": "Kermit Whitfield",
+          "team": "Florida State",
+          "position": "WR",
+          "total": 0.125,
+          "quarter1": 0.176,
+          "quarter2": 0.125,
+          "quarter3": 0.158,
+          "quarter4": 0.05,
+          "rushing": 0,
+          "passing": 0.176
+        },
+        {
+          "player": "Jesus Wilson",
+          "team": "Florida State",
+          "position": "WR",
+          "total": 0.181,
+          "quarter1": 0.176,
+          "quarter2": 0.125,
+          "quarter3": 0,
+          "quarter4": 0.4,
+          "rushing": 0.05,
+          "passing": 0.235
+        },
+        {
+          "player": "Kyle Postma",
+          "team": "Houston",
+          "position": "QB",
+          "total": 0.05,
+          "quarter1": 0,
+          "quarter2": 0,
+          "quarter3": 0.105,
+          "quarter4": 0.103,
+          "rushing": 0.059,
+          "passing": 0.042
+        },
+        {
+          "player": "Linell Bonner",
+          "team": "Houston",
+          "position": "WR",
+          "total": 0.03,
+          "quarter1": 0,
+          "quarter2": 0.065,
+          "quarter3": 0,
+          "quarter4": 0.034,
+          "rushing": 0,
+          "passing": 0.063
+        },
+        {
+          "player": "Dalvin Cook",
+          "team": "Florida State",
+          "position": "RB",
+          "total": 0.292,
+          "quarter1": 0.294,
+          "quarter2": 0.313,
+          "quarter3": 0.421,
+          "quarter4": 0.15,
+          "rushing": 0.9,
+          "passing": 0.059
+        },
+        {
+          "player": "J.J. Cosentino",
+          "team": "Florida State",
+          "position": "QB",
+          "total": 0.083,
+          "quarter1": 0.059,
+          "quarter2": 0.313,
+          "quarter3": 0,
+          "quarter4": 0,
+          "rushing": 0,
+          "passing": 0.118
+        },
+        {
+          "player": "Ryan Izzo",
+          "team": "Florida State",
+          "position": "TE",
+          "total": 0.028,
+          "quarter1": 0.059,
+          "quarter2": 0,
+          "quarter3": 0.053,
+          "quarter4": 0,
+          "rushing": 0,
+          "passing": 0.039
+        },
+        {
+          "player": "Travis Rudolph",
+          "team": "Florida State",
+          "position": "WR",
+          "total": 0.194,
+          "quarter1": 0.176,
+          "quarter2": 0.125,
+          "quarter3": 0.263,
+          "quarter4": 0.2,
+          "rushing": 0,
+          "passing": 0.275
+        },
+        {
+          "player": "Steven Dunbar",
+          "team": "Houston",
+          "position": "WR",
+          "total": 0.07,
+          "quarter1": 0.048,
+          "quarter2": 0.032,
+          "quarter3": 0.211,
+          "quarter4": 0.034,
+          "rushing": 0,
+          "passing": 0.146
+        },
+        {
+          "player": "Jacques Patrick",
+          "team": "Florida State",
+          "position": "RB",
+          "total": 0.028,
+          "quarter1": 0,
+          "quarter2": 0.063,
+          "quarter3": 0,
+          "quarter4": 0.05,
+          "rushing": 0.05,
+          "passing": 0.02
+        }
+      ],
+      "ppa": [
+        {
+          "player": "Kenneth Farrow",
+          "team": "Houston",
+          "position": "RB",
+          "average": {
+            "total": -0.114,
+            "quarter1": null,
+            "quarter2": -0.114,
+            "quarter3": null,
+            "quarter4": null,
+            "rushing": -0.114,
+            "passing": 0
+          },
+          "cumulative": {
+            "total": -0.3,
+            "quarter1": 0,
+            "quarter2": -0.3,
+            "quarter3": 0,
+            "quarter4": 0,
+            "rushing": -0.3,
+            "passing": 0
+          }
+        },
+        {
+          "player": "Sean Maguire",
+          "team": "Florida State",
+          "position": "QB",
+          "average": {
+            "total": 0.433,
+            "quarter1": 0.797,
+            "quarter2": -0.521,
+            "quarter3": 0.149,
+            "quarter4": 0.664,
+            "rushing": 0,
+            "passing": 0.433
+          },
+          "cumulative": {
+            "total": 19.5,
+            "quarter1": 7.2,
+            "quarter2": -2.6,
+            "quarter3": 1.6,
+            "quarter4": 13.3,
+            "rushing": 0,
+            "passing": 19.5
+          }
+        },
+        {
+          "player": "Chance Allen",
+          "team": "Houston",
+          "position": "WR",
+          "average": {
+            "total": 0.903,
+            "quarter1": 0.409,
+            "quarter2": 0.544,
+            "quarter3": null,
+            "quarter4": 1.427,
+            "rushing": 0,
+            "passing": 0.903
+          },
+          "cumulative": {
+            "total": 6.3,
+            "quarter1": 0.4,
+            "quarter2": 1.6,
+            "quarter3": 0,
+            "quarter4": 4.3,
+            "rushing": 0,
+            "passing": 6.3
+          }
+        },
+        {
+          "player": "Ryan Jackson",
+          "team": "Houston",
+          "position": "RB",
+          "average": {
+            "total": -0.041,
+            "quarter1": -0.03,
+            "quarter2": 0.069,
+            "quarter3": -0.972,
+            "quarter4": 0.473,
+            "rushing": 0.018,
+            "passing": -0.158
+          },
+          "cumulative": {
+            "total": -1,
+            "quarter1": -0.3,
+            "quarter2": 0.3,
+            "quarter3": -3.9,
+            "quarter4": 2.8,
+            "rushing": 0.3,
+            "passing": -1.3
+          }
+        },
+        {
+          "player": "Demarcus Ayers",
+          "team": "Houston",
+          "position": "WR",
+          "average": {
+            "total": 0.594,
+            "quarter1": 0.336,
+            "quarter2": 1.927,
+            "quarter3": 0.111,
+            "quarter4": -0.093,
+            "rushing": -0.145,
+            "passing": 0.936
+          },
+          "cumulative": {
+            "total": 11.3,
+            "quarter1": 1.7,
+            "quarter2": 9.6,
+            "quarter3": 0.4,
+            "quarter4": -0.5,
+            "rushing": -0.9,
+            "passing": 12.2
+          }
+        },
+        {
+          "player": "Greg Ward Jr.",
+          "team": "Houston",
+          "position": "QB",
+          "average": {
+            "total": 0.232,
+            "quarter1": 0.297,
+            "quarter2": 0.199,
+            "quarter3": -0.209,
+            "quarter4": 0.627,
+            "rushing": 0.032,
+            "passing": 0.314
+          },
+          "cumulative": {
+            "total": 14.4,
+            "quarter1": 4.2,
+            "quarter2": 4.2,
+            "quarter3": -2.7,
+            "quarter4": 8.8,
+            "rushing": 0.6,
+            "passing": 13.8
+          }
+        },
+        {
+          "player": "Tyler McCloskey",
+          "team": "Houston",
+          "position": "TE",
+          "average": {
+            "total": 0.283,
+            "quarter1": null,
+            "quarter2": null,
+            "quarter3": null,
+            "quarter4": 0.283,
+            "rushing": 0,
+            "passing": 0.283
+          },
+          "cumulative": {
+            "total": 0.3,
+            "quarter1": 0,
+            "quarter2": 0,
+            "quarter3": 0,
+            "quarter4": 0.3,
+            "rushing": 0,
+            "passing": 0.3
+          }
+        },
+        {
+          "player": "Donald Gage",
+          "team": "Houston",
+          "position": "WR",
+          "average": {
+            "total": -0.004,
+            "quarter1": null,
+            "quarter2": -0.151,
+            "quarter3": 0.288,
+            "quarter4": null,
+            "rushing": 0,
+            "passing": -0.004
+          },
+          "cumulative": {
+            "total": 0,
+            "quarter1": 0,
+            "quarter2": -0.3,
+            "quarter3": 0.3,
+            "quarter4": 0,
+            "rushing": 0,
+            "passing": 0
+          }
+        },
+        {
+          "player": "Freddie Stevenson",
+          "team": "Florida State",
+          "position": "FB",
+          "average": {
+            "total": 2.453,
+            "quarter1": 2.453,
+            "quarter2": null,
+            "quarter3": null,
+            "quarter4": null,
+            "rushing": 0,
+            "passing": 2.453
+          },
+          "cumulative": {
+            "total": 2.5,
+            "quarter1": 2.5,
+            "quarter2": 0,
+            "quarter3": 0,
+            "quarter4": 0,
+            "rushing": 0,
+            "passing": 2.5
+          }
+        },
+        {
+          "player": "Kermit Whitfield",
+          "team": "Florida State",
+          "position": "WR",
+          "average": {
+            "total": 0.187,
+            "quarter1": -0.532,
+            "quarter2": -0.72,
+            "quarter3": 1.243,
+            "quarter4": 0.99,
+            "rushing": 0,
+            "passing": 0.187
+          },
+          "cumulative": {
+            "total": 1.7,
+            "quarter1": -1.6,
+            "quarter2": -1.4,
+            "quarter3": 3.7,
+            "quarter4": 1,
+            "rushing": 0,
+            "passing": 1.7
+          }
+        },
+        {
+          "player": "Jesus Wilson",
+          "team": "Florida State",
+          "position": "WR",
+          "average": {
+            "total": 0.624,
+            "quarter1": -0.057,
+            "quarter2": -0.65,
+            "quarter3": null,
+            "quarter4": 1.198,
+            "rushing": 0.069,
+            "passing": 0.67
+          },
+          "cumulative": {
+            "total": 8.1,
+            "quarter1": -0.2,
+            "quarter2": -1.3,
+            "quarter3": 0,
+            "quarter4": 9.6,
+            "rushing": 0.1,
+            "passing": 8
+          }
+        },
+        {
+          "player": "Kyle Postma",
+          "team": "Houston",
+          "position": "QB",
+          "average": {
+            "total": 0.53,
+            "quarter1": null,
+            "quarter2": null,
+            "quarter3": -0.611,
+            "quarter4": 1.291,
+            "rushing": 1.291,
+            "passing": -0.611
+          },
+          "cumulative": {
+            "total": 2.7,
+            "quarter1": 0,
+            "quarter2": 0,
+            "quarter3": -1.2,
+            "quarter4": 3.9,
+            "rushing": 3.9,
+            "passing": -1.2
+          }
+        },
+        {
+          "player": "Linell Bonner",
+          "team": "Houston",
+          "position": "WR",
+          "average": {
+            "total": 0.32,
+            "quarter1": null,
+            "quarter2": 0.735,
+            "quarter3": null,
+            "quarter4": -0.51,
+            "rushing": 0,
+            "passing": 0.32
+          },
+          "cumulative": {
+            "total": 1,
+            "quarter1": 0,
+            "quarter2": 1.5,
+            "quarter3": 0,
+            "quarter4": -0.5,
+            "rushing": 0,
+            "passing": 1
+          }
+        },
+        {
+          "player": "Dalvin Cook",
+          "team": "Florida State",
+          "position": "RB",
+          "average": {
+            "total": -0.171,
+            "quarter1": -0.686,
+            "quarter2": -0.421,
+            "quarter3": 0.039,
+            "quarter4": 0.549,
+            "rushing": -0.29,
+            "passing": 0.549
+          },
+          "cumulative": {
+            "total": -3.6,
+            "quarter1": -3.4,
+            "quarter2": -2.1,
+            "quarter3": 0.3,
+            "quarter4": 1.6,
+            "rushing": -5.2,
+            "passing": 1.6
+          }
+        },
+        {
+          "player": "J.J. Cosentino",
+          "team": "Florida State",
+          "position": "QB",
+          "average": {
+            "total": -0.936,
+            "quarter1": 0.03,
+            "quarter2": -1.129,
+            "quarter3": null,
+            "quarter4": null,
+            "rushing": 0,
+            "passing": -0.936
+          },
+          "cumulative": {
+            "total": -5.6,
+            "quarter1": 0,
+            "quarter2": -5.6,
+            "quarter3": 0,
+            "quarter4": 0,
+            "rushing": 0,
+            "passing": -5.6
+          }
+        },
+        {
+          "player": "Ryan Izzo",
+          "team": "Florida State",
+          "position": "TE",
+          "average": {
+            "total": 0.561,
+            "quarter1": 2.26,
+            "quarter2": null,
+            "quarter3": -1.139,
+            "quarter4": null,
+            "rushing": 0,
+            "passing": 0.561
+          },
+          "cumulative": {
+            "total": 1.1,
+            "quarter1": 2.3,
+            "quarter2": 0,
+            "quarter3": -1.1,
+            "quarter4": 0,
+            "rushing": 0,
+            "passing": 1.1
+          }
+        },
+        {
+          "player": "Travis Rudolph",
+          "team": "Florida State",
+          "position": "WR",
+          "average": {
+            "total": 0.644,
+            "quarter1": 1.442,
+            "quarter2": -0.375,
+            "quarter3": 0.157,
+            "quarter4": 1.163,
+            "rushing": 0,
+            "passing": 0.644
+          },
+          "cumulative": {
+            "total": 9,
+            "quarter1": 4.3,
+            "quarter2": -0.7,
+            "quarter3": 0.8,
+            "quarter4": 4.7,
+            "rushing": 0,
+            "passing": 9
+          }
+        },
+        {
+          "player": "Steven Dunbar",
+          "team": "Houston",
+          "position": "WR",
+          "average": {
+            "total": 0.362,
+            "quarter1": -0.285,
+            "quarter2": -0.246,
+            "quarter3": 0.202,
+            "quarter4": 2.256,
+            "rushing": 0,
+            "passing": 0.362
+          },
+          "cumulative": {
+            "total": 2.5,
+            "quarter1": -0.3,
+            "quarter2": -0.2,
+            "quarter3": 0.8,
+            "quarter4": 2.3,
+            "rushing": 0,
+            "passing": 2.5
+          }
+        },
+        {
+          "player": "Jacques Patrick",
+          "team": "Florida State",
+          "position": "RB",
+          "average": {
+            "total": -0.762,
+            "quarter1": null,
+            "quarter2": -0.549,
+            "quarter3": null,
+            "quarter4": -0.975,
+            "rushing": -0.549,
+            "passing": -0.975
+          },
+          "cumulative": {
+            "total": -1.5,
+            "quarter1": 0,
+            "quarter2": -0.5,
+            "quarter3": 0,
+            "quarter4": -1,
+            "rushing": -0.5,
+            "passing": -1
+          }
+        }
+      ]
+    }
+  },
+  "teamPassing": [],
+  "playerPassing": [],
+  "teamRushing": [],
+  "playerRushing": []
+}

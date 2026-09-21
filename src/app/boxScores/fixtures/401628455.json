@@ -1,0 +1,728 @@
+{
+  "capturedAt": "2026-09-14T23:26:15.771Z",
+  "game": {
+    "id": 401628455,
+    "season": 2024,
+    "week": 1,
+    "seasonType": "regular"
+  },
+  "legacy": {
+    "gameInfo": {
+      "homeTeam": "Ohio State",
+      "homePoints": 52,
+      "homeWinProb": 0.9986109107615839,
+      "awayTeam": "Akron",
+      "awayPoints": 6,
+      "awayWinProb": 0.0013890892384160747,
+      "homeWinner": true,
+      "excitement": 4.3794847589
+    },
+    "teams": {
+      "ppa": [
+        {
+          "team": "Akron",
+          "plays": 50,
+          "overall": {
+            "total": -0.1321,
+            "quarter1": 0.02,
+            "quarter2": -0.152,
+            "quarter3": -0.217,
+            "quarter4": 0
+          },
+          "passing": {
+            "total": -0.046,
+            "quarter1": 0.036,
+            "quarter2": -0.22,
+            "quarter3": 0.125,
+            "quarter4": 0
+          },
+          "rushing": {
+            "total": -0.243,
+            "quarter1": -0.015,
+            "quarter2": -0.047,
+            "quarter3": -0.416,
+            "quarter4": 0
+          }
+        },
+        {
+          "team": "Ohio State",
+          "plays": 50,
+          "overall": {
+            "total": 0.4084,
+            "quarter1": 0.371,
+            "quarter2": 0.173,
+            "quarter3": 0.918,
+            "quarter4": 0
+          },
+          "passing": {
+            "total": 0.42,
+            "quarter1": 0.529,
+            "quarter2": 0.082,
+            "quarter3": 1.08,
+            "quarter4": 0
+          },
+          "rushing": {
+            "total": 0.396,
+            "quarter1": 0.174,
+            "quarter2": 0.274,
+            "quarter3": 0.825,
+            "quarter4": 0
+          }
+        }
+      ],
+      "cumulativePpa": [
+        {
+          "team": "Akron",
+          "plays": 50,
+          "overall": {
+            "total": -6.6,
+            "quarter1": 0.3,
+            "quarter2": -2.7,
+            "quarter3": -4.1,
+            "quarter4": 0
+          },
+          "passing": {
+            "total": -1.2,
+            "quarter1": 0.3,
+            "quarter2": -2.4,
+            "quarter3": 0.9,
+            "quarter4": 0
+          },
+          "rushing": {
+            "total": -5.3,
+            "quarter1": -0.1,
+            "quarter2": -0.3,
+            "quarter3": -5,
+            "quarter4": 0
+          }
+        },
+        {
+          "team": "Ohio State",
+          "plays": 50,
+          "overall": {
+            "total": 20.4,
+            "quarter1": 6.7,
+            "quarter2": 3.6,
+            "quarter3": 10.1,
+            "quarter4": 0
+          },
+          "passing": {
+            "total": 10.5,
+            "quarter1": 5.3,
+            "quarter2": 0.9,
+            "quarter3": 4.3,
+            "quarter4": 0
+          },
+          "rushing": {
+            "total": 9.9,
+            "quarter1": 1.4,
+            "quarter2": 2.7,
+            "quarter3": 5.8,
+            "quarter4": 0
+          }
+        }
+      ],
+      "successRates": [
+        {
+          "team": "Akron",
+          "overall": {
+            "total": 0.36,
+            "quarter1": 0.462,
+            "quarter2": 0.278,
+            "quarter3": 0.368,
+            "quarter4": null
+          },
+          "standardDowns": {
+            "total": 0.455,
+            "quarter1": 0.6,
+            "quarter2": 0.3,
+            "quarter3": 0.462,
+            "quarter4": null
+          },
+          "passingDowns": {
+            "total": 0.176,
+            "quarter1": 0,
+            "quarter2": 0.25,
+            "quarter3": 0.167,
+            "quarter4": null
+          }
+        },
+        {
+          "team": "Ohio State",
+          "overall": {
+            "total": 0.54,
+            "quarter1": 0.5,
+            "quarter2": 0.429,
+            "quarter3": 0.818,
+            "quarter4": null
+          },
+          "standardDowns": {
+            "total": 0.606,
+            "quarter1": 0.455,
+            "quarter2": 0.545,
+            "quarter3": 0.818,
+            "quarter4": null
+          },
+          "passingDowns": {
+            "total": 0.412,
+            "quarter1": 0.571,
+            "quarter2": 0.3,
+            "quarter3": null,
+            "quarter4": null
+          }
+        }
+      ],
+      "explosiveness": [
+        {
+          "team": "Akron",
+          "overall": {
+            "total": 1.05,
+            "quarter1": 0.72,
+            "quarter2": 1.29,
+            "quarter3": 1.16,
+            "quarter4": 0
+          }
+        },
+        {
+          "team": "Ohio State",
+          "overall": {
+            "total": 1.29,
+            "quarter1": 1.37,
+            "quarter2": 1.28,
+            "quarter3": 1.23,
+            "quarter4": 0
+          }
+        }
+      ],
+      "rushing": [
+        {
+          "team": "Akron",
+          "powerSuccess": 0.4,
+          "stuffRate": 0.091,
+          "lineYards": 72,
+          "lineYardsAverage": 3.3,
+          "secondLevelYards": 19,
+          "secondLevelYardsAverage": 0.9,
+          "openFieldYards": 23,
+          "openFieldYardsAverage": 1
+        },
+        {
+          "team": "Ohio State",
+          "powerSuccess": 1,
+          "stuffRate": 0.08,
+          "lineYards": 99,
+          "lineYardsAverage": 3.9,
+          "secondLevelYards": 43,
+          "secondLevelYardsAverage": 1.7,
+          "openFieldYards": 29,
+          "openFieldYardsAverage": 1.2
+        }
+      ],
+      "havoc": [
+        {
+          "team": "Ohio State",
+          "total": 0.32,
+          "frontSeven": 0.22,
+          "db": 0.1
+        },
+        {
+          "team": "Akron",
+          "total": 0.12,
+          "frontSeven": 0.02,
+          "db": 0.1
+        }
+      ],
+      "scoringOpportunities": [
+        {
+          "team": "Akron",
+          "opportunities": 4,
+          "points": -1,
+          "pointsPerOpportunity": -0.25
+        },
+        {
+          "team": "Ohio State",
+          "opportunities": 7,
+          "points": 38,
+          "pointsPerOpportunity": 5.43
+        }
+      ],
+      "fieldPosition": [
+        {
+          "team": "Akron",
+          "averageStart": 76.1,
+          "averageStartingPredictedPoints": 0.85
+        },
+        {
+          "team": "Ohio State",
+          "averageStart": 67.3,
+          "averageStartingPredictedPoints": 1.67
+        }
+      ]
+    },
+    "players": {
+      "usage": [
+        {
+          "player": "Will Howard",
+          "team": "Ohio State",
+          "position": "QB",
+          "total": 0.5,
+          "quarter1": 0.611,
+          "quarter2": 0.571,
+          "quarter3": 0.182,
+          "quarter4": 0,
+          "rushing": 0.16,
+          "passing": 0.84
+        },
+        {
+          "player": "Jordan Simmons",
+          "team": "Akron",
+          "position": "RB",
+          "total": 0.12,
+          "quarter1": 0.077,
+          "quarter2": 0.056,
+          "quarter3": 0.211,
+          "quarter4": 0,
+          "rushing": 0.273,
+          "passing": 0
+        },
+        {
+          "player": "Ben Finley",
+          "team": "Akron",
+          "position": "QB",
+          "total": 0.26,
+          "quarter1": 0.231,
+          "quarter2": 0.444,
+          "quarter3": 0.105,
+          "quarter4": 0,
+          "rushing": 0.136,
+          "passing": 0.37
+        },
+        {
+          "player": "TreVeyon Henderson",
+          "team": "Ohio State",
+          "position": "RB",
+          "total": 0.18,
+          "quarter1": 0.111,
+          "quarter2": 0.238,
+          "quarter3": 0.182,
+          "quarter4": 0,
+          "rushing": 0.32,
+          "passing": 0.04
+        },
+        {
+          "player": "Emeka Egbuka",
+          "team": "Ohio State",
+          "position": "WR",
+          "total": 0.06,
+          "quarter1": 0.056,
+          "quarter2": 0.095,
+          "quarter3": 0,
+          "quarter4": 0,
+          "rushing": 0,
+          "passing": 0.12
+        },
+        {
+          "player": "Tahj Bullock",
+          "team": "Akron",
+          "position": "QB",
+          "total": 0.32,
+          "quarter1": 0.385,
+          "quarter2": 0.167,
+          "quarter3": 0.421,
+          "quarter4": 0,
+          "rushing": 0.409,
+          "passing": 0.259
+        },
+        {
+          "player": "Quinshon Judkins",
+          "team": "Ohio State",
+          "position": "RB",
+          "total": 0.24,
+          "quarter1": 0.222,
+          "quarter2": 0.143,
+          "quarter3": 0.455,
+          "quarter4": 0,
+          "rushing": 0.48,
+          "passing": 0
+        },
+        {
+          "player": "Carnell Tate",
+          "team": "Ohio State",
+          "position": "WR",
+          "total": 0.02,
+          "quarter1": 0,
+          "quarter2": 0.048,
+          "quarter3": 0,
+          "quarter4": 0,
+          "rushing": 0,
+          "passing": 0.04
+        },
+        {
+          "player": "Jacob Newell",
+          "team": "Akron",
+          "position": "TE",
+          "total": 0.04,
+          "quarter1": 0.077,
+          "quarter2": 0,
+          "quarter3": 0.053,
+          "quarter4": 0,
+          "rushing": 0,
+          "passing": 0.074
+        },
+        {
+          "player": "Bobby Golden",
+          "team": "Akron",
+          "position": "WR",
+          "total": 0.02,
+          "quarter1": 0,
+          "quarter2": 0.056,
+          "quarter3": 0,
+          "quarter4": 0,
+          "rushing": 0,
+          "passing": 0.037
+        },
+        {
+          "player": "Charles Kellom",
+          "team": "Akron",
+          "position": "RB",
+          "total": 0.04,
+          "quarter1": 0,
+          "quarter2": 0.056,
+          "quarter3": 0.053,
+          "quarter4": 0,
+          "rushing": 0.091,
+          "passing": 0
+        },
+        {
+          "player": "Jeremiah Smith",
+          "team": "Ohio State",
+          "position": "WR",
+          "total": 0.1,
+          "quarter1": 0.167,
+          "quarter2": 0.048,
+          "quarter3": 0.091,
+          "quarter4": 0,
+          "rushing": 0,
+          "passing": 0.2
+        },
+        {
+          "player": "James Peoples",
+          "team": "Ohio State",
+          "position": "RB",
+          "total": 0.02,
+          "quarter1": 0,
+          "quarter2": 0,
+          "quarter3": 0.091,
+          "quarter4": 0,
+          "rushing": 0.04,
+          "passing": 0
+        }
+      ],
+      "ppa": [
+        {
+          "player": "Will Howard",
+          "team": "Ohio State",
+          "position": "QB",
+          "average": {
+            "total": 0.546,
+            "quarter1": 0.571,
+            "quarter2": 0.329,
+            "quarter3": 1.714,
+            "quarter4": null,
+            "rushing": 1.002,
+            "passing": 0.459
+          },
+          "cumulative": {
+            "total": 13.7,
+            "quarter1": 6.3,
+            "quarter2": 3.9,
+            "quarter3": 3.4,
+            "quarter4": 0,
+            "rushing": 4,
+            "passing": 9.6
+          }
+        },
+        {
+          "player": "Jordan Simmons",
+          "team": "Akron",
+          "position": "RB",
+          "average": {
+            "total": -0.07,
+            "quarter1": -0.73,
+            "quarter2": -0.453,
+            "quarter3": 0.191,
+            "quarter4": null,
+            "rushing": -0.07,
+            "passing": 0
+          },
+          "cumulative": {
+            "total": -0.4,
+            "quarter1": -0.7,
+            "quarter2": -0.5,
+            "quarter3": 0.8,
+            "quarter4": 0,
+            "rushing": -0.4,
+            "passing": 0
+          }
+        },
+        {
+          "player": "Ben Finley",
+          "team": "Akron",
+          "position": "QB",
+          "average": {
+            "total": -0.589,
+            "quarter1": -0.671,
+            "quarter2": -0.61,
+            "quarter3": -0.379,
+            "quarter4": null,
+            "rushing": -0.216,
+            "passing": -0.7
+          },
+          "cumulative": {
+            "total": -7.7,
+            "quarter1": -2,
+            "quarter2": -4.9,
+            "quarter3": -0.8,
+            "quarter4": 0,
+            "rushing": -0.6,
+            "passing": -7
+          }
+        },
+        {
+          "player": "TreVeyon Henderson",
+          "team": "Ohio State",
+          "position": "RB",
+          "average": {
+            "total": 0.519,
+            "quarter1": 1.245,
+            "quarter2": -0.12,
+            "quarter3": 1.391,
+            "quarter4": null,
+            "rushing": 0.456,
+            "passing": 1.027
+          },
+          "cumulative": {
+            "total": 4.7,
+            "quarter1": 2.5,
+            "quarter2": -0.6,
+            "quarter3": 2.8,
+            "quarter4": 0,
+            "rushing": 3.6,
+            "passing": 1
+          }
+        },
+        {
+          "player": "Emeka Egbuka",
+          "team": "Ohio State",
+          "position": "WR",
+          "average": {
+            "total": 1.57,
+            "quarter1": 2.587,
+            "quarter2": 1.061,
+            "quarter3": null,
+            "quarter4": null,
+            "rushing": 0,
+            "passing": 1.57
+          },
+          "cumulative": {
+            "total": 4.7,
+            "quarter1": 2.6,
+            "quarter2": 2.1,
+            "quarter3": 0,
+            "quarter4": 0,
+            "rushing": 0,
+            "passing": 4.7
+          }
+        },
+        {
+          "player": "Tahj Bullock",
+          "team": "Akron",
+          "position": "QB",
+          "average": {
+            "total": 0.345,
+            "quarter1": 0.163,
+            "quarter2": 0.096,
+            "quarter3": 0.552,
+            "quarter4": null,
+            "rushing": 0.369,
+            "passing": 0.314
+          },
+          "cumulative": {
+            "total": 5.5,
+            "quarter1": 0.8,
+            "quarter2": 0.3,
+            "quarter3": 4.4,
+            "quarter4": 0,
+            "rushing": 3.3,
+            "passing": 2.2
+          }
+        },
+        {
+          "player": "Quinshon Judkins",
+          "team": "Ohio State",
+          "position": "RB",
+          "average": {
+            "total": 0.028,
+            "quarter1": -0.58,
+            "quarter2": 0.185,
+            "quarter3": 0.419,
+            "quarter4": null,
+            "rushing": 0.028,
+            "passing": 0
+          },
+          "cumulative": {
+            "total": 0.3,
+            "quarter1": -2.3,
+            "quarter2": 0.6,
+            "quarter3": 2.1,
+            "quarter4": 0,
+            "rushing": 0.3,
+            "passing": 0
+          }
+        },
+        {
+          "player": "Carnell Tate",
+          "team": "Ohio State",
+          "position": "WR",
+          "average": {
+            "total": 2.505,
+            "quarter1": null,
+            "quarter2": 2.505,
+            "quarter3": null,
+            "quarter4": null,
+            "rushing": 0,
+            "passing": 2.505
+          },
+          "cumulative": {
+            "total": 2.5,
+            "quarter1": 0,
+            "quarter2": 2.5,
+            "quarter3": 0,
+            "quarter4": 0,
+            "rushing": 0,
+            "passing": 2.5
+          }
+        },
+        {
+          "player": "Jacob Newell",
+          "team": "Akron",
+          "position": "TE",
+          "average": {
+            "total": 2.612,
+            "quarter1": 1.801,
+            "quarter2": null,
+            "quarter3": 3.423,
+            "quarter4": null,
+            "rushing": 0,
+            "passing": 2.612
+          },
+          "cumulative": {
+            "total": 5.2,
+            "quarter1": 1.8,
+            "quarter2": 0,
+            "quarter3": 3.4,
+            "quarter4": 0,
+            "rushing": 0,
+            "passing": 5.2
+          }
+        },
+        {
+          "player": "Bobby Golden",
+          "team": "Akron",
+          "position": "WR",
+          "average": {
+            "total": 1.531,
+            "quarter1": null,
+            "quarter2": 1.531,
+            "quarter3": null,
+            "quarter4": null,
+            "rushing": 0,
+            "passing": 1.531
+          },
+          "cumulative": {
+            "total": 1.5,
+            "quarter1": 0,
+            "quarter2": 1.5,
+            "quarter3": 0,
+            "quarter4": 0,
+            "rushing": 0,
+            "passing": 1.5
+          }
+        },
+        {
+          "player": "Charles Kellom",
+          "team": "Akron",
+          "position": "RB",
+          "average": {
+            "total": -0.48,
+            "quarter1": null,
+            "quarter2": -0.228,
+            "quarter3": -0.731,
+            "quarter4": null,
+            "rushing": -0.48,
+            "passing": 0
+          },
+          "cumulative": {
+            "total": -1,
+            "quarter1": 0,
+            "quarter2": -0.2,
+            "quarter3": -0.7,
+            "quarter4": 0,
+            "rushing": -1,
+            "passing": 0
+          }
+        },
+        {
+          "player": "Jeremiah Smith",
+          "team": "Ohio State",
+          "position": "WR",
+          "average": {
+            "total": 2.185,
+            "quarter1": 1.928,
+            "quarter2": 2.74,
+            "quarter3": 2.4,
+            "quarter4": null,
+            "rushing": 0,
+            "passing": 2.185
+          },
+          "cumulative": {
+            "total": 10.9,
+            "quarter1": 5.8,
+            "quarter2": 2.7,
+            "quarter3": 2.4,
+            "quarter4": 0,
+            "rushing": 0,
+            "passing": 10.9
+          }
+        },
+        {
+          "player": "James Peoples",
+          "team": "Ohio State",
+          "position": "RB",
+          "average": {
+            "total": 1.926,
+            "quarter1": null,
+            "quarter2": null,
+            "quarter3": 1.926,
+            "quarter4": null,
+            "rushing": 1.926,
+            "passing": 0
+          },
+          "cumulative": {
+            "total": 1.9,
+            "quarter1": 0,
+            "quarter2": 0,
+            "quarter3": 1.9,
+            "quarter4": 0,
+            "rushing": 1.9,
+            "passing": 0
+          }
+        }
+      ]
+    }
+  },
+  "teamPassing": [],
+  "playerPassing": [],
+  "teamRushing": [],
+  "playerRushing": []
+}

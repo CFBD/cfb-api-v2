@@ -108,6 +108,13 @@ export interface AdjustedTeamMetrics {
   year: number;
 }
 
+export interface AdvancedBoxScoreSnapshot {
+  formatVersion: number;
+  gameId: number;
+  generatedAt: Timestamp;
+  payload: Json;
+}
+
 export interface Athlete {
   active: boolean | null;
   cfbdId: Generated<number>;
@@ -1104,6 +1111,7 @@ export interface WeatherCondition {
 export interface DB {
   adjustedPlayerMetrics: AdjustedPlayerMetrics;
   adjustedTeamMetrics: AdjustedTeamMetrics;
+  advancedBoxScoreSnapshot: AdvancedBoxScoreSnapshot;
   athlete: Athlete;
   athleteTeam: AthleteTeam;
   calendar: Calendar;
