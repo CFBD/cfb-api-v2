@@ -1,3 +1,10 @@
+# [5.29.0](https://github.com/CFBD/cfb-api-v2/compare/v5.28.0...v5.29.0) (2026-09-21)
+
+
+### Features
+
+* **boxScores:** enriched advanced box scores ([4ea126d](https://github.com/CFBD/cfb-api-v2/commit/4ea126d76c8db0869ba27800ab6fe3572618a8f5))
+
 # [5.28.0](https://github.com/CFBD/cfb-api-v2/compare/v5.27.1...v5.28.0) (2026-09-12)
 
 
