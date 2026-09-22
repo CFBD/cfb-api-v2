@@ -1,0 +1,225 @@
+{
+  "plays": [
+    {
+      "plays": "4",
+      "drives": "2",
+      "ppa": "0.125",
+      "total_ppa": "0.5",
+      "success_rate": "0",
+      "explosiveness": "0.333",
+      "power_success": null,
+      "stuff_rate": "0",
+      "line_yards": "0",
+      "line_yards_sum": "8",
+      "second_level_yards": "0",
+      "second_level_yards_sum": "0",
+      "open_field_yards": "0",
+      "open_field_yards_sum": "17",
+      "standard_down_rate": "0",
+      "standard_down_ppa": "0",
+      "standard_down_success_rate": "0",
+      "standard_down_explosiveness": "0",
+      "passing_down_rate": "0",
+      "passing_down_ppa": null,
+      "passing_down_success_rate": "0",
+      "passing_down_explosiveness": "0",
+      "rush_rate": "0",
+      "rushing_ppa": "0",
+      "total_rushing_ppa": "0",
+      "rush_success_rate": "0",
+      "rush_explosiveness": "0",
+      "passing_rate": "0",
+      "passing_ppa": "0",
+      "total_passing_ppa": "0",
+      "pass_success_rate": "0",
+      "pass_explosiveness": "0",
+      "season": 2025,
+      "team": "Michigan",
+      "conference": "Big Ten",
+      "unit": "offense"
+    },
+    {
+      "plays": "4",
+      "drives": "2",
+      "ppa": "0.125",
+      "total_ppa": "0.5",
+      "success_rate": "0",
+      "explosiveness": "0.333",
+      "power_success": "0",
+      "stuff_rate": "0",
+      "line_yards": "0",
+      "line_yards_sum": "8",
+      "second_level_yards": "0",
+      "second_level_yards_sum": "0",
+      "open_field_yards": "0",
+      "open_field_yards_sum": "17",
+      "standard_down_rate": "0",
+      "standard_down_ppa": "0",
+      "standard_down_success_rate": "0",
+      "standard_down_explosiveness": "0",
+      "passing_down_rate": "0",
+      "passing_down_ppa": null,
+      "passing_down_success_rate": "0",
+      "passing_down_explosiveness": "0",
+      "rush_rate": "0",
+      "rushing_ppa": "0",
+      "total_rushing_ppa": "0",
+      "rush_success_rate": "0",
+      "rush_explosiveness": "0",
+      "passing_rate": "0",
+      "passing_ppa": "0",
+      "total_passing_ppa": "0",
+      "pass_success_rate": "0",
+      "pass_explosiveness": "0",
+      "season": 2025,
+      "team": "Michigan",
+      "conference": "Big Ten",
+      "unit": "defense"
+    }
+  ],
+  "havoc": [
+    {
+      "season": 2025,
+      "team": "Michigan",
+      "offensivePlays": "4",
+      "defensivePlays": "0",
+      "havocEvents": "0",
+      "frontSevenHavocEvents": "0",
+      "dbHavocEvents": "0",
+      "havocEventsAllowed": "1",
+      "frontSevenHavocEventsAllowed": "1",
+      "dbHavocEventsAllowed": "0"
+    }
+  ],
+  "opportunities": [
+    {
+      "season": 2025,
+      "school": "Michigan",
+      "unit": "offense",
+      "opportunities": "2",
+      "points": "3.5"
+    }
+  ],
+  "fieldPosition": [
+    {
+      "season": 2025,
+      "school": "Michigan",
+      "avg_start_off": "75.5",
+      "avg_predicted_points_off": "0.123",
+      "avg_start_def": "70.1",
+      "avg_predicted_points_def": "-0.456"
+    }
+  ],
+  "expected": {
+    "season": 2025,
+    "team": "Michigan",
+    "conference": "Big Ten",
+    "offense": {
+      "plays": 4,
+      "drives": 2,
+      "ppa": 0.125,
+      "totalPPA": 0.5,
+      "successRate": 0,
+      "explosiveness": 0.333,
+      "powerSuccess": 0,
+      "stuffRate": 0,
+      "lineYards": 0,
+      "lineYardsTotal": 8,
+      "secondLevelYards": 0,
+      "secondLevelYardsTotal": 0,
+      "openFieldYards": 0,
+      "openFieldYardsTotal": 17,
+      "totalOpportunies": 2,
+      "pointsPerOpportunity": 3.5,
+      "fieldPosition": {
+        "averageStart": 75.5,
+        "averagePredictedPoints": 0.123
+      },
+      "havoc": {
+        "total": 0.25,
+        "frontSeven": 0.25,
+        "db": 0
+      },
+      "standardDowns": {
+        "rate": 0,
+        "ppa": 0,
+        "successRate": 0,
+        "explosiveness": 0
+      },
+      "passingDowns": {
+        "rate": 0,
+        "ppa": 0,
+        "successRate": 0,
+        "explosiveness": 0
+      },
+      "rushingPlays": {
+        "rate": 0,
+        "ppa": 0,
+        "totalPPA": 0,
+        "successRate": 0,
+        "explosiveness": 0
+      },
+      "passingPlays": {
+        "rate": 0,
+        "ppa": 0,
+        "totalPPA": 0,
+        "successRate": 0,
+        "explosiveness": 0
+      }
+    },
+    "defense": {
+      "plays": 4,
+      "drives": 2,
+      "ppa": 0.125,
+      "totalPPA": 0.5,
+      "successRate": 0,
+      "explosiveness": 0.333,
+      "powerSuccess": 0,
+      "stuffRate": 0,
+      "lineYards": 0,
+      "lineYardsTotal": 8,
+      "secondLevelYards": 0,
+      "secondLevelYardsTotal": 0,
+      "openFieldYards": 0,
+      "openFieldYardsTotal": 0,
+      "totalOpportunies": 0,
+      "pointsPerOpportunity": 0,
+      "fieldPosition": {
+        "averageStart": 70.1,
+        "averagePredictedPoints": -0.456
+      },
+      "havoc": {
+        "total": null,
+        "frontSeven": null,
+        "db": null
+      },
+      "standardDowns": {
+        "rate": 0,
+        "ppa": 0,
+        "successRate": 0,
+        "explosiveness": 0
+      },
+      "passingDowns": {
+        "rate": 0,
+        "ppa": 0,
+        "totalPPA": 0,
+        "successRate": 0,
+        "explosiveness": 0
+      },
+      "rushingPlays": {
+        "rate": 0,
+        "ppa": 0,
+        "totalPPA": 0,
+        "successRate": 0,
+        "explosiveness": 0
+      },
+      "passingPlays": {
+        "rate": 0,
+        "ppa": 0,
+        "totalPPA": 0,
+        "successRate": 0,
+        "explosiveness": 0
+      }
+    }
+  }
+}

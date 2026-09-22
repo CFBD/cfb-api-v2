@@ -141,7 +141,7 @@ const isPassingLocations = (value: unknown): boolean =>
   isPassingLocationProduction(value['deep right']) &&
   isPassingLocationProduction(value['unknown']);
 
-const isPassingProduction = (value: unknown): boolean =>
+export const isPassingProduction = (value: unknown): boolean =>
   object(value) &&
   isPassingBaseProduction(value) &&
   isPassingAdvancedProduction(value) &&
@@ -224,7 +224,7 @@ const isRushingProduction = (value: unknown): boolean =>
   isRushingDirectionProduction(value.directions.right) &&
   isRushingDirectionProduction(value.directions.unknown);
 
-const isTeamRushingProduction = (value: unknown): boolean =>
+export const isTeamRushingProduction = (value: unknown): boolean =>
   object(value) &&
   isRushingProduction(value) &&
   number(value['touchdownStatusAvailable']) &&

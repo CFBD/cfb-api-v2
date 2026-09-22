@@ -1,0 +1,164 @@
+{
+  "rows": [
+    {
+      "plays": "3",
+      "passPlays": "2",
+      "rushPlays": "1",
+      "firstDowns": "2",
+      "secondDowns": "0",
+      "thirdDowns": null,
+      "standardDowns": "3",
+      "passingDowns": "0",
+      "teamPlays": "7",
+      "teamPassPlays": "4",
+      "teamRushPlays": "3",
+      "teamFirstDowns": "3",
+      "teamSecondDowns": "2",
+      "teamThirdDowns": "2",
+      "teamStandardDowns": "6",
+      "teamPassingDowns": "1",
+      "totalPpa": "-0.7505",
+      "totalPassPpa": "0.2005",
+      "totalRushPpa": "-0.951",
+      "firstDownsPpa": "-0.5005",
+      "secondDownsPpa": "0",
+      "thirdDownsPpa": null,
+      "standardDownsPpa": "-0.7505",
+      "passingDownsPpa": "0",
+      "season": 2025,
+      "athleteId": "20",
+      "name": "Transferred Player",
+      "position": "QB",
+      "school": "Michigan",
+      "conference": "B1G"
+    },
+    {
+      "plays": "0",
+      "passPlays": "2",
+      "rushPlays": "1",
+      "firstDowns": "2",
+      "secondDowns": "0",
+      "thirdDowns": null,
+      "standardDowns": "3",
+      "passingDowns": "0",
+      "teamPlays": "0",
+      "teamPassPlays": "4",
+      "teamRushPlays": "3",
+      "teamFirstDowns": "3",
+      "teamSecondDowns": "2",
+      "teamThirdDowns": "2",
+      "teamStandardDowns": "6",
+      "teamPassingDowns": "1",
+      "totalPpa": "-0.7505",
+      "totalPassPpa": "0.2005",
+      "totalRushPpa": "-0.951",
+      "firstDownsPpa": "-0.5005",
+      "secondDownsPpa": "0",
+      "thirdDownsPpa": null,
+      "standardDownsPpa": "-0.7505",
+      "passingDownsPpa": "0",
+      "season": 2025,
+      "athleteId": "100",
+      "name": null,
+      "position": null,
+      "school": "Michigan",
+      "conference": null
+    }
+  ],
+  "ppa": [
+    {
+      "season": 2025,
+      "id": "100",
+      "name": null,
+      "position": null,
+      "team": "Michigan",
+      "conference": "",
+      "averagePPA": {
+        "all": null,
+        "pass": 0.1,
+        "rush": -0.951,
+        "firstDown": -0.25,
+        "secondDown": null,
+        "thirdDown": null,
+        "standardDowns": -0.25,
+        "passingDowns": null
+      },
+      "totalPPA": {
+        "all": -0.75,
+        "pass": 0.201,
+        "rush": -0.951,
+        "firstDown": -0.5,
+        "secondDown": 0,
+        "thirdDown": 0,
+        "standardDowns": -0.75,
+        "passingDowns": 0
+      }
+    },
+    {
+      "season": 2025,
+      "id": "20",
+      "name": "Transferred Player",
+      "position": "QB",
+      "team": "Michigan",
+      "conference": "B1G",
+      "averagePPA": {
+        "all": -0.25,
+        "pass": 0.1,
+        "rush": -0.951,
+        "firstDown": -0.25,
+        "secondDown": null,
+        "thirdDown": null,
+        "standardDowns": -0.25,
+        "passingDowns": null
+      },
+      "totalPPA": {
+        "all": -0.75,
+        "pass": 0.201,
+        "rush": -0.951,
+        "firstDown": -0.5,
+        "secondDown": 0,
+        "thirdDown": 0,
+        "standardDowns": -0.75,
+        "passingDowns": 0
+      }
+    }
+  ],
+  "usage": [
+    {
+      "season": 2025,
+      "id": "100",
+      "name": null,
+      "position": null,
+      "team": "Michigan",
+      "conference": "",
+      "usage": {
+        "overall": null,
+        "pass": 0.5,
+        "rush": 0.333,
+        "firstDown": 0.667,
+        "secondDown": 0,
+        "thirdDown": null,
+        "standardDowns": 0.5,
+        "passingDowns": 0
+      }
+    },
+    {
+      "season": 2025,
+      "id": "20",
+      "name": "Transferred Player",
+      "position": "QB",
+      "team": "Michigan",
+      "conference": "B1G",
+      "usage": {
+        "overall": 0.429,
+        "pass": 0.5,
+        "rush": 0.333,
+        "firstDown": 0.667,
+        "secondDown": 0,
+        "thirdDown": null,
+        "standardDowns": 0.5,
+        "passingDowns": 0
+      }
+    }
+  ]
+}

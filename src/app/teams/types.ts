@@ -238,3 +238,8 @@ export interface TeamATS {
   atsPushes: number;
   avgCoverMargin: number | null;
 }
+
+export {
+  TeamSeasonOverview,
+  TeamSeasonOverviewError,
+} from './seasonOverviewTypes';

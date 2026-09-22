@@ -1,0 +1,112 @@
+{
+  "team": "Michigan",
+  "season": 2025,
+  "defense": {
+    "ppa": 0.03200993452401533,
+    "havoc": {
+      "db": 0.067,
+      "total": 0.167,
+      "frontSeven": 0.1
+    },
+    "plays": 864,
+    "drives": 144,
+    "totalPPA": 27.656583428749247,
+    "lineYards": 2.6422885572139303,
+    "stuffRate": 0.18159203980099503,
+    "successRate": 0.41782407407407407,
+    "passingDowns": {
+      "ppa": 0.3124786342136046,
+      "rate": 0.3020833333333333,
+      "totalPPA": 48.85593522570862,
+      "successRate": 0.32567049808429116,
+      "explosiveness": 2.0093676126472015
+    },
+    "passingPlays": {
+      "ppa": 0.10832801602152688,
+      "rate": 0.5219907407407407,
+      "totalPPA": 48.85593522570862,
+      "successRate": 0.44124168514412415,
+      "explosiveness": 1.3440991043127615
+    },
+    "powerSuccess": 0.6,
+    "rushingPlays": {
+      "ppa": -0.005669140094183316,
+      "rate": 0.4652777777777778,
+      "totalPPA": -2.278994317861693,
+      "successRate": 0.40298507462686567,
+      "explosiveness": 0.8450552892576797
+    },
+    "explosiveness": 1.1201514643157442,
+    "fieldPosition": {
+      "averageStart": 72.1,
+      "averagePredictedPoints": -1.245
+    },
+    "standardDowns": {
+      "ppa": -0.08938696534162781,
+      "rate": 0.6979166666666666,
+      "successRate": 0.4577114427860697,
+      "explosiveness": 0.8462986650107663
+    },
+    "lineYardsTotal": 1062,
+    "openFieldYards": 1.0149253731343284,
+    "secondLevelYards": 0.8606965174129353,
+    "totalOpportunies": 67,
+    "openFieldYardsTotal": 0,
+    "pointsPerOpportunity": 3.791044776119403,
+    "secondLevelYardsTotal": 346
+  },
+  "offense": {
+    "ppa": 0.14432666554910215,
+    "havoc": {
+      "db": 0.043,
+      "total": 0.121,
+      "frontSeven": 0.078
+    },
+    "plays": 855,
+    "drives": 147,
+    "totalPPA": 123.39929904448233,
+    "lineYards": 3.3189189189189188,
+    "stuffRate": 0.13721413721413722,
+    "successRate": 0.45497076023391814,
+    "passingDowns": {
+      "ppa": 0.12748998690359514,
+      "rate": 0.2912280701754386,
+      "successRate": 0.2891566265060241,
+      "explosiveness": 1.7189349554634827
+    },
+    "passingPlays": {
+      "ppa": 0.11775528545357272,
+      "rate": 0.4198830409356725,
+      "totalPPA": 42.27414747783261,
+      "successRate": 0.40668523676880225,
+      "explosiveness": 1.4466091040356728
+    },
+    "powerSuccess": 0.7971014492753623,
+    "rushingPlays": {
+      "ppa": 0.20504969690922376,
+      "rate": 0.5625730994152047,
+      "totalPPA": 98.62890421333663,
+      "successRate": 0.501039501039501,
+      "explosiveness": 0.9399882631910499
+    },
+    "explosiveness": 1.1275462231233602,
+    "fieldPosition": {
+      "averageStart": 68.9,
+      "averagePredictedPoints": 1.485
+    },
+    "standardDowns": {
+      "ppa": 0.15124470677473126,
+      "rate": 0.7087719298245614,
+      "successRate": 0.523102310231023,
+      "explosiveness": 0.9932244921186636
+    },
+    "lineYardsTotal": 1596,
+    "openFieldYards": 1.6985446985446986,
+    "secondLevelYards": 1.2016632016632016,
+    "totalOpportunies": 87,
+    "openFieldYardsTotal": 817,
+    "pointsPerOpportunity": 3.6436781609195403,
+    "secondLevelYardsTotal": 578
+  },
+  "conference": "Big Ten"
+}

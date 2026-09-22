@@ -42,6 +42,7 @@ describe('service principal operation policy', () => {
     expect([...getPageOperations()].sort()).toEqual(
       [
         'GET /teams',
+        'GET /teams/season/overview',
         'GET /conferences',
         'GET /games',
         'GET /player/search',
@@ -128,7 +129,7 @@ describe('service principal operation policy', () => {
       );
     }
 
-    expect(generated).toHaveLength(84);
+    expect(generated).toHaveLength(85);
   });
 
   test('fails closed for malformed or duplicate OpenAPI operation metadata', () => {

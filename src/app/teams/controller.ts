@@ -1,8 +1,21 @@
-import { Controller, Get, Middlewares, Query, Route, Tags } from 'tsoa';
+import { RequestHandler } from 'express';
+import {
+  Controller,
+  Get,
+  Middlewares,
+  Query,
+  Route,
+  Tags,
+  Res,
+  Response,
+  TsoaResponse,
+  ValidateError,
+} from 'tsoa';
 
 import middlewares from '../../config/middleware';
 
 import {
+  getTeamSeasonOverview,
   getTeams,
   getTeamConferenceAffiliations,
   getTeamConferenceChanges,
@@ -15,6 +28,8 @@ import {
   getTeamsATS,
 } from './service';
 import {
+  TeamSeasonOverview,
+  TeamSeasonOverviewError,
   Conference,
   ConferenceClassification,
   Matchup,
@@ -28,10 +43,68 @@ import {
 } from './types';
 import { DivisionClassification } from '../enums';
 
+export const validateSeasonOverviewQuery: RequestHandler = (
+  req,
+  _res,
+  next,
+) => {
+  for (const [key, value] of Object.entries(req.query)) {
+    if (!['year', 'team'].includes(key) || typeof value !== 'string') {
+      next(
+        new ValidateError(
+          {
+            [key]: {
+              value,
+              message: 'Only one year and team value are supported',
+            },
+          },
+          'Validation error',
+        ),
+      );
+      return;
+    }
+  }
+  next();
+};
+
 @Route('teams')
 @Middlewares(middlewares.standard)
 @Tags('teams')
 export class TeamsController extends Controller {
+  /**
+   * Returns a stored full-season team overview, including postseason and garbage time.
+   * @param year Season year.
+   * @param team Team name.
+   * @isInt year
+   */
+  @Get('season/overview')
+  @Middlewares(validateSeasonOverviewQuery)
+  @Response<{ message: string }>(400, 'Validation error')
+  @Response<{ message: string }>(401, 'Unauthorized')
+  public async getTeamSeasonOverview(
+    @Query() year: number,
+    @Query() team: string,
+    @Res() notFound: TsoaResponse<404, TeamSeasonOverviewError>,
+    @Res() unavailable: TsoaResponse<503, TeamSeasonOverviewError>,
+  ): Promise<TeamSeasonOverview> {
+    const result = await getTeamSeasonOverview(year, team);
+    if (result.status === 'found') return result.overview;
+    this.setHeader('Cache-Control', 'no-store');
+    if (result.status === 'not-found') {
+      return notFound(
+        404,
+        { message: 'Team season overview not found.' },
+        { 'Cache-Control': 'no-store' },
+      ) as never;
+    } else {
+      return unavailable(
+        503,
+        { message: 'Team season overview is temporarily unavailable.' },
+        { 'Cache-Control': 'no-store' },
+      ) as never;
+    }
+  }
+
   /**
    * Returns team information and conference affiliations.
    * @param conference Conference abbreviation.

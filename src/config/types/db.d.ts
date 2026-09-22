@@ -1058,6 +1058,14 @@ export interface TeamPlayPrefix {
   teamId: number;
 }
 
+export interface TeamSeasonSnapshot {
+  formatVersion: number;
+  generatedAt: Timestamp;
+  payload: Json;
+  season: number;
+  teamId: number;
+}
+
 export interface TeamStatType {
   id: Generated<number>;
   name: string;
@@ -1184,6 +1192,7 @@ export interface DB {
   team: Team;
   teamInfo: TeamInfo;
   teamPlayPrefix: TeamPlayPrefix;
+  teamSeasonSnapshot: TeamSeasonSnapshot;
   teamStatType: TeamStatType;
   teamTalent: TeamTalent;
   transfer: Transfer;

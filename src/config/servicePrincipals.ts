@@ -13,6 +13,7 @@ export interface ApiOperation {
 
 const pageOperations = new Set([
   'GET /teams',
+  'GET /teams/season/overview',
   'GET /conferences',
   'GET /games',
   'GET /player/search',

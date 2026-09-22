@@ -103,6 +103,7 @@ users must be non-admin, unblacklisted, and have no Patreon tier. The page
 service is limited to these GET operations:
 
 - `/teams`
+- `/teams/season/overview`
 - `/conferences`
 - `/games`
 - `/player/search`
@@ -322,3 +323,64 @@ emergency revocation.
 - Keep quota, Patreon gating, and API usage telemetry changes coordinated
   across `auth.ts`, quota middleware, and relevant endpoint docs.
 - Update `docs/index.md` when adding a durable source of truth.
+
+## Team season overview
+
+`GET /teams/season/overview` accepts required `year` and canonical school-name
+`team` only. Standard bearer access and one-call consumer metering apply; the
+page service has exact operation access and retains its quota exemption. The
+exporter inherits generated GET eligibility.
+
+The primary Kysely connection executes one bounded team/snapshot LEFT JOIN,
+then validates format 1 and all nested payload identities. Missing team/snapshot
+returns 404; invalid/unsupported or recognized unavailable snapshot storage
+returns 503. Controlled errors use no-store and normal quota refunds. Other
+query failures follow normal server-error handling. No play-stat calculation,
+generation, cache, expiry, or writes occur during requests. Coverage depends on
+services publication/backfill; canonical school renames require rebuilding
+stored labels. Services disposable PostgreSQL checks pass; historical source parity and
+performance checks remain pending before activation.
+
+
+The manual `scripts/compare-team-season.ts` helper is invoked by the services
+comparison runner, not API startup or Jest. It compares stdin payloads against
+all five existing service calculations using the runner's explicit read-only
+primary database settings. See the companion services runner README for the
+command and the stable-source requirement; this does not validate HTTP latency.
+
+The overview reader formats advanced metrics after validating the stored payload:
+PPA (including totals), rates, explosiveness and expected points use at most
+three decimal places; yardage averages and points per opportunity use at most
+two. Counts and nulls are preserved. Stored calculations retain full precision,
+so existing snapshots benefit without regeneration. This formatting is specific
+to the overview; legacy endpoints and the source-parity runner remain unchanged.
+
+
+Season overview responses also join live `record` and `ratings` fields onto the
+stored snapshot by canonical team ID and requested season. CORE, SRS and SP+
+come from their season rating rows; Elo is the latest non-null postgame value
+from a completed game, ordered by start date and game ID. No rating falls back
+to another season. Missing rating systems are null; absent SP+ special teams
+is null. CORE, SRS and SP+ values are rounded to two decimal places.
+
+The record is a bounded lateral aggregate over the selected team's completed
+games, including postseason, using the same winner rules as `/records`.
+Games/wins/losses/ties are returned under `record`, and CORE/Elo/SRS/SP+ under
+`ratings` (`core`, `elo`, `srs`, `sp`). These fields are read in the same SQL
+statement, outside snapshot JSONB, so they update without a snapshot rebuild.
+A snapshot is still required; ratings and records do not provide a fallback.
+
+
+CORE/SRS/SP+ metrics now expose `{ rating, rank }` pairs. `ratings.fpi` exposes
+four efficiency pairs (`overall`, `offense`, `defense`, `specialTeams`), not the
+FPI points rating. Elo remains a numeric rating without a rank. Missing systems
+are null; missing individual metrics have both rating and rank null.
+
+Ranks use unrounded values and SQL competition ranking (`1, 2, 2, 4`) within
+the requested season and historical conference division. All metrics rank
+higher values first except CORE defense and SP+ defense, where lower is better. Each metric's
+nulls sort last and receive no rank. Cohorts include rated teams without a
+snapshot; the requested team filter applies only after ranking. Matching
+same-division affiliation rows are collapsed; missing or ambiguous divisions
+retain rating values with null ranks. All live enrichments remain outside
+snapshot JSONB. See [query cost measurements](docs/references/team-season-ranking-cost.md).

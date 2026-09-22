@@ -10,3 +10,8 @@ API_ENDPOINTS.md
 /docs/references/*
 /scripts/*
 !/scripts/check-docs-build.mjs
+
+!/scripts/compare-team-season.ts
+
+!/scripts/evaluate-season-rank-cost.ts
+!/docs/references/team-season-ranking-cost.md
