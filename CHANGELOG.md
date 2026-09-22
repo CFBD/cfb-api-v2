@@ -1,3 +1,10 @@
+# [5.30.0](https://github.com/CFBD/cfb-api-v2/compare/v5.29.0...v5.30.0) (2026-09-22)
+
+
+### Features
+
+* **stats:** team season advanced overview endpoint ([f47e8f6](https://github.com/CFBD/cfb-api-v2/commit/f47e8f68fd42d1c8fcc89973285d8d7bcaebd796))
+
 # [5.29.0](https://github.com/CFBD/cfb-api-v2/compare/v5.28.0...v5.29.0) (2026-09-21)
 
 
