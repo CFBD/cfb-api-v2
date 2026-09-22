@@ -50,24 +50,27 @@ describe('check quotas tests', () => {
     expect(authDb.oneOrNone).not.toHaveBeenCalled();
   });
 
-  test('page service bypasses the monthly quota cutoff', async () => {
-    const req = getMockReq({
-      user: {
-        id: 1,
-        isAdmin: false,
-        remainingCalls: 0,
-        principalClass: 'websitePage',
-      },
-      path: '/teams',
-      route: { path: '/teams' },
-    });
-    const { res, next } = getMockRes();
+  test.each(['/teams', '/wepa/team/season'])(
+    'page service bypasses the monthly quota cutoff for %s',
+    async (path) => {
+      const req = getMockReq({
+        user: {
+          id: 1,
+          isAdmin: false,
+          remainingCalls: 0,
+          principalClass: 'websitePage',
+        },
+        path,
+        route: { path },
+      });
+      const { res, next } = getMockRes();
 
-    await checkCallQuotas(req, res, next);
+      await checkCallQuotas(req, res, next);
 
-    expect(next).toHaveBeenCalled();
-    expect(authDb.oneOrNone).not.toHaveBeenCalled();
-  });
+      expect(next).toHaveBeenCalled();
+      expect(authDb.oneOrNone).not.toHaveBeenCalled();
+    },
+  );
 
   test.each(ignoredPaths)('calls next if path is %s', async (path) => {
     const req = getMockReq({

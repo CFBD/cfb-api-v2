@@ -21,7 +21,7 @@ export class WepaController extends Controller {
    * @isInt year
    */
   @Get('team/season')
-  @Middlewares(middlewares.requirePatreonTier(1))
+  @Middlewares(middlewares.requirePatreonTier(1, { allowWebsitePage: true }))
   public async getAdjustedTeamSeasonStats(
     @Query() year?: number,
     @Query() team?: string,

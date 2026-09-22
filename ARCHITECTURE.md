@@ -84,7 +84,7 @@ authentication. `POST /auth/key` is explicitly anonymous through TSOA's
 `@NoSecurity()` decorator.
 
 Two non-admin website service users are classified by configured numeric user
-ID. The page user can call only the explicit public-page operation set. The
+ID. The page user can call only the explicit website-page operation set. The
 exporter user can call documented GET operations except the reviewed deny set.
 Scope denial happens before successful metrics, quota, controller, or database
 work.
@@ -115,6 +115,11 @@ service is limited to these GET operations:
 - `/player/usage`
 - `/ppa/players/season`
 - `/player/ppa/passing`
+- `/ratings/core`
+- `/ratings/fpi`
+- `/ratings/srs`
+- `/ratings/elo`
+- `/wepa/team/season` (authenticated website Tier 1+ viewing only)
 - `/ratings/sp`
 - `/ratings/sp/conferences`
 - `/metrics/wp`
@@ -131,6 +136,13 @@ The exporter service can call generated, documented GET operations except:
 - `/wepa/players/rushing`
 - `/wepa/players/kicking`
 - `/info`
+
+The team-season WEPA handler alone accepts the authenticated `websitePage`
+principal as an explicit alternative to Patreon membership. The website checks
+its visitor session and Tier 1+ entitlement before using the private page
+credential. The service user remains non-admin and Tier 0; personal API quota
+is not consumed, including for visitors with zero calls remaining. Other WEPA
+handlers and the exporter retain their existing restrictions.
 
 Patreon checks are operation-bound middleware on the seven existing paid
 handlers. This keeps tier enforcement consistent for canonical, mixed-case,
