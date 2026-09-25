@@ -1,3 +1,10 @@
+## [5.30.1](https://github.com/CFBD/cfb-api-v2/compare/v5.30.0...v5.30.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* **coaches:** clarify tenure documentation ([518e620](https://github.com/CFBD/cfb-api-v2/commit/518e620b7758029a647df9bcc6016c23d1e21361))
+
 # [5.30.0](https://github.com/CFBD/cfb-api-v2/compare/v5.29.0...v5.30.0) (2026-09-22)
 
 
