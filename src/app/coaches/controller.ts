@@ -1,5 +1,6 @@
 import {
   Controller,
+  FieldErrors,
   Get,
   Middlewares,
   Query,
@@ -100,6 +101,7 @@ export class CoachesController extends Controller {
 
   /**
    * Returns continuous head-coaching tenures and their attributed records.
+   * Requires coachId or team; year and active only filter the results.
    * @param coachId Coach ID.
    * @param team Team name.
    * @param year Season year contained within the tenure.
@@ -108,7 +110,7 @@ export class CoachesController extends Controller {
    * @isInt year
    */
   @Get('tenures')
-  @Response<{ message: string }>(400, 'Validation error')
+  @Response<{ message: string; details: FieldErrors }>(400, 'Validation error')
   public async getCoachTenures(
     @Query() coachId?: number,
     @Query() team?: string,
