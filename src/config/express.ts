@@ -12,6 +12,7 @@ import { RegisterRoutes } from '../../build/routes';
 import spec from '../../build/swagger.json';
 import { registerDocumentation } from './documentation';
 import errorHandler from './errors';
+import { previewResponseHeaders } from './middleware/previewResponses';
 import { updateQuotas } from './middleware/quotas';
 import { validateServicePrincipalConfiguration } from './servicePrincipals';
 
@@ -29,6 +30,7 @@ export const configureServer = async (
     }),
   );
 
+  app.use(previewResponseHeaders);
   app.use(cookieParser());
   app.use(bodyParser.json());
   app.use(

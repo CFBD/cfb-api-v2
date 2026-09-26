@@ -11,7 +11,9 @@ export const requirePatreonTier = (
       options.allowWebsitePage &&
       user?.principalClass === 'websitePage' &&
       req.method === 'GET' &&
-      req.route?.path === '/wepa/team/season'
+      ['/wepa/team/season', '/games/:gameId/preview/adjusted'].includes(
+        req.route?.path,
+      )
     ) {
       next();
       return;

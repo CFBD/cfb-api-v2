@@ -1,7 +1,13 @@
+import { Request as ExpressRequest } from 'express';
 import {
   Controller,
+  Example,
   Get,
   Middlewares,
+  Path,
+  Request,
+  Res,
+  TsoaResponse,
   Query,
   Response,
   Route,
@@ -32,10 +38,135 @@ import {
 import { DivisionClassification, MediaType, SeasonType } from '../enums';
 import { PlayoffCompetition, PlayoffRound } from '../playoffs/types';
 
+import { getGameSchedule } from './schedule';
+import {
+  emptyScheduleExample,
+  completedPreviewExample,
+} from './fixtures/game-previews/examples';
+import { getGamePreview, getAdjustedGamePreview } from './preview';
+import {
+  GameSchedule,
+  GamePreview,
+  AdjustedGamePreview,
+  GamePreviewError,
+} from './previewTypes';
+import {
+  PreviewNotFound,
+  recognizedSourceError,
+  validatePreviewQuery,
+} from './previewRead';
+
 @Route('games')
 @Middlewares(middlewares.standard)
 @Tags('games')
 export class GamesController extends Controller {
+  /**
+   * Returns the active or next calendar slate, including completed games.
+   * Explicit windows require year, seasonType, and week together.
+   * @param classification Division of either participant. Defaults to fbs.
+   * @param conference Conference abbreviation of either participant.
+   * @isInt year
+   * @isInt week
+   */
+  @Get('schedule')
+  @Example<GameSchedule>(emptyScheduleExample)
+  @Response<GamePreviewError>(400, 'Validation error')
+  @Response<GamePreviewError>(401, 'Unauthorized')
+  public async getGameSchedule(
+    @Request() request: ExpressRequest,
+    @Res() notFound: TsoaResponse<404, GamePreviewError>,
+    @Res() unavailable: TsoaResponse<503, GamePreviewError>,
+    @Query() year?: number,
+    @Query() seasonType?: 'regular' | 'postseason',
+    @Query() week?: number,
+    @Query() classification?: 'fbs' | 'fcs',
+    @Query() conference?: string,
+  ): Promise<GameSchedule> {
+    validatePreviewQuery(request.query, [
+      'year',
+      'seasonType',
+      'week',
+      'classification',
+      'conference',
+    ]);
+    try {
+      return await getGameSchedule(
+        year,
+        seasonType,
+        week,
+        classification,
+        conference,
+      );
+    } catch (error) {
+      if (error instanceof PreviewNotFound)
+        return notFound(404, { message: 'Calendar window not found.' });
+      if (recognizedSourceError(error))
+        return unavailable(503, {
+          message: 'Game schedule is temporarily unavailable.',
+        });
+      throw error;
+    }
+  }
+
+  /**
+   * Returns pregame team comparisons and key players. Started games return metadata only.
+   * Team statistics may use the previous season; players and context stay in the game season.
+   * @isInt gameId
+   */
+  @Get('{gameId}/preview')
+  @Example<GamePreview>(completedPreviewExample)
+  @Response<GamePreviewError>(400, 'Validation error')
+  @Response<GamePreviewError>(401, 'Unauthorized')
+  public async getGamePreview(
+    @Path() gameId: number,
+    @Request() request: ExpressRequest,
+    @Res() notFound: TsoaResponse<404, GamePreviewError>,
+    @Res() unavailable: TsoaResponse<503, GamePreviewError>,
+  ): Promise<GamePreview> {
+    validatePreviewQuery(request.query);
+    try {
+      return await getGamePreview(gameId);
+    } catch (error) {
+      if (error instanceof PreviewNotFound)
+        return notFound(404, { message: 'Game not found.' });
+      if (recognizedSourceError(error))
+        return unavailable(503, {
+          message: 'Game preview is temporarily unavailable.',
+        });
+      throw error;
+    }
+  }
+
+  /**
+   * Returns stored adjusted team and player metrics. Requires Patreon Tier 1.
+   * Team metrics may use the previous season; players remain current-season.
+   * @isInt gameId
+   */
+  @Get('{gameId}/preview/adjusted')
+  @Example<AdjustedGamePreview>(completedPreviewExample)
+  @Middlewares(middlewares.requirePatreonTier(1, { allowWebsitePage: true }))
+  @Response<GamePreviewError>(400, 'Validation error')
+  @Response<GamePreviewError>(401, 'Unauthorized')
+  public async getAdjustedGamePreview(
+    @Path() gameId: number,
+    @Request() request: ExpressRequest,
+    @Res() notFound: TsoaResponse<404, GamePreviewError>,
+    @Res() unavailable: TsoaResponse<503, GamePreviewError>,
+  ): Promise<AdjustedGamePreview> {
+    validatePreviewQuery(request.query);
+    try {
+      return await getAdjustedGamePreview(gameId);
+    } catch (error) {
+      if (error instanceof PreviewNotFound)
+        return notFound(404, { message: 'Game not found.' });
+      if (recognizedSourceError(error))
+        return unavailable(503, {
+          message: 'Game preview is temporarily unavailable.',
+        });
+      throw error;
+    }
+  }
+
   /**
    * Returns historical game data.
    * @param year Season year. Required unless `id` is specified.

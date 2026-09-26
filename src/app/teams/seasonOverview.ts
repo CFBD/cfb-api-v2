@@ -156,6 +156,78 @@ const rankedRating = (value: string | number | null, rank: string | null) => ({
   rank: value == null || rank == null ? null : Number(rank),
 });
 
+type RatingRow = Awaited<
+  ReturnType<ReturnType<typeof seasonOverviewQuery>['execute']>
+>[number];
+export const mapSeasonOverviewRatings = (
+  row: Pick<
+    RatingRow,
+    | 'fpiTeamId'
+    | 'coreTeamId'
+    | 'spTeamId'
+    | 'eloRating'
+    | 'fpiOverall'
+    | 'fpiOffense'
+    | 'fpiDefense'
+    | 'fpiSpecialTeams'
+    | 'coreOverall'
+    | 'coreOffense'
+    | 'coreDefense'
+    | 'srsRating'
+    | 'spOverall'
+    | 'spOffense'
+    | 'spDefense'
+    | 'spSpecialTeams'
+    | 'fpiOverallRank'
+    | 'fpiOffenseRank'
+    | 'fpiDefenseRank'
+    | 'fpiSpecialTeamsRank'
+    | 'coreOverallRank'
+    | 'coreOffenseRank'
+    | 'coreDefenseRank'
+    | 'srsRank'
+    | 'spOverallRank'
+    | 'spOffenseRank'
+    | 'spDefenseRank'
+    | 'spSpecialTeamsRank'
+  >,
+): TeamSeasonOverview['ratings'] => ({
+  fpi:
+    row.fpiTeamId == null
+      ? null
+      : {
+          overall: rankedRating(row.fpiOverall, row.fpiOverallRank),
+          offense: rankedRating(row.fpiOffense, row.fpiOffenseRank),
+          defense: rankedRating(row.fpiDefense, row.fpiDefenseRank),
+          specialTeams: rankedRating(
+            row.fpiSpecialTeams,
+            row.fpiSpecialTeamsRank,
+          ),
+        },
+  core:
+    row.coreTeamId == null
+      ? null
+      : {
+          overall: rankedRating(row.coreOverall, row.coreOverallRank),
+          offense: rankedRating(row.coreOffense, row.coreOffenseRank),
+          defense: rankedRating(row.coreDefense, row.coreDefenseRank),
+        },
+  elo: row.eloRating ?? null,
+  srs: row.srsRating == null ? null : rankedRating(row.srsRating, row.srsRank),
+  sp:
+    row.spTeamId == null
+      ? null
+      : {
+          overall: rankedRating(row.spOverall, row.spOverallRank),
+          offense: rankedRating(row.spOffense, row.spOffenseRank),
+          defense: rankedRating(row.spDefense, row.spDefenseRank),
+          specialTeams: rankedRating(
+            row.spSpecialTeams,
+            row.spSpecialTeamsRank,
+          ),
+        },
+});
+
 export const getTeamSeasonOverview = async (
   year: number,
   team: string,
@@ -225,45 +297,7 @@ export const getTeamSeasonOverview = async (
         losses: Number(row.losses ?? 0),
         ties: Number(row.ties ?? 0),
       },
-      ratings: {
-        fpi:
-          row.fpiTeamId == null
-            ? null
-            : {
-                overall: rankedRating(row.fpiOverall, row.fpiOverallRank),
-                offense: rankedRating(row.fpiOffense, row.fpiOffenseRank),
-                defense: rankedRating(row.fpiDefense, row.fpiDefenseRank),
-                specialTeams: rankedRating(
-                  row.fpiSpecialTeams,
-                  row.fpiSpecialTeamsRank,
-                ),
-              },
-        core:
-          row.coreTeamId == null
-            ? null
-            : {
-                overall: rankedRating(row.coreOverall, row.coreOverallRank),
-                offense: rankedRating(row.coreOffense, row.coreOffenseRank),
-                defense: rankedRating(row.coreDefense, row.coreDefenseRank),
-              },
-        elo: row.eloRating ?? null,
-        srs:
-          row.srsRating == null
-            ? null
-            : rankedRating(row.srsRating, row.srsRank),
-        sp:
-          row.spTeamId == null
-            ? null
-            : {
-                overall: rankedRating(row.spOverall, row.spOverallRank),
-                offense: rankedRating(row.spOffense, row.spOffenseRank),
-                defense: rankedRating(row.spDefense, row.spDefenseRank),
-                specialTeams: rankedRating(
-                  row.spSpecialTeams,
-                  row.spSpecialTeamsRank,
-                ),
-              },
-      },
+      ratings: mapSeasonOverviewRatings(row),
       advanced: formatSeasonAdvancedStats(row.payload.advanced),
       players: row.payload.players,
       passing: row.payload.passing,

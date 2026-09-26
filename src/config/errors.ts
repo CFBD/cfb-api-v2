@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { AuthorizationError, UserMessageError } from '../globals';
 import { ValidateError } from 'tsoa';
+import { isPreviewPath } from './middleware/previewResponses';
 
 export default function errorHandler(
   err: unknown,
@@ -11,7 +12,7 @@ export default function errorHandler(
   if (err instanceof ValidateError) {
     console.warn(`Caught Validation Error for %s:`, req.path, {
       fields: err?.fields,
-      user: req.user,
+      ...(isPreviewPath(req.path) ? {} : { user: req.user }),
     });
     return res.status(400).json({
       message: 'Validation Failed',
@@ -38,7 +39,7 @@ export default function errorHandler(
 
     return res.status(500).json({
       message:
-        process.env.NODE_ENV === 'production'
+        process.env.NODE_ENV === 'production' || isPreviewPath(req.path)
           ? 'Internal Server Error'
           : `${err.message}\n${err.stack}`,
     });

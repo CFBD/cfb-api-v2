@@ -1,6 +1,6 @@
 # CFB API v2 Architecture
 
-Last reviewed: 2026-09-12
+Last reviewed: 2026-09-25
 
 ## System Purpose
 
@@ -106,6 +106,9 @@ service is limited to these GET operations:
 - `/teams/season/overview`
 - `/conferences`
 - `/games`
+- `/games/schedule`
+- `/games/{gameId}/preview`
+- `/games/{gameId}/preview/adjusted`
 - `/player/search`
 - `/plays/types`
 - `/plays/stats/types`
@@ -128,6 +131,7 @@ service is limited to these GET operations:
 The exporter service can call generated, documented GET operations except:
 
 - `/games/weather`
+- `/games/{gameId}/preview/adjusted`
 - `/scoreboard`
 - `/live/plays`
 - `/game/box/advanced`
@@ -137,15 +141,14 @@ The exporter service can call generated, documented GET operations except:
 - `/wepa/players/kicking`
 - `/info`
 
-The team-season WEPA handler alone accepts the authenticated `websitePage`
+The team-season WEPA and adjusted-preview handlers accept the authenticated `websitePage`
 principal as an explicit alternative to Patreon membership. The website checks
 its visitor session and Tier 1+ entitlement before using the private page
 credential. The service user remains non-admin and Tier 0; personal API quota
 is not consumed, including for visitors with zero calls remaining. Other WEPA
 handlers and the exporter retain their existing restrictions.
 
-Patreon checks are operation-bound middleware on the seven existing paid
-handlers. This keeps tier enforcement consistent for canonical, mixed-case,
+Patreon checks are operation-bound middleware on paid handlers. This keeps tier enforcement consistent for canonical, mixed-case,
 and trailing-slash requests without changing the existing tiers.
 
 Quota behavior lives in `src/config/middleware/quotas.ts`:
@@ -396,3 +399,51 @@ snapshot; the requested team filter applies only after ranking. Matching
 same-division affiliation rows are collapsed; missing or ambiguous divisions
 retain rating values with null ranks. All live enrichments remain outside
 snapshot JSONB. See [query cost measurements](docs/references/team-season-ranking-cost.md).
+
+## Game schedule and previews
+
+`GET /games/schedule` selects the active regular/postseason calendar window,
+then the next known window. Explicit selection requires `year`, `seasonType`,
+and `week` together. Stored UTC inclusive-minute ends become exclusive ends
+by adding one minute; ambiguous default overlaps return 503. Games follow
+kickoff bounds, not their stored week. Either participant may satisfy FBS/FCS
+and conference filters. Broadcasts and DraftKings/Bovada odds are batched.
+
+`GET /games/{gameId}/preview` combines validated season snapshots with
+independent records, full-cohort ratings, recent results, and series history.
+`GET /games/{gameId}/preview/adjusted` reads stored team/player WEPA and kicker
+PAAR with Tier 1 gating. Both return metadata only after a known start or
+confirmed kickoff. TBD placeholders do not establish kickoff; status caching
+adds at most ten seconds to upstream status lag.
+
+Only successful current-team source absence permits previous-season team
+fallback. Players, records, ratings, and recent results remain in the game's
+season. Optional families distinguish absence from source/validation failures.
+Snapshot timestamps are publication times, not games-through cutoffs.
+Receiving lists use position-filtered pass involvement, not target share;
+adjusted transfers retain the source's season-membership attribution.
+
+Both preview templates have exact Express-to-policy mappings. The page
+service has access to all three operations and the adjusted handler's narrow
+paid exception; the exporter cannot access adjusted previews. Normal individual
+quotas apply once per successful request. All responses are private/no-store,
+and unexpected errors are sanitized in every environment.
+
+Feature-local Redis entries retain section timestamps and validate identity
+before reuse. Independent base-preview components start their cache reads
+together. Adjusted passing, rushing, and kicking share one source query, with
+separate ranking and limits per team/category; team fallback runs alongside it.
+Each refresh uses at most two source connections. Refreshes use token-owned
+locks, two active jobs and sixteen
+queued keys per worker, an eight-second assembly deadline, and transaction-local
+three-second statement limits. Optional failures shorten cache reuse. Lifecycle
+and calendar selection are checked again after waits. No source generation,
+production writes, new infrastructure, or migration is required.
+
+See [preview verification](src/app/games/fixtures/game-previews/README.md) for
+source evidence, local measurements, and remaining production capacity limits.
+
+The website page service also permits exact `GET /calendar` for the schedule
+season/week picker. Calendar metadata does not change schedule selection or
+grant access to other operations. Deploy this policy before website schedule
+routes that depend on it.

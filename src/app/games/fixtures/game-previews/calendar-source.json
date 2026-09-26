@@ -1,0 +1,132 @@
+[
+  {
+    "source": "https://www.espn.com/college-football/scoreboard?year=2002&week=2&_xhr=api&groups=80",
+    "retrievedOn": "2026-09-25",
+    "weeks": [
+      {
+        "year": 2002,
+        "seasonType": 2,
+        "weekNumber": 1,
+        "startDate": "2002-08-20T07:00Z",
+        "endDate": "2002-08-27T06:59Z",
+        "dateRange": "Aug 20 - 26"
+      },
+      {
+        "year": 2002,
+        "seasonType": 2,
+        "weekNumber": 2,
+        "startDate": "2002-08-27T07:00Z",
+        "endDate": "2002-09-03T06:59Z",
+        "dateRange": "Aug 27 - Sep 2"
+      },
+      {
+        "year": 2002,
+        "seasonType": 3,
+        "weekNumber": 1,
+        "startDate": "2002-12-10T08:00Z",
+        "endDate": "2003-01-04T07:59Z",
+        "dateRange": "Dec 10 - Jan 3"
+      }
+    ]
+  },
+  {
+    "source": "https://www.espn.com/college-football/scoreboard?year=2024&week=2&_xhr=api&groups=80",
+    "retrievedOn": "2026-09-25",
+    "weeks": [
+      {
+        "year": 2024,
+        "seasonType": 2,
+        "weekNumber": 1,
+        "startDate": "2024-08-24T07:00Z",
+        "endDate": "2024-09-03T06:59Z",
+        "dateRange": "Aug 24 - Sep 2"
+      },
+      {
+        "year": 2024,
+        "seasonType": 2,
+        "weekNumber": 10,
+        "startDate": "2024-10-28T07:00Z",
+        "endDate": "2024-11-04T07:59Z",
+        "dateRange": "Oct 28 - Nov 3"
+      },
+      {
+        "year": 2024,
+        "seasonType": 2,
+        "weekNumber": 11,
+        "startDate": "2024-11-04T08:00Z",
+        "endDate": "2024-11-11T07:59Z",
+        "dateRange": "Nov 4 - 10"
+      },
+      {
+        "year": 2024,
+        "seasonType": 2,
+        "weekNumber": 16,
+        "startDate": "2024-12-09T08:00Z",
+        "endDate": "2024-12-14T07:59Z",
+        "dateRange": "Dec 9 - 13"
+      },
+      {
+        "year": 2024,
+        "seasonType": 3,
+        "weekNumber": 1,
+        "startDate": "2024-12-14T08:00Z",
+        "endDate": "2025-01-22T07:59Z",
+        "dateRange": "Dec 14 - Jan 21"
+      }
+    ]
+  },
+  {
+    "source": "https://www.espn.com/college-football/scoreboard?year=2026&week=2&_xhr=api&groups=80",
+    "retrievedOn": "2026-09-25",
+    "weeks": [
+      {
+        "year": 2026,
+        "seasonType": 2,
+        "weekNumber": 1,
+        "startDate": "2026-08-22T07:00Z",
+        "endDate": "2026-09-08T06:59Z",
+        "dateRange": "Aug 22 - Sep 7"
+      },
+      {
+        "year": 2026,
+        "seasonType": 2,
+        "weekNumber": 4,
+        "startDate": "2026-09-21T07:00Z",
+        "endDate": "2026-09-28T06:59Z",
+        "dateRange": "Sep 21 - 27"
+      },
+      {
+        "year": 2026,
+        "seasonType": 2,
+        "weekNumber": 5,
+        "startDate": "2026-09-28T07:00Z",
+        "endDate": "2026-10-05T06:59Z",
+        "dateRange": "Sep 28 - Oct 4"
+      },
+      {
+        "year": 2026,
+        "seasonType": 2,
+        "weekNumber": 9,
+        "startDate": "2026-10-26T07:00Z",
+        "endDate": "2026-11-02T07:59Z",
+        "dateRange": "Oct 26 - Nov 1"
+      },
+      {
+        "year": 2026,
+        "seasonType": 2,
+        "weekNumber": 10,
+        "startDate": "2026-11-02T08:00Z",
+        "endDate": "2026-11-09T07:59Z",
+        "dateRange": "Nov 2 - 8"
+      },
+      {
+        "year": 2026,
+        "seasonType": 3,
+        "weekNumber": 1,
+        "startDate": "2026-12-13T08:00Z",
+        "endDate": "2027-01-28T07:59Z",
+        "dateRange": "Dec 13 - Jan 27"
+      }
+    ]
+  }
+]

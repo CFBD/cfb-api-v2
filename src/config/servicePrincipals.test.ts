@@ -45,6 +45,10 @@ describe('service principal operation policy', () => {
         'GET /teams/season/overview',
         'GET /conferences',
         'GET /games',
+        'GET /games/schedule',
+        'GET /calendar',
+        'GET /games/{gameId}/preview',
+        'GET /games/{gameId}/preview/adjusted',
         'GET /player/search',
         'GET /plays/types',
         'GET /plays/stats/types',
@@ -134,7 +138,7 @@ describe('service principal operation policy', () => {
       );
     }
 
-    expect(generated).toHaveLength(85);
+    expect(generated).toHaveLength(88);
   });
 
   test('fails closed for malformed or duplicate OpenAPI operation metadata', () => {

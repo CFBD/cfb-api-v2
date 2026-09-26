@@ -35,6 +35,7 @@ type OpenApiDocument = {
 };
 
 type SnippetArgument = {
+  location: 'query' | 'path';
   name: string;
   pythonName: string;
   replace: boolean;
@@ -250,7 +251,7 @@ const getArgument = (
     );
   }
 
-  if (parameter.in !== 'query') {
+  if (parameter.in !== 'query' && parameter.in !== 'path') {
     return fail(
       context,
       `parameter ${parameter.name} uses unsupported location ${
@@ -278,6 +279,7 @@ const getArgument = (
   const value = curated ?? standardExample ?? metadataValue;
 
   return {
+    location: parameter.in,
     name: parameter.name,
     pythonName: toSnakeCase(parameter.name),
     replace: value === undefined,
@@ -285,24 +287,24 @@ const getArgument = (
   };
 };
 
-const formatTypescript = (
-  record: SnippetRecord,
-  selectedServer: string,
-): string => {
-  const query = record.arguments.length
-    ? [
-        '  query: {',
-        ...record.arguments.map(
-          (argument) =>
-            `    ${argument.name}: ${formatValue(argument.value)},${
-              argument.replace
-                ? ` // Replace with a valid ${argument.name}`
-                : ''
-            }`,
-        ),
-        '  },',
-      ]
-    : [];
+const formatTypescript = (record: SnippetRecord): string => {
+  const query = ['path', 'query'].flatMap((location) => {
+    const args = record.arguments.filter(
+      (argument) => argument.location === location,
+    );
+    return args.length
+      ? [
+          `  ${location}: {`,
+          ...args.map((argument) => {
+            const comment = argument.replace
+              ? ` // Replace with a valid ${argument.name}`
+              : '';
+            return `    ${argument.name}: ${formatValue(argument.value)},${comment}`;
+          }),
+          '  },',
+        ]
+      : [];
+  });
   const call = query.length
     ? [
         `const response = await ${record.typescriptOperation}({`,
@@ -336,11 +338,7 @@ const formatTypescript = (
   ].join('\n');
 };
 
-const formatPython = (
-  record: SnippetRecord,
-  selectedServer: string,
-): string => {
-  const host = selectedServer.replace(/\/+$/, '');
+const formatPython = (record: SnippetRecord): string => {
   const call = record.arguments.length
     ? [
         `    response = ${record.pythonApiVariable}.${record.pythonMethod}(`,
@@ -467,10 +465,10 @@ const buildSnippetInventory = (): Map<string, SnippetRecord> => {
       record.path,
       record.operationId,
     );
-    if (!formatTypescript(record, selectedServer).trim()) {
+    if (!formatTypescript(record).trim()) {
       fail(context, 'TypeScript formatter returned empty source');
     }
-    if (!formatPython(record, selectedServer).trim()) {
+    if (!formatPython(record).trim()) {
       fail(context, 'Python formatter returned empty source');
     }
   }
@@ -513,11 +511,11 @@ export const generateCodeSnippet = ({
   }
 
   if (selectedLang === 'typescript') {
-    return formatTypescript(record, selectedServer);
+    return formatTypescript(record);
   }
 
   if (selectedLang === 'python') {
-    return formatPython(record, selectedServer);
+    return formatPython(record);
   }
 
   return fail(

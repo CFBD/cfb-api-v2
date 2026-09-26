@@ -16,6 +16,10 @@ const pageOperations = new Set([
   'GET /teams/season/overview',
   'GET /conferences',
   'GET /games',
+  'GET /games/schedule',
+  'GET /calendar',
+  'GET /games/{gameId}/preview',
+  'GET /games/{gameId}/preview/adjusted',
   'GET /player/search',
   'GET /plays/types',
   'GET /plays/stats/types',
@@ -38,6 +42,7 @@ const pageOperations = new Set([
 
 export const exporterDeniedPaths = new Set([
   '/games/weather',
+  '/games/{gameId}/preview/adjusted',
   '/scoreboard',
   '/live/plays',
   '/game/box/advanced',
@@ -169,7 +174,13 @@ export const isServiceOperationAllowed = (
     return true;
   }
 
-  const key = `${operation.method.toUpperCase()} ${operation.path}`;
+  const path =
+    operation.path === '/games/:gameId/preview'
+      ? '/games/{gameId}/preview'
+      : operation.path === '/games/:gameId/preview/adjusted'
+        ? '/games/{gameId}/preview/adjusted'
+        : operation.path;
+  const key = `${operation.method.toUpperCase()} ${path}`;
   return principalClass === 'websitePage'
     ? pageOperations.has(key)
     : exporterOperations.has(key);
