@@ -1,3 +1,10 @@
+## [5.31.1](https://github.com/CFBD/cfb-api-v2/compare/v5.31.0...v5.31.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* **games:** keep previews open until game completion ([58afd55](https://github.com/CFBD/cfb-api-v2/commit/58afd55cb4aeb91dd5c46602a67dfa62f2d91b1d))
+
 # [5.31.0](https://github.com/CFBD/cfb-api-v2/compare/v5.30.1...v5.31.0) (2026-09-26)
 
 
