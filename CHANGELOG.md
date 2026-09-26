@@ -1,3 +1,10 @@
+# [5.31.0](https://github.com/CFBD/cfb-api-v2/compare/v5.30.1...v5.31.0) (2026-09-26)
+
+
+### Features
+
+* **games:** new game preview endpoints ([4e7da81](https://github.com/CFBD/cfb-api-v2/commit/4e7da810f465addd351cfee780f28636e5214e33))
+
 ## [5.30.1](https://github.com/CFBD/cfb-api-v2/compare/v5.30.0...v5.30.1) (2026-09-25)
 
 
