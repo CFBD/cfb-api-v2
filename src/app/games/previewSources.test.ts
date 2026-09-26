@@ -43,23 +43,12 @@ const install = async (respond: Parameters<typeof testDatabase>[0]) => {
   return result;
 };
 afterEach(() => jest.restoreAllMocks());
-it('keeps TBD provisional and applies completed/started/confirmed-time gates', () => {
-  expect(previewReason(game, Date.parse(game.startDate!))).toBe(
-    'kickoff_reached',
-  );
-  expect(
-    previewReason({ ...game, startTimeTBD: true }, Date.parse(game.startDate!)),
-  ).toBeNull();
-  expect(
-    previewReason({ ...game, startTimeTBD: null }, Date.parse(game.startDate!)),
-  ).toBeNull();
-  expect(
-    previewReason({
-      ...game,
-      status: GameStatus.InProgress,
-      startTimeTBD: true,
-    }),
-  ).toBe('game_started');
+it('keeps dated previews available until completion, including TBD and ongoing games', () => {
+  for (const startTimeTBD of [false, true, null]) {
+    for (const status of [GameStatus.Scheduled, GameStatus.InProgress]) {
+      expect(previewReason({ ...game, startTimeTBD, status })).toBeNull();
+    }
+  }
   expect(previewReason({ ...game, status: GameStatus.Completed })).toBe(
     'game_completed',
   );

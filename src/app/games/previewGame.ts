@@ -211,15 +211,9 @@ export const mapPreviewGames = (
         a.game.id - b.game.id,
     );
 };
-export const previewReason = (
-  game: GamePreviewMetadata,
-  now = Date.now(),
-): PreviewReason => {
+export const previewReason = (game: GamePreviewMetadata): PreviewReason => {
   if (game.status === GameStatus.Completed) return 'game_completed';
-  if (game.status === GameStatus.InProgress) return 'game_started';
   if (!game.startDate) return 'kickoff_unknown';
-  if (game.startTimeTBD === false && Date.parse(game.startDate) <= now)
-    return 'kickoff_reached';
   return null;
 };
 export const previewIdentity = (game: GamePreviewMetadata): string =>

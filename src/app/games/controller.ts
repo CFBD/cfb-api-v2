@@ -109,7 +109,7 @@ export class GamesController extends Controller {
   }
 
   /**
-   * Returns pregame team comparisons and key players. Started games return metadata only.
+   * Returns pregame team comparisons and key players. Analysis remains available until the game is completed.
    * Team statistics may use the previous season; players and context stay in the game season.
    * @isInt gameId
    */
@@ -138,7 +138,7 @@ export class GamesController extends Controller {
   }
 
   /**
-   * Returns stored adjusted team and player metrics. Requires Patreon Tier 1.
+   * Returns stored adjusted team and player metrics until game completion. Requires Patreon Tier 1.
    * Team metrics may use the previous season; players remain current-season.
    * @isInt gameId
    */

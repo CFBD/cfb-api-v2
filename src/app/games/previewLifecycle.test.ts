@@ -48,7 +48,7 @@ const install = async (respond: Parameters<typeof testDatabase>[0]) => {
     .mockImplementation((_deadline, read) => read(result.db));
   return result;
 };
-it('returns started metadata from either endpoint with only one shared core query', async () => {
+it('returns completed metadata from either endpoint with only one shared core query', async () => {
   const { queries } = await install(() => [
     { ...gameRow, status: 'completed' },
   ]);
@@ -56,7 +56,7 @@ it('returns started metadata from either endpoint with only one shared core quer
   expect((await getAdjustedGamePreview(123)).analysis).toBeNull();
   expect(queries).toHaveLength(1);
 });
-it('serves warm components without source reads, but gates analysis at kickoff', async () => {
+it('serves warm components without source reads and keeps analysis at kickoff', async () => {
   const { queries } = await install((q) =>
     q.sql.includes('current_home_score')
       ? [{ ...gameRow, startDate: '2025-09-25 12:00:05' }]
@@ -73,11 +73,11 @@ it('serves warm components without source reads, but gates analysis at kickoff',
   );
   jest.setSystemTime(start + 5000);
   const third = await getGamePreview(123);
-  expect(third.reason).toBe('kickoff_reached');
-  expect(third.analysis).toBeNull();
+  expect(third.reason).toBeNull();
+  expect(third.analysis).toEqual(first.analysis);
   expect(queries).toHaveLength(count);
 });
-it('rechecks kickoff after optional sources finish', async () => {
+it('keeps analysis when kickoff passes while optional sources load', async () => {
   await install((q) => {
     if (q.sql.includes('current_home_score'))
       return [{ ...gameRow, startDate: '2025-09-25 12:00:01' }];
@@ -86,9 +86,42 @@ it('rechecks kickoff after optional sources finish', async () => {
     return [];
   });
   const result = await getGamePreview(123);
-  expect(result.reason).toBe('kickoff_reached');
-  expect(result.analysis).toBeNull();
+  expect(result.reason).toBeNull();
+  expect(result.analysis).not.toBeNull();
 });
+it.each(['scheduled', 'in_progress'])(
+  'returns both analyses for a directly opened ongoing game with %s status',
+  async (status) => {
+    await install((q) =>
+      q.sql.includes('current_home_score')
+        ? [{ ...gameRow, status, startDate: '2025-09-25 11:00:00' }]
+        : [],
+    );
+    for (const read of [getGamePreview, getAdjustedGamePreview]) {
+      const result = await read(123);
+      expect(result.availability).toBe('pregame');
+      expect(result.reason).toBeNull();
+      expect(result.analysis).not.toBeNull();
+    }
+  },
+);
+it.each([getGamePreview, getAdjustedGamePreview])(
+  'closes analysis when refreshed game metadata reports completion',
+  async (read) => {
+    let completed = false;
+    await install((q) =>
+      q.sql.includes('current_home_score')
+        ? [{ ...gameRow, status: completed ? 'completed' : 'in_progress' }]
+        : [],
+    );
+    expect((await read(123)).analysis).not.toBeNull();
+    completed = true;
+    jest.setSystemTime(start + 10001);
+    const result = await read(123);
+    expect(result.reason).toBe('game_completed');
+    expect(result.analysis).toBeNull();
+  },
+);
 it('rejects unknown games and validates IDs before sources', async () => {
   const { queries } = await install(() => []);
   await expect(getGamePreview(0)).rejects.toThrow();
