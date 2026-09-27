@@ -447,3 +447,14 @@ The website page service also permits exact `GET /calendar` for the schedule
 season/week picker. Calendar metadata does not change schedule selection or
 grant access to other operations. Deploy this policy before website schedule
 routes that depend on it.
+
+## CBB service containment
+
+The CBB migration adds `CBBD_PUBLIC_PAGE_SERVICE_USER_ID` and
+`CBBD_EXPORTER_SERVICE_USER_ID` to production configuration. All four sports'
+service IDs must be distinct positive safe integers. CBB service credentials
+are rejected before CFB scope classification, successful metrics or quota work;
+ordinary shared consumer keys retain their existing behavior. Deploy this
+containment before activating CBB service accounts. The
+[CBB cutover runbook](../web/docs/runbooks/cbb-api-access-cutover.md) owns the
+coordinated rollout; production verification is pending.

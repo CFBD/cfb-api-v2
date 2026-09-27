@@ -198,3 +198,28 @@ describe('express authentication', () => {
     expect(logged).not.toContain('do-not-log-this');
   });
 });
+
+jest.mock('./cbbServicePrincipals', () => ({
+  isDeniedCbbWebsitePrincipal: (id: number) => [301, 302].includes(id),
+}));
+describe('CBB website identities', () => {
+  test.each([301, 302])(
+    'rejects %s before metrics or scope classification',
+    async (id) => {
+      jest.clearAllMocks();
+      mockOneOrNone.mockResolvedValue({ ...databaseUser, id });
+      await expect(
+        expressAuthentication(
+          getMockReq({
+            headers: { authorization: 'Bearer foreign' },
+            method: 'GET',
+            route: { path: '/teams' },
+          }),
+          'apiKey',
+        ),
+      ).rejects.toBeInstanceOf(AuthorizationError);
+      expect(mockMetricInsert).not.toHaveBeenCalled();
+      expect(mockClassifyPrincipal).not.toHaveBeenCalled();
+    },
+  );
+});

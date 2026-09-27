@@ -12,6 +12,8 @@ import spec from '../../build/swagger.json';
 describe('service principal configuration', () => {
   const configured = {
     NODE_ENV: 'production',
+    CBBD_PUBLIC_PAGE_SERVICE_USER_ID: '303',
+    CBBD_EXPORTER_SERVICE_USER_ID: '404',
     CFBD_PUBLIC_PAGE_SERVICE_USER_ID: '101',
     CFBD_EXPORTER_SERVICE_USER_ID: '202',
   } as NodeJS.ProcessEnv;

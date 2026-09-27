@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import { isDeniedCbbWebsitePrincipal } from './cbbServicePrincipals';
 
 import { authDb } from './database';
 import { AuthorizationError } from '../globals';
@@ -73,6 +74,10 @@ export const expressAuthentication = async (
     );
   }
 
+  if (isDeniedCbbWebsitePrincipal(user.id)) {
+    logAuthOutcome(request, 'out_of_scope', 'unknown');
+    throw new AuthorizationError('Unauthorized');
+  }
   const principalClass = classifyPrincipal(user.id);
   const matchedPath =
     typeof request.route?.path === 'string' ? request.route.path : undefined;

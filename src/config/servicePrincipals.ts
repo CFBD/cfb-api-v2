@@ -1,4 +1,5 @@
 import spec from '../../build/swagger.json';
+import { parseDeniedCbbServiceIds } from './cbbServicePrincipals';
 import { ApiPrincipalClass } from '../globals';
 
 export interface ServicePrincipalIds {
@@ -62,7 +63,7 @@ const parseId = (
   }
 
   const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
     throw new Error(`${name} must be a positive integer.`);
   }
 
@@ -96,6 +97,15 @@ export const parseServicePrincipalIds = (
     );
   }
 
+  const foreign = parseDeniedCbbServiceIds(env);
+  const ids = [
+    websitePage,
+    websiteExporter,
+    foreign.websitePage,
+    foreign.websiteExporter,
+  ].filter((id) => id !== undefined);
+  if (new Set(ids).size !== ids.length)
+    throw new Error('Website service user IDs must be disjoint across sports.');
   return { websitePage, websiteExporter };
 };
 
