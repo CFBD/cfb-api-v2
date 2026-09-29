@@ -1,3 +1,4 @@
+import { TeamSeasonStatRankings } from './seasonStatRankingTypes';
 import { TeamPassingSeason } from '../passing/types';
 import { TeamRushingSeason } from '../rushing/types';
 
@@ -21,6 +22,7 @@ export interface TeamSeasonAdvancedStats {
     totalPPA: number;
     successRate: number;
     explosiveness: number | null;
+    powerRushAttempts?: number;
     powerSuccess: number | null;
     stuffRate: number;
     lineYards: number;
@@ -92,6 +94,7 @@ export interface TeamSeasonAdvancedStats {
     totalPPA: number;
     successRate: number;
     explosiveness: number | null;
+    powerRushAttempts?: number;
     powerSuccess: number | null;
     stuffRate: number;
     lineYards: number;
@@ -203,6 +206,7 @@ export interface TeamSeasonRankedRating {
   rank: number | null;
 }
 export interface TeamSeasonOverview extends TeamSeasonSnapshotPayload {
+  statRankings?: TeamSeasonStatRankings | null;
   /** Completed games for the requested season, including postseason. */
   record: {
     /** @isInt */

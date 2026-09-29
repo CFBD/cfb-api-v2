@@ -1,3 +1,4 @@
+import { TeamSeasonStatRankings } from '../teams/seasonStatRankingTypes';
 import {
   DivisionClassification,
   GameStatus,
@@ -103,6 +104,7 @@ export interface GameSchedule {
   games: ScheduleGame[];
 }
 export interface PreviewTeamStatistics {
+  statRankings?: TeamSeasonStatRankings | null;
   /** @isInt */
   season: number;
   isPreviousSeason: boolean;

@@ -1,3 +1,5 @@
+import { getSeasonStatCohort } from '../teams/seasonStatRankingCache';
+import { matchingStatRankings } from '../teams/seasonStatRankings';
 import {
   AdjustedGamePreview,
   GamePreview,
@@ -217,6 +219,22 @@ export const getGamePreview = async (gameId: number): Promise<GamePreview> => {
     contextPromise,
     seriesPromise,
   ]);
+  const rankingDeadline = Math.min(deadline, Date.now() + 3000);
+  const seasons = [
+    ...new Set(
+      snapshots.flatMap((s) =>
+        s.statistics.data ? [s.statistics.data.season] : [],
+      ),
+    ),
+  ];
+  const cohorts = new Map(
+    await Promise.all(
+      seasons.map(
+        async (season) =>
+          [season, await getSeasonStatCohort(season, rankingDeadline)] as const,
+      ),
+    ),
+  );
   const current = await finalGame(game, deadline, observe),
     reason = previewReason(current);
   if (!reason && previewIdentity(current) !== identity)
@@ -225,7 +243,25 @@ export const getGamePreview = async (gameId: number): Promise<GamePreview> => {
     const snapshot = snapshots.find((t) => t.teamId === id),
       ctx = context.find((t) => t.teamId === id);
     if (!snapshot || !ctx) throw new PreviewDataError();
-    return { ...snapshot, ...ctx };
+    const data = snapshot.statistics.data;
+    return {
+      ...snapshot,
+      ...ctx,
+      statistics: {
+        ...snapshot.statistics,
+        data: data
+          ? {
+              ...data,
+              statRankings: matchingStatRankings(
+                cohorts.get(data.season) ?? null,
+                id,
+                data.season,
+                snapshot.statistics.sourceUpdatedAt,
+              ),
+            }
+          : null,
+      },
+    };
   };
 
   return finish({

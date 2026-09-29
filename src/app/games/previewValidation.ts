@@ -259,6 +259,7 @@ const player = Joi.object({
   totalPPA: nullable,
 });
 const statistics = Joi.object({
+  statRankings: Joi.any().optional(),
   season: id,
   isPreviousSeason: Joi.boolean(),
   advanced: Joi.object().unknown(true),

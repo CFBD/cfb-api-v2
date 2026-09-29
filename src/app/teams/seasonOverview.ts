@@ -1,3 +1,5 @@
+import { getSeasonStatCohort } from './seasonStatRankingCache';
+import { matchingStatRankings } from './seasonStatRankings';
 import { CamelCasePlugin, Kysely } from 'kysely';
 import { ValidateError } from 'tsoa';
 import { kdb } from '../../config/database';
@@ -103,6 +105,7 @@ export const seasonOverviewQuery = (
       'snapshot.season',
       'snapshot.formatVersion',
       'snapshot.payload',
+      'snapshot.generatedAt',
       'record.games',
       'record.wins',
       'record.losses',
@@ -284,10 +287,20 @@ export const getTeamSeasonOverview = async (
     log('invalid-payload', teamId);
     return { status: 'unavailable' };
   }
+  const statRankings =
+    row.generatedAt == null
+      ? null
+      : matchingStatRankings(
+          await getSeasonStatCohort(year),
+          row.teamId,
+          year,
+          row.generatedAt,
+        );
   log('hit', teamId);
   return {
     status: 'found',
     overview: {
+      statRankings,
       teamId: row.teamId,
       team: row.team,
       season: year,

@@ -63,6 +63,7 @@ export interface PreviewRedis {
 }
 export const createPreviewCache = (
   redis: () => Promise<PreviewRedis | null> = getRedisClient,
+  namespace = prefix,
 ) => {
   const pending = new Map<string, Promise<unknown>>();
   let active = 0;
@@ -106,7 +107,7 @@ export const createPreviewCache = (
     deadline: number,
     observe: (outcome: string) => void = () => undefined,
   ): Promise<T> => {
-    const key = prefix + identity;
+    const key = namespace + identity;
     const parse = (raw: string | null): T | undefined => {
       if (!raw) return undefined;
       try {

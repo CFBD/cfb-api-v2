@@ -55,6 +55,7 @@ it('reads once, preserves nested keys, and ignores age and unrecognized root ide
     status: 'found',
     overview: {
       ...fixture,
+      statRankings: null,
       teamId: 130,
       team: 'Michigan',
       season: 2025,
@@ -64,9 +65,7 @@ it('reads once, preserves nested keys, and ignores age and unrecognized root ide
   });
   expect(queries).toHaveLength(1);
   expect(queries[0].sql).toContain('left join "team_season_snapshot"');
-  expect(queries[0].sql).not.toMatch(
-    /insert|update|delete|generated_at|player_usage|drive/,
-  );
+  expect(queries[0].sql).not.toMatch(/insert|update|delete|player_usage|drive/);
   expect(queries[0].parameters).toEqual(
     expect.arrayContaining([2025, 'michigan', 2]),
   );

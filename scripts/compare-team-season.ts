@@ -96,7 +96,26 @@ async function main() {
       if (differences.length) process.exitCode = 1;
     };
     const { season, team, payload } = input;
-    await check('advanced', payload.advanced, async () =>
+    // The legacy endpoint has no sample metadata and maps observed defensive
+    // zero power success to null. Compare only its representable contract,
+    // while the synthetic source tests verify these intentional differences.
+    const legacyAdvanced = structuredClone(payload.advanced);
+    delete legacyAdvanced.offense.powerRushAttempts;
+    delete legacyAdvanced.defense.powerRushAttempts;
+    const attempts = payload.advanced.defense.powerRushAttempts;
+    if (
+      attempts !== undefined &&
+      Number.isSafeInteger(attempts) &&
+      attempts > 0 &&
+      attempts <= payload.advanced.defense.plays &&
+      legacyAdvanced.defense.powerSuccess === 0
+    ) {
+      legacyAdvanced.defense.powerSuccess = null;
+    }
+    console.log(
+      'Advanced comparison excludes additive powerRushAttempts and the verified defensive zero/null correction',
+    );
+    await check('advanced', legacyAdvanced, async () =>
       single(
         await getAdvancedStats(
           season,

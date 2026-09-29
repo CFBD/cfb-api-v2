@@ -350,8 +350,8 @@ The primary Kysely connection executes one bounded team/snapshot LEFT JOIN,
 then validates format 1 and all nested payload identities. Missing team/snapshot
 returns 404; invalid/unsupported or recognized unavailable snapshot storage
 returns 503. Controlled errors use no-store and normal quota refunds. Other
-query failures follow normal server-error handling. No play-stat calculation,
-generation, cache, expiry, or writes occur during requests. Coverage depends on
+query failures follow normal server-error handling. No play-stat calculation, snapshot generation, or writes occur during requests.
+Optional stat-ranking context uses the bounded cohort cache described below. Coverage depends on
 services publication/backfill; canonical school renames require rebuilding
 stored labels. Services disposable PostgreSQL checks pass; historical source parity and
 performance checks remain pending before activation.
@@ -458,3 +458,22 @@ ordinary shared consumer keys retain their existing behavior. Deploy this
 containment before activating CBB service accounts. The
 [CBB cutover runbook](../web/docs/runbooks/cbb-api-access-cutover.md) owns the
 coordinated rollout; production verification is pending.
+
+## Team efficiency stat rankings
+
+Overview and free game-preview responses include optional `statRankings` for
+20 existing advanced rate/average metrics per unit. The fixed catalog in
+`seasonStatRankings.ts` ranks stored precision by source season and season-valid
+division, with metric-specific sample eligibility, competition ranks, and
+average-position tie percentiles. Missing power-rush counts suppress only power
+context. Snapshot format 1 and existing endpoint/access contracts are retained.
+
+`seasonStatRankingCache.ts` shares one ten-minute cohort per season across both
+pages using the existing preview cache factory under a separate namespace.
+The bounded read projects advanced JSON only; it never aggregates plays.
+Preview enrichment runs after component cache reads, with one shared maximum
+three-second deadline, before the final game-status check. Overview and preview
+attach context only when team, source season and snapshot publication time
+match; absolute expiry is preserved. Failure returns null context without
+changing base-stat availability. Deployment and production regeneration remain
+separate operations; see the canonical web team-stat-rankings specs.

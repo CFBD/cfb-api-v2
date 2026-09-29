@@ -1,4 +1,7 @@
-import { TeamSeasonSnapshotPayload } from './seasonOverviewTypes';
+import {
+  TeamSeasonAdvancedStats,
+  TeamSeasonSnapshotPayload,
+} from './seasonOverviewTypes';
 import {
   isPassingProduction,
   isTeamRushingProduction,
@@ -94,12 +97,7 @@ export const isTeamSeasonSnapshotPayload = (
   team: string,
 ): value is TeamSeasonSnapshotPayload =>
   object(value) &&
-  identity(value.advanced, season, team) &&
-  string(value.advanced.conference) &&
-  unit(value.advanced.offense) &&
-  unit(value.advanced.defense) &&
-  object(value.advanced.defense) &&
-  numbers(value.advanced.defense.passingDowns, ['totalPPA']) &&
+  isSeasonAdvanced(value.advanced, season, team) &&
   object(value.players) &&
   Array.isArray(value.players.ppa) &&
   value.players.ppa.every(
@@ -116,3 +114,16 @@ export const isTeamSeasonSnapshotPayload = (
   ) &&
   enriched(value.passing, season, team, isPassingProduction) &&
   enriched(value.rushing, season, team, isTeamRushingProduction);
+
+// Shared snapshot projection predicate. Optional ranking metadata never affects availability.
+export const isSeasonAdvanced = (
+  value: unknown,
+  season: number,
+  team: string,
+): value is TeamSeasonAdvancedStats =>
+  identity(value, season, team) &&
+  string(value.conference) &&
+  unit(value.offense) &&
+  unit(value.defense) &&
+  object(value.defense) &&
+  numbers(value.defense.passingDowns, ['totalPPA']);
