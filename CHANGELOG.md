@@ -1,3 +1,10 @@
+## [5.31.2](https://github.com/CFBD/cfb-api-v2/compare/v5.31.1...v5.31.2) (2026-09-29)
+
+
+### Bug Fixes
+
+* **stats:** team snapshots ranks and percentiles ([0aa4a17](https://github.com/CFBD/cfb-api-v2/commit/0aa4a17af7ff20e795af8d0e40ba7291a81fce4f))
+
 ## [5.31.1](https://github.com/CFBD/cfb-api-v2/compare/v5.31.0...v5.31.1) (2026-09-26)
 
 
