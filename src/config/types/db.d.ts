@@ -476,6 +476,24 @@ export interface GameTeamStat {
   typeId: number;
 }
 
+export interface GameWatchability {
+  awayTeamId: number;
+  calibrationSha256: string;
+  competitiveness: number;
+  gameId: number;
+  generatedAt: Timestamp;
+  homeTeamId: number;
+  methodVersion: string;
+  neutralSite: boolean;
+  quality: number;
+  score: number;
+  season: number;
+  sourceModelVersion: string;
+  sourceThroughWeek: number;
+  sourceUpdatedAt: Timestamp;
+  week: number;
+}
+
 export interface GameWeather {
   dewpoint: Numeric | null;
   gameId: number;
@@ -1150,6 +1168,7 @@ export interface DB {
   gamePlayerStat: GamePlayerStat;
   gameTeam: GameTeam;
   gameTeamStat: GameTeamStat;
+  gameWatchability: GameWatchability;
   gameWeather: GameWeather;
   havoc: Havoc;
   hometown: Hometown;

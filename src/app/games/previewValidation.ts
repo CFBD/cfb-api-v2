@@ -154,6 +154,21 @@ export const validSlate = (value: unknown): value is PreviewSlate =>
     }),
     value,
   );
+// Each cached schedule game also carries its stored watchability score.
+export interface ScheduleSlate extends Omit<PreviewSlate, 'core'> {
+  core: Array<PreviewCore & { watchabilityScore: number | null }>;
+}
+export const validScheduleSlate = (value: unknown): value is ScheduleSlate =>
+  check(
+    Joi.object({
+      assembledAt: date,
+      core: Joi.array().items(
+        core.keys({ watchabilityScore: number.min(0).max(100).allow(null) }),
+      ),
+      enrichment: Joi.array().items(enrichment),
+    }),
+    value,
+  );
 export const validEnrichment = (
   value: unknown,
 ): value is Awaited<ReturnType<typeof readPreviewEnrichment>> =>

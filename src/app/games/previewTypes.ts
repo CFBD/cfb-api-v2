@@ -93,6 +93,11 @@ export interface SelectedOdds {
 export interface ScheduleGame extends GamePreviewMetadata {
   broadcasts: PreviewSection<PreviewBroadcast[]>;
   odds: PreviewSection<SelectedOdds>;
+  /**
+   * @minimum 0
+   * @maximum 100
+   */
+  watchabilityScore: number | null;
 }
 export interface GameSchedule {
   /** @format date-time */

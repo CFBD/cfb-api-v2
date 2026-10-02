@@ -257,6 +257,20 @@ it('checks entitlement again after a successful adjusted request', async () => {
     expect(getAdjustedGamePreview).toHaveBeenCalledTimes(1);
   });
 });
+it('documents the watchability score as the only added Schedule field', () => {
+  const schedule = spec.components.schemas.ScheduleGame;
+  expect(schedule.properties.watchabilityScore).toMatchObject({
+    type: 'number',
+    nullable: true,
+    minimum: 0,
+    maximum: 100,
+  });
+  expect(schedule.required).toContain('watchabilityScore');
+  expect(spec.components.schemas).not.toHaveProperty('ScheduleWatchability');
+  expect(
+    spec.paths['/games/schedule'].get.parameters.map((p) => p.name).sort(),
+  ).toEqual(['classification', 'conference', 'seasonType', 'week', 'year']);
+});
 it('documents nullable contracts and excludes only adjusted previews from export', () => {
   expect(spec.paths['/games/schedule'].get.security).toEqual([{ apiKey: [] }]);
   expect(spec.paths['/games/{gameId}/preview'].get.responses).toHaveProperty(

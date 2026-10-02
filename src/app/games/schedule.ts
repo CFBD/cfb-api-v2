@@ -9,10 +9,15 @@ import {
   invalidParameter,
   logPreviewResponse,
 } from './previewRead';
-import { mapPreviewGames, previewGameQuery } from './previewGame';
+import { mapPreviewGames } from './previewGame';
 import { readPreviewEnrichment } from './previewEnrichment';
 import { previewCache } from './previewCache';
-import { validCalendar, validSlate } from './previewValidation';
+import { validCalendar, validScheduleSlate } from './previewValidation';
+import {
+  currentWatchabilityScore,
+  scheduleGameQuery,
+  storedScore,
+} from './scheduleWatchability';
 
 export interface ScheduleSelector {
   year: number;
@@ -215,10 +220,10 @@ export const getGameSchedule = async (
     const w = selected.window;
     const identity = `${w.year}:${w.seasonType}:${w.week}:${w.startDate}:${w.endDate}`;
     const slate = await previewCache(
-      `schedule:${identity}:odds1`,
+      `schedule:${identity}:odds1:watchability1`,
       60000,
-      (value): value is import('./previewValidation').PreviewSlate =>
-        validSlate(value) &&
+      (value): value is import('./previewValidation').ScheduleSlate =>
+        validScheduleSlate(value) &&
         new Set(value.core.map((c) => c.game.id)).size === value.core.length &&
         value.enrichment.length === value.core.length &&
         value.core.every(
@@ -231,35 +236,46 @@ export const getGameSchedule = async (
             value.enrichment.filter((e) => e.id === c.game.id).length === 1,
         ),
       async () => {
-        const core = await previewRead(deadline, async (db) =>
-          mapPreviewGames(
-            await previewGameQuery(db)
-              .where('g.season', '=', w.year)
-              .where('g.seasonType', '=', w.seasonType)
-              .where((eb) =>
-                eb(
-                  'g.startDate',
-                  '>=',
-                  eb.cast<Date>(eb.val(utcBinding(w.startDate)), 'timestamp'),
-                ),
-              )
-              .where((eb) =>
-                eb(
-                  'g.startDate',
-                  '<',
-                  eb.cast<Date>(eb.val(utcBinding(w.endDate)), 'timestamp'),
-                ),
-              )
-              .execute(),
-          ),
-        );
+        // One statement: the stored score is left-joined onto the game query.
+        const core = await previewRead(deadline, async (db) => {
+          const rows = await scheduleGameQuery(db)
+            .where('g.season', '=', w.year)
+            .where('g.seasonType', '=', w.seasonType)
+            .where((eb) =>
+              eb(
+                'g.startDate',
+                '>=',
+                eb.cast<Date>(eb.val(utcBinding(w.startDate)), 'timestamp'),
+              ),
+            )
+            .where((eb) =>
+              eb(
+                'g.startDate',
+                '<',
+                eb.cast<Date>(eb.val(utcBinding(w.endDate)), 'timestamp'),
+              ),
+            )
+            .execute();
+          // Conference joins repeat a game's row; any of its rows carries the score.
+          return mapPreviewGames(rows).map((x) => ({
+            ...x,
+            watchabilityScore: storedScore(
+              x.game,
+              rows.find((row) => row.id === x.game.id),
+            ),
+          }));
+        });
         const enrichment = core.length
           ? await readPreviewEnrichment(
               core.map((x) => x.game.id),
               deadline,
             )
           : [];
-        return { assembledAt: new Date().toISOString(), core, enrichment };
+        return {
+          assembledAt: new Date().toISOString(),
+          core,
+          enrichment,
+        };
       },
       deadline,
       observe,
@@ -272,6 +288,7 @@ export const getGameSchedule = async (
       final.window?.seasonType !== w.seasonType
     )
       continue;
+    const now = Date.now();
     return finish({
       assembledAt: slate.assembledAt,
       ...final,
@@ -289,6 +306,11 @@ export const getGameSchedule = async (
             ...x.game,
             broadcasts: enrichment.broadcasts,
             odds: enrichment.odds,
+            watchabilityScore: currentWatchabilityScore(
+              x.watchabilityScore,
+              x.game,
+              now,
+            ),
           };
         }),
     });
