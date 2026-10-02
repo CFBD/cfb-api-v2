@@ -1,3 +1,10 @@
+# [5.32.0](https://github.com/CFBD/cfb-api-v2/compare/v5.31.2...v5.32.0) (2026-10-02)
+
+
+### Features
+
+* **schedule:** add watchability scores ([f94b7ab](https://github.com/CFBD/cfb-api-v2/commit/f94b7ab361d08afb133821210ae7bc39d0d706fb))
+
 ## [5.31.2](https://github.com/CFBD/cfb-api-v2/compare/v5.31.1...v5.31.2) (2026-09-29)
 
 
