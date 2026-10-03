@@ -17,6 +17,8 @@ Last reviewed: 2026-07-18
 - `plans/index.md`: where to put active or completed implementation plans.
 - `references/index.md`: generated artifacts, config files, and stable
   reference material.
+- [C# SDK generation](references/csharp-sdk-generation.md): schema naming,
+  compatibility, stale-source cleanup, and pre-push compilation checks.
 
 ## Task Routing
 

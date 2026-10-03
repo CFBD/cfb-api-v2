@@ -309,6 +309,13 @@ commitlint, runs tests, publishes a semantic-release release, builds and signs a
 Docker image, deploys over SSH, announces to Discord, and regenerates the Python
 client from the deployed OpenAPI spec.
 
+The C# SDK job applies a private schema-name compatibility alias, generates
+with pinned Kiota 1.35.0, and removes stale generated source. It verifies repeat
+generation, Release build, local pack, and a JSON round trip before pushing.
+Failures fail the job and prevent the SDK push. See
+[C# SDK generation](docs/references/csharp-sdk-generation.md) for reproduction,
+compatibility guarantees, and local validation commands.
+
 `.github/workflows/codeql-analysis.yml` runs CodeQL for JavaScript on pushes,
 pull requests to `main`, and a weekly schedule.
 

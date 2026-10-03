@@ -15,3 +15,8 @@ API_ENDPOINTS.md
 
 !/scripts/evaluate-season-rank-cost.ts
 !/docs/references/team-season-ranking-cost.md
+!/scripts/generate-csharp.mjs
+!/scripts/generate-csharp.test.mjs
+!/scripts/verify-csharp.mjs
+!/scripts/csharp-smoke/
+!/docs/references/csharp-sdk-generation.md

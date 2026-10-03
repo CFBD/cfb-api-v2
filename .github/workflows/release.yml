@@ -48,6 +48,7 @@ jobs:
         run: |
           pnpm test
           pnpm typecheck
+          node --test scripts/generate-csharp.test.mjs
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -281,23 +282,20 @@ jobs:
   buildCSharp:
     needs: deploy
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
-      - name: Install dependencies
-        run: |
-          sudo apt install wget -y
-          sudo apt install unzip -y
-          sudo apt install jq -y
-          sudo apt install curl -y
-      - name: Generate library
-        id: generate
-        run: |
-          api_version=$(curl https://api.collegefootballdata.com/api-docs.json | jq .info.version)
-          api_version=${api_version%\"}
-          api_version=${api_version#\"}
-          package_version=(${api_version})
-          echo "package_version=$package_version" >> $GITHUB_ENV
-      - name: Checkout repo
+      - name: Checkout API generation scripts
+        uses: actions/checkout@v4
+        with:
+          path: api
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Checkout SDK
         uses: actions/checkout@v4
         with:
           repository: cfbd/cfbd-net
@@ -305,17 +303,23 @@ jobs:
           ref: main
           path: cfbd-net
       - uses: microsoft/setup-kiota@v0.5.0
-      - name: Copy and push generated code
+        with:
+          version: 'v1.35.0'
+      - name: Download spec and generate C# client
+        run: |
+          curl --fail --silent --show-error https://api.collegefootballdata.com/api-docs.json -o api-docs.json
+          node api/scripts/generate-csharp.mjs api-docs.json cfbd-net
+          package_version=$(jq -er '.info.version' api-docs.json)
+          sed -i "s/<Version>.*<\/Version>/<Version>${package_version}<\/Version>/" cfbd-net/src/CollegeFootballData.csproj
+      - name: Build, pack, and verify C# regression
+        run: node api/scripts/verify-csharp.mjs api-docs.json cfbd-net
+      - name: Commit and push validated code
         run: |
           cd cfbd-net
-          wget https://api.collegefootballdata.com/api-docs.json
-          kiota generate --language csharp --openapi api-docs.json --output src/ --namespace-name CollegeFootballData
-          rm api-docs.json
-          sed -i "s/<Version>.*<\/Version>/<Version>${{ env.package_version }}<\/Version>/" src/CollegeFootballData.csproj
           echo "Configuring git..."
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git status --porcelain --
+          if [ -n "$(git status --porcelain)" ]
           then
             git add .
             echo "Committing changes ..."
