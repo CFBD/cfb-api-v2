@@ -1,3 +1,10 @@
+## [5.32.1](https://github.com/CFBD/cfb-api-v2/compare/v5.32.0...v5.32.1) (2026-10-03)
+
+
+### Bug Fixes
+
+* **dotnet:** dotnet code gen fixes ([6bc0fe2](https://github.com/CFBD/cfb-api-v2/commit/6bc0fe2cdccd46a0ef1d2f67ed9a2dc3379f75d6))
+
 # [5.32.0](https://github.com/CFBD/cfb-api-v2/compare/v5.31.2...v5.32.0) (2026-10-02)
 
 
