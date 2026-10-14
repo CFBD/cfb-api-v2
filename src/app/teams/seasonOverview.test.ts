@@ -13,6 +13,8 @@ import {
   isTeamSeasonStorageError,
 } from './seasonOverview';
 import { isTeamSeasonSnapshotPayload } from './seasonOverviewPayload';
+import { currentTeamPassingCpoe } from '../boxScores/cpoeProjection';
+import { mapCpoeProduction, unavailableCpoe } from '../boxScores/cpoe';
 import fixture from './fixtures/team-season-snapshots/contract.json';
 import observedAdvanced from './fixtures/team-season-snapshots/observed-advanced.json';
 
@@ -46,6 +48,41 @@ const row = {
   format_version: 1,
   payload: fixture,
 };
+it.each(['accepted-v1', 'replacement-v2', null])(
+  'preserves base season stats while checking the selected CPOE model (%s)',
+  async (selected_cpoe_model_version) => {
+    const scored = mapCpoeProduction({
+      cpoeAttemptsAvailable: 3,
+      cpoeCompletions: 2,
+      expectedCompletions: 1.23456,
+      cpoeVersions: 1,
+      cpoeModelVersion: 'accepted-v1',
+    });
+    const payload = structuredClone(fixture);
+    Object.assign(payload.passing.offense, scored);
+    Object.assign(payload.passing.defense, scored);
+    const { db } = await database([
+      { ...row, payload, selected_cpoe_model_version },
+    ]);
+    const result = await getTeamSeasonOverview(2025, 'Michigan', db);
+    expect(result.status).toBe('found');
+    if (result.status !== 'found') throw new Error('Missing overview');
+    const expected =
+      selected_cpoe_model_version === 'accepted-v1'
+        ? scored
+        : unavailableCpoe();
+    expect(result.overview.passing?.offense).toMatchObject({
+      ...fixture.passing.offense,
+      ...expected,
+    });
+    expect(result.overview.passing?.defense).toMatchObject({
+      ...fixture.passing.defense,
+      ...expected,
+    });
+    expect(payload.passing.offense).toMatchObject(scored);
+    await db.destroy();
+  },
+);
 it('reads once, preserves nested keys, and ignores age and unrecognized root identity', async () => {
   const { db, queries } = await database([
     { ...row, generated_at: new Date(0), payload: { ...fixture, teamId: 999 } },
@@ -55,6 +92,7 @@ it('reads once, preserves nested keys, and ignores age and unrecognized root ide
     status: 'found',
     overview: {
       ...fixture,
+      passing: currentTeamPassingCpoe(fixture.passing, null),
       statRankings: null,
       teamId: 130,
       team: 'Michigan',
@@ -194,7 +232,9 @@ it('rounds existing stored advanced values without changing counts, nulls or the
       fieldPosition: { averageStart: 72.1, averagePredictedPoints: -1.245 },
     });
     expect(result.overview.players).toEqual(fixture.players);
-    expect(result.overview.passing).toEqual(fixture.passing);
+    expect(result.overview.passing).toEqual(
+      currentTeamPassingCpoe(fixture.passing, null),
+    );
     expect(result.overview.rushing).toEqual(fixture.rushing);
     expect(payload).toEqual(before);
     expect(queries).toHaveLength(1);
@@ -367,7 +407,7 @@ it('ranks season/division cohorts before team filtering with correct direction a
     }
     expect(cohorts).not.toContain('round(');
     expect(cohorts.match(/"r"\."year" = /g)).toHaveLength(4);
-    expect(parameters.filter((value) => value === 2026)).toHaveLength(7);
+    expect(parameters.filter((value) => value === 2026)).toHaveLength(8);
     expect(parameters.filter((value) => value === 'michigan')).toHaveLength(1);
     expect(sql).not.toMatch(/latest_elo|elo_rank/);
   } finally {

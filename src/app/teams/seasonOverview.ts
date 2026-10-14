@@ -8,6 +8,7 @@ import { isTeamSeasonSnapshotPayload } from './seasonOverviewPayload';
 import { formatSeasonAdvancedStats } from './seasonOverviewFormatting';
 import { seasonOverviewRatings } from './seasonOverviewRatings';
 import { TeamSeasonOverview } from './seasonOverviewTypes';
+import { currentTeamPassingCpoe } from '../boxScores/cpoeProjection';
 
 export const seasonOverviewQuery = (
   db: Kysely<DB>,
@@ -25,6 +26,9 @@ export const seasonOverviewQuery = (
       join
         .onRef('snapshot.teamId', '=', 't.id')
         .on('snapshot.season', '=', year),
+    )
+    .leftJoin('cpoeSeasonModel as cpoeModel', (join) =>
+      join.on('cpoeModel.season', '=', year),
     )
     .leftJoin('rankedCore as core', (join) =>
       join
@@ -106,6 +110,7 @@ export const seasonOverviewQuery = (
       'snapshot.formatVersion',
       'snapshot.payload',
       'snapshot.generatedAt',
+      'cpoeModel.modelVersion as selectedCpoeModelVersion',
       'record.games',
       'record.wins',
       'record.losses',
@@ -313,7 +318,13 @@ export const getTeamSeasonOverview = async (
       ratings: mapSeasonOverviewRatings(row),
       advanced: formatSeasonAdvancedStats(row.payload.advanced),
       players: row.payload.players,
-      passing: row.payload.passing,
+      passing:
+        row.payload.passing === null
+          ? null
+          : currentTeamPassingCpoe(
+              row.payload.passing,
+              row.selectedCpoeModelVersion,
+            ),
       rushing: row.payload.rushing,
     },
   };

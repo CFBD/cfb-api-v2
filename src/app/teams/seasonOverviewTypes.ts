@@ -1,5 +1,5 @@
 import { TeamSeasonStatRankings } from './seasonStatRankingTypes';
-import { TeamPassingSeason } from '../passing/types';
+import { SnapshotTeamPassingSeason } from '../passing/types';
 import { TeamRushingSeason } from '../rushing/types';
 
 export interface TeamSeasonAdvancedStats {
@@ -194,7 +194,7 @@ export interface TeamSeasonPlayerUsage extends TeamSeasonPlayerIdentity {
 export interface TeamSeasonSnapshotPayload {
   advanced: TeamSeasonAdvancedStats;
   players: { ppa: TeamSeasonPlayerPpa[]; usage: TeamSeasonPlayerUsage[] };
-  passing: TeamPassingSeason | null;
+  passing: SnapshotTeamPassingSeason | null;
   rushing: TeamRushingSeason | null;
 }
 export interface TeamSeasonRankedRating {

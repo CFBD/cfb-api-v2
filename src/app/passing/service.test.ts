@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import {
   CamelCasePlugin,
   CompiledQuery,
@@ -8,6 +10,7 @@ import {
   PostgresQueryCompiler,
 } from 'kysely';
 import { ValidateError } from 'tsoa';
+import { PassingController } from './controller';
 
 import { kdb } from '../../config/database';
 import { DB } from '../../config/types/db';
@@ -23,7 +26,7 @@ import {
 jest.mock('../../config/database', () => ({
   db: {},
   authDb: {},
-  kdb: { selectFrom: jest.fn() },
+  kdb: { selectFrom: jest.fn(), with: jest.fn() },
 }));
 
 const selectFrom = kdb.selectFrom as jest.Mock;
@@ -31,6 +34,12 @@ const selectFrom = kdb.selectFrom as jest.Mock;
 const createQueryBuilder = (rows: unknown[] = []) => {
   const builder: Record<string, jest.Mock> = {};
   for (const method of [
+    'clearSelect',
+    'clearGroupBy',
+    'clearOrderBy',
+    'distinct',
+    'as',
+    'selectAll',
     'groupBy',
     'innerJoin',
     'leftJoin',
@@ -41,14 +50,19 @@ const createQueryBuilder = (rows: unknown[] = []) => {
   ]) {
     builder[method] = jest.fn().mockReturnValue(builder);
   }
+  builder.$if = jest
+    .fn()
+    .mockImplementation((condition, callback) =>
+      condition ? callback(builder) : builder,
+    );
   builder.execute = jest.fn().mockResolvedValue(rows);
   return builder;
 };
 
 const createCompileDatabase = (
   compiledQueries: CompiledQuery<unknown>[],
-): Kysely<DB> =>
-  new Kysely<DB>({
+): Kysely<DB> => {
+  const db = new Kysely<DB>({
     dialect: {
       createAdapter: () => new PostgresAdapter(),
       createDriver: () => new DummyDriver(),
@@ -62,6 +76,9 @@ const createCompileDatabase = (
       }
     },
   });
+  (kdb.with as jest.Mock).mockImplementation(db.with.bind(db));
+  return db;
+};
 
 const locationNames = [
   'short left',
@@ -120,6 +137,7 @@ const emptyLocation = {
   airYardsPerAttempt: null,
 };
 const emptyAggregateRow = {
+  cpoeEligibleAttempts: 0,
   ...emptyBaseRow,
   ...emptyAdvanced,
   locationEligibleAttempts: 0,
@@ -168,8 +186,9 @@ const passingPlayRow = {
   isSpike: false,
   isThrowaway: false,
   isIntentionalGrounding: false,
-  // CPOE fixtures and assertions stay disabled until CPOE goes live.
-  // cpoeEligible: true,
+  cpoeEligible: true,
+  completionProbability: null,
+  cpoeModelVersion: null,
   parseStatus: 'complete',
   ppa: '1.23456',
   success: true,
@@ -182,7 +201,7 @@ const productionRow = {
   completions: '2',
   incompletions: '1',
   interceptions: '1',
-  // cpoeEligibleAttempts: '3',
+  cpoeEligibleAttempts: '3',
   airYardsAttemptsAvailable: '3',
   totalAirYards: '20',
   averageDepthOfTarget: '6.6667',
@@ -195,6 +214,11 @@ const productionRow = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  const creator = {
+    with: () => creator,
+    selectFrom: () => createQueryBuilder(),
+  };
+  (kdb.with as jest.Mock).mockReturnValue(creator);
 });
 
 describe('getPassingPlays', () => {
@@ -285,7 +309,10 @@ describe('getPassingPlays', () => {
         isSpike: false,
         isThrowaway: false,
         isIntentionalGrounding: false,
-        // cpoeEligible: true,
+        cpoeEligible: true,
+        completionProbability: null,
+        cpoeModelVersion: null,
+        cpoe: null,
         parseStatus: 'complete',
         ppa: 1.23456,
         success: true,
@@ -327,11 +354,6 @@ describe('getPassingPlays', () => {
     expect(compiledSql).not.toContain('homeTeam');
     expect(compiledSql).toContain('cast($1 as text)');
     expect(parameters[0]).toBe(' ');
-    // Restore these CPOE-specific assertions when CPOE goes live.
-    // expect(compiledSql).toContain(
-    //   'and "pp"."is_intentional_grounding" = $12) as boolean) as "cpoe_eligible"',
-    // );
-    // expect(parameters.slice(9, 12)).toEqual([false, false, false]);
 
     await compileDb.destroy();
   });
@@ -598,7 +620,7 @@ describe('player passing aggregates', () => {
         incompletions: 1,
         interceptions: 1,
         completionRate: 0.5,
-        // cpoeEligibleAttempts: 3,
+        cpoeEligibleAttempts: 3,
         airYardsAttemptsAvailable: 3,
         totalAirYards: 20,
         averageDepthOfTarget: 6.7,
@@ -846,7 +868,8 @@ describe('team passing aggregates', () => {
     expect(compiledSql).toMatch(/"represented_ct"\."end_year" >= \$\d+/);
     expect(compiledSql).toMatch(/"game"\."season" = \$\d+/);
     expect(compiledSql).toMatch(/"game"\."week" = \$\d+/);
-    expect(parameters.filter((value) => value === 2026)).toHaveLength(3);
+    // Original aggregate and its distinct-game scope use the same boundaries.
+    expect(parameters.filter((value) => value === 2026)).toHaveLength(6);
     expect(parameters).not.toContain(undefined);
 
     await compileDb.destroy();
@@ -875,7 +898,7 @@ describe('team passing aggregates', () => {
         offenseCompletions: '2',
         offenseIncompletions: '1',
         offenseInterceptions: '1',
-        // offenseCpoeEligibleAttempts: '3',
+        offenseCpoeEligibleAttempts: '3',
         offenseAirYardsAttemptsAvailable: '3',
         offenseTotalAirYards: '-2',
         offenseAverageDepthOfTarget: '-0.6667',
@@ -888,7 +911,7 @@ describe('team passing aggregates', () => {
         defenseCompletions: '0',
         defenseIncompletions: '0',
         defenseInterceptions: '0',
-        // defenseCpoeEligibleAttempts: '0',
+        defenseCpoeEligibleAttempts: '0',
         defenseAirYardsAttemptsAvailable: '0',
         defenseTotalAirYards: null,
         defenseAverageDepthOfTarget: null,
@@ -909,7 +932,7 @@ describe('team passing aggregates', () => {
       incompletions: 1,
       interceptions: 1,
       completionRate: 0.5,
-      // cpoeEligibleAttempts: 3,
+      cpoeEligibleAttempts: 3,
       airYardsAttemptsAvailable: 3,
       totalAirYards: -2,
       averageDepthOfTarget: -0.7,
@@ -925,7 +948,7 @@ describe('team passing aggregates', () => {
       incompletions: 0,
       interceptions: 0,
       completionRate: null,
-      // cpoeEligibleAttempts: 0,
+      cpoeEligibleAttempts: 0,
       airYardsAttemptsAvailable: 0,
       totalAirYards: null,
       averageDepthOfTarget: null,
@@ -1073,6 +1096,13 @@ describe('passing advanced metrics and location mapping', () => {
       expect(result.defense).toEqual({
         ...emptyBaseRow,
         ...emptyAdvanced,
+        cpoeEligibleAttempts: 0,
+        cpoeAttemptsAvailable: 0,
+        cpoeCompletions: 0,
+        expectedCompletions: null,
+        expectedCompletionRate: null,
+        cpoe: null,
+        cpoeModelVersion: null,
         completionRate: null,
         locationEligibleAttempts: 0,
         locationAvailableAttempts: 0,
@@ -1117,7 +1147,8 @@ describe('passing advanced metrics and location mapping', () => {
     expect(sql).toContain('not case when');
     expect(sql).toContain('"pp"."pass_depth" in');
     expect(sql).toContain('"pp"."pass_direction" in');
-    expect(sql).not.toContain('"pp"."is_throwaway"');
+    // Throwaway exclusion applies only to the two CPOE eligibility counts.
+    expect(sql.match(/"pp"\."is_throwaway"/g)).toHaveLength(2);
     expect(sql).toContain('"pp"."is_spike" =');
     expect(sql).toContain('"pp"."is_intentional_grounding" =');
     expect(sql).toContain('"pp"."parse_status" <>');
@@ -1141,4 +1172,445 @@ describe('passing advanced metrics and location mapping', () => {
     expect(parameters).not.toContain(undefined);
     await compileDb.destroy();
   });
+});
+
+describe('standalone CPOE contract', () => {
+  test.each([
+    { outcome: 'completion', p: 0.123456, probability: 0.123, cpoe: 87.65 },
+    { outcome: 'incompletion', p: 0.123456, probability: 0.123, cpoe: -12.35 },
+    { outcome: 'interception', p: 1, probability: 1, cpoe: -100 },
+    { outcome: 'completion', p: 0, probability: 0, cpoe: 100 },
+    { outcome: 'completion', p: 1, probability: 1, cpoe: 0 },
+    { outcome: 'incompletion', p: 0.000001, probability: 0, cpoe: 0 },
+    { outcome: 'completion', p: null, probability: null, cpoe: null },
+  ])(
+    'maps $outcome with p=$p using stored precision',
+    async ({ outcome, p, probability, cpoe }) => {
+      selectFrom.mockReturnValue(
+        createQueryBuilder([
+          {
+            ...passingPlayRow,
+            outcome,
+            // Completion-plus-fumble still uses the canonical completion outcome.
+            playText: 'Complete pass; receiver fumbles',
+            targetId: null,
+            passerId: null,
+            completionProbability: p,
+            cpoeModelVersion: p === null ? null : 'test-v2',
+          },
+        ]),
+      );
+      const [result] = await getPassingPlays(undefined, 2026, 1);
+      expect(result).toMatchObject({
+        outcome,
+        cpoeEligible: true,
+        completionProbability: probability,
+        cpoe,
+        cpoeModelVersion: p === null ? null : 'test-v2',
+        targetId: null,
+        passerId: null,
+      });
+      expect(Object.is(result.cpoe, -0)).toBe(false);
+    },
+  );
+
+  test.each([true, false, undefined])(
+    'forwards and compiles source eligibility=%s',
+    async (eligible) => {
+      const queries: CompiledQuery<unknown>[] = [];
+      const db = createCompileDatabase(queries);
+      selectFrom.mockImplementation(db.selectFrom.bind(db));
+      await new PassingController().getPassingPlays(
+        2026,
+        undefined,
+        1,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        eligible,
+      );
+      expect(queries).toHaveLength(1);
+      const { sql, parameters } = queries[0];
+      expect(sql.match(/"pp"\."is_throwaway"/g)).toHaveLength(
+        eligible === undefined ? 2 : 4,
+      );
+      if (eligible !== undefined) expect(parameters.at(-1)).toBe(eligible);
+      expect(sql).toContain('"pp"."air_yards" is not null');
+      expect(sql).toContain('as "cpoe_eligible"');
+      expect(sql).not.toContain('"cp"."play_id" is not null');
+      await db.destroy();
+    },
+  );
+
+  const handlers = [
+    {
+      name: 'player season',
+      team: false,
+      run: () => getPlayerPassingBySeason(2026),
+    },
+    {
+      name: 'player game',
+      team: false,
+      run: () => getPlayerPassingByGame(2026, 1),
+    },
+    {
+      name: 'team season',
+      team: true,
+      run: () => getTeamPassingBySeason(2026),
+    },
+    { name: 'team game', team: true, run: () => getTeamPassingByGame(2026, 1) },
+  ];
+  test.each(handlers)(
+    '$name uses the scored subset and preserves location fields',
+    async ({ team, run }) => {
+      const scored = {
+        ...productionRow,
+        attempts: '5',
+        completions: '3',
+        cpoeEligibleAttempts: '4',
+        cpoeAttemptsAvailable: '3',
+        cpoeCompletions: '2',
+        expectedCompletions: '1.8',
+        cpoeVersions: '1',
+        cpoeModelVersion: 'test-v2',
+      };
+      selectFrom.mockReturnValue(
+        createQueryBuilder([
+          team
+            ? {
+                ...prefixFields('offense', scored),
+                ...prefixFields('defense', scored),
+              }
+            : scored,
+        ]),
+      );
+      const [result] = await run();
+      const productions =
+        'offense' in result ? [result.offense, result.defense] : [result];
+      for (const production of productions) {
+        expect(production).toMatchObject({
+          attempts: 5,
+          completions: 3,
+          completionRate: 0.6,
+          cpoeEligibleAttempts: 4,
+          cpoeAttemptsAvailable: 3,
+          cpoeCompletions: 2,
+          expectedCompletions: 1.8,
+          expectedCompletionRate: 0.6,
+          cpoe: 6.67,
+          cpoeModelVersion: 'test-v2',
+        });
+        for (const bucket of Object.values(production.locations)) {
+          expect(bucket).not.toHaveProperty('cpoe');
+          expect(bucket).not.toHaveProperty('cpoeEligibleAttempts');
+        }
+      }
+    },
+  );
+
+  test.each(handlers)(
+    '$name returns explicit unavailability independently of eligibility',
+    async ({ team, run }) => {
+      const unscored = {
+        ...productionRow,
+        cpoeEligibleAttempts: 3,
+        cpoeAttemptsAvailable: 0,
+        cpoeCompletions: 0,
+        expectedCompletions: null,
+        cpoeModelVersion: null,
+        cpoeVersions: 0,
+      };
+      selectFrom.mockReturnValue(
+        createQueryBuilder([
+          team
+            ? {
+                ...prefixFields('offense', unscored),
+                ...prefixFields('defense', unscored),
+              }
+            : unscored,
+        ]),
+      );
+      const [result] = await run();
+      for (const production of 'offense' in result
+        ? [result.offense, result.defense]
+        : [result]) {
+        expect(production).toMatchObject({
+          cpoeEligibleAttempts: 3,
+          cpoeAttemptsAvailable: 0,
+          cpoeCompletions: 0,
+          expectedCompletions: null,
+          expectedCompletionRate: null,
+          cpoe: null,
+          cpoeModelVersion: null,
+        });
+      }
+    },
+  );
+
+  test('all five public queries use one bounded optional current-prediction join', async () => {
+    const queries: CompiledQuery<unknown>[] = [];
+    const db = createCompileDatabase(queries);
+    selectFrom.mockImplementation(db.selectFrom.bind(db));
+    await getPassingPlays(undefined, 2026, 1);
+    for (const handler of handlers) await handler.run();
+    expect(queries).toHaveLength(5);
+    for (const { sql, parameters } of queries) {
+      expect(sql.match(/join "pass_play_cpoe_current"/g)).toHaveLength(1);
+      expect(sql).toContain('"cpoe_predictions" as materialized');
+      expect(sql).toContain('select distinct "game"."id" as "game_id"');
+      expect(sql).toContain('"prediction"."game_id" = "cpoe_games"."game_id"');
+      expect(sql).toContain('"cp"."game_id" = "game"."id"');
+      expect(sql).toContain('"cp"."play_id" = "pp"."play_id"');
+      expect(sql).toMatch(/"game"\."season" = \$\d+/);
+      expect(parameters).toContain(2026);
+      expect(sql).not.toContain('join "pass_play_cpoe"');
+    }
+    for (const { sql } of queries.slice(1)) {
+      expect(sql).toContain('count("cp"."play_id")');
+      expect(sql).toContain('sum("cp"."completion_probability")');
+      expect(sql).toContain('count(distinct "cp"."model_version")');
+    }
+    await db.destroy();
+  });
+
+  test('weights season CPOE by attempts and uses full precision before rounding', async () => {
+    // A 1-attempt game (1 completion, E=.8) and a 3-attempt game
+    // (1 completion, E=1.4) combine to -5, not their unweighted mean.
+    selectFrom.mockReturnValue(
+      createQueryBuilder([
+        {
+          ...productionRow,
+          cpoeEligibleAttempts: 4,
+          cpoeAttemptsAvailable: '4',
+          cpoeCompletions: '2',
+          expectedCompletions: '2.2',
+          cpoeVersions: 1,
+          cpoeModelVersion: 'test-v2',
+        },
+      ]),
+    );
+    expect((await getPlayerPassingBySeason(2026))[0]).toMatchObject({
+      cpoe: -5,
+      expectedCompletionRate: 0.55,
+      expectedCompletions: 2.2,
+    });
+    selectFrom.mockReturnValue(
+      createQueryBuilder([
+        {
+          ...productionRow,
+          cpoeEligibleAttempts: 3,
+          cpoeAttemptsAvailable: 3,
+          cpoeCompletions: 2,
+          expectedCompletions: 1.23456,
+          cpoeVersions: 1,
+          cpoeModelVersion: 'test-v2',
+        },
+      ]),
+    );
+    expect((await getPlayerPassingBySeason(2026))[0]).toMatchObject({
+      cpoe: 25.51,
+      expectedCompletionRate: 0.412,
+      expectedCompletions: 1.235,
+    });
+  });
+
+  test('conflicting releases suppress only scored metrics, retaining source eligibility', async () => {
+    const diagnostic = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    try {
+      selectFrom.mockReturnValue(
+        createQueryBuilder([
+          {
+            ...productionRow,
+            cpoeEligibleAttempts: 3,
+            cpoeAttemptsAvailable: 3,
+            cpoeCompletions: 2,
+            expectedCompletions: 1.8,
+            cpoeVersions: 2,
+            cpoeModelVersion: 'test-v1',
+          },
+        ]),
+      );
+      expect((await getPlayerPassingBySeason(2026))[0]).toMatchObject({
+        attempts: 4,
+        completions: 2,
+        cpoeEligibleAttempts: 3,
+        cpoeAttemptsAvailable: 0,
+        cpoeCompletions: 0,
+        expectedCompletions: null,
+        expectedCompletionRate: null,
+        cpoe: null,
+        cpoeModelVersion: null,
+      });
+      expect(diagnostic).toHaveBeenCalledTimes(1);
+    } finally {
+      diagnostic.mockRestore();
+    }
+  });
+
+  test('generated schemas require standalone fields and retain optional snapshot CPOE', () => {
+    const doc = JSON.parse(
+      readFileSync(join(process.cwd(), 'build/swagger.json'), 'utf8'),
+    );
+    for (const name of [
+      'PassingProduction',
+      'PlayerPassingSeason',
+      'PlayerPassingGame',
+    ]) {
+      const schema = doc.components.schemas[name];
+      for (const key of [
+        'cpoeEligibleAttempts',
+        'cpoeAttemptsAvailable',
+        'cpoeCompletions',
+      ]) {
+        expect(schema.required).toContain(key);
+        expect(schema.properties[key].type).toBe('integer');
+      }
+      for (const key of [
+        'expectedCompletions',
+        'expectedCompletionRate',
+        'cpoe',
+        'cpoeModelVersion',
+      ]) {
+        expect(schema.required).toContain(key);
+        expect(schema.properties[key].nullable).toBe(true);
+      }
+    }
+    const play = doc.components.schemas.PassingPlay;
+    for (const key of [
+      'cpoeEligible',
+      'completionProbability',
+      'cpoe',
+      'cpoeModelVersion',
+    ]) {
+      expect(play.required).toContain(key);
+    }
+    expect(play.properties.completionProbability.nullable).toBe(true);
+    expect(doc.paths['/passing/plays'].get.parameters).toContainEqual(
+      expect.objectContaining({
+        name: 'cpoeEligible',
+        required: false,
+        schema: expect.objectContaining({ type: 'boolean' }),
+      }),
+    );
+    expect(
+      doc.components.schemas.PassingLocationProduction.properties,
+    ).not.toHaveProperty('cpoeEligibleAttempts');
+    expect(
+      doc.components.schemas.SnapshotPassingProduction.properties,
+    ).not.toHaveProperty('cpoeEligibleAttempts');
+  });
+});
+
+describe('CPOE game scope', () => {
+  test.each([
+    {
+      name: 'plays for a team season without a week',
+      run: () =>
+        getPassingPlays(undefined, 2026, undefined, undefined, 'michigan'),
+      filter: 'lower("offense_team"."school") =',
+      boundary: '"game"."season" =',
+      value: 'michigan',
+      occurrences: 8,
+    },
+    {
+      name: 'plays for a week without a team',
+      run: () => getPassingPlays(undefined, 2026, 5),
+      filter: '"offense_conference"."division" =',
+      boundary: '"game"."week" =',
+      value: 2026,
+      occurrences: 2,
+    },
+    {
+      name: 'player across seasons',
+      run: () =>
+        getPlayerPassingBySeason(
+          undefined,
+          SeasonType.Both,
+          undefined,
+          undefined,
+          '5141741',
+        ),
+      filter: '"roles"."passer_id" =',
+      boundary: '"offense_ct"."start_year" <= "game"."season"',
+      value: '5141741',
+    },
+    {
+      name: 'team across seasons',
+      run: () => getTeamPassingBySeason(undefined, SeasonType.Both, 'Michigan'),
+      filter: 'lower("represented_team"."school") =',
+      boundary: '"represented_ct"."start_year" <= "game"."season"',
+      value: 'michigan',
+    },
+    {
+      name: 'player game with all filters',
+      run: () =>
+        getPlayerPassingByGame(
+          2026,
+          5,
+          SeasonType.Regular,
+          'Michigan',
+          'B1G',
+          '5141741',
+        ),
+      filter: '"roles"."passer_id" =',
+      boundary: '"game"."week" =',
+      value: '5141741',
+    },
+    {
+      name: 'FCS team game',
+      run: () =>
+        getTeamPassingByGame(
+          2026,
+          5,
+          SeasonType.Regular,
+          'North Dakota State',
+          'MVFC',
+          DivisionClassification.FCS,
+        ),
+      filter: '"represented_conference"."division" =',
+      boundary: '"game"."week" =',
+      value: DivisionClassification.FCS,
+    },
+  ])(
+    'materializes predictions only after $name filters',
+    async ({ run, filter, boundary, value, occurrences }) => {
+      const queries: CompiledQuery<unknown>[] = [];
+      const db = createCompileDatabase(queries);
+      selectFrom.mockImplementation(db.selectFrom.bind(db));
+      await run();
+      expect(queries).toHaveLength(1);
+      const { sql, parameters } = queries[0];
+      const scope = sql
+        .split('with "cpoe_games" as (')[1]
+        .split('), "cpoe_predictions"')[0];
+      expect(scope).toContain('select distinct "game"."id" as "game_id"');
+      expect(scope).toContain(filter);
+      expect(scope).toContain(boundary);
+      expect(scope).not.toContain('"cp".');
+      expect(scope).not.toContain('pass_play_cpoe_current');
+      if (value === '5141741') {
+        expect(scope).toContain(
+          'inner join (select distinct "play_id" from "play_stat"',
+        );
+        expect(scope).toContain('"athlete_id" =');
+        expect(scope).toContain('count(distinct "ps"."athlete_id")');
+      }
+      expect(scope).not.toContain('group by');
+      expect(scope).not.toContain('order by');
+      expect(parameters.filter((p) => p === value)).toHaveLength(
+        occurrences ?? (value === 'michigan' || value === '5141741' ? 4 : 2),
+      );
+      expect(sql).toContain('"cpoe_predictions" as materialized');
+      expect(sql).toContain('"prediction"."game_id" = "cpoe_games"."game_id"');
+      await db.destroy();
+    },
+  );
 });

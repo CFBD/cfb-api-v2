@@ -10,7 +10,7 @@ import {
   TeamSeasonAdvancedStats,
   TeamSeasonOverview,
 } from '../teams/seasonOverviewTypes';
-import { TeamPassingSeason } from '../passing/types';
+import { SnapshotTeamPassingSeason } from '../passing/types';
 import { TeamRushingSeason } from '../rushing/types';
 import {
   AdjustedTeamMetrics,
@@ -114,7 +114,7 @@ export interface PreviewTeamStatistics {
   season: number;
   isPreviousSeason: boolean;
   advanced: TeamSeasonAdvancedStats;
-  passing: TeamPassingSeason | null;
+  passing: SnapshotTeamPassingSeason | null;
   rushing: TeamRushingSeason | null;
 }
 export interface PreviewKeyPlayer {

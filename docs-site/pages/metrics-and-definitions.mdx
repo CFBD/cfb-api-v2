@@ -166,3 +166,18 @@ probabilities, model changes can affect comparisons across eras.
 
 See [Win probability methodology](./win-probability) for the three distinct
 models and their coverage.
+
+## Passing completion probability and CPOE
+
+### Completion probability
+
+The model's estimated chance that a pass will be completed, returned as a
+value from 0 to 1. Expected completions sum these probabilities; expected
+completion rate is their average across scored attempts.
+
+### Completion Percentage Over Expected (CPOE)
+
+Actual completion rate minus expected completion rate, expressed in percentage
+points and calculated over the same scored attempts. Positive values mean
+more completions than expected; negative values mean fewer. Defensive CPOE
+describes opponents' passing, so lower values are better.

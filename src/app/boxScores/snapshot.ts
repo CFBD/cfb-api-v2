@@ -33,7 +33,12 @@ export const snapshotQuery = (db: Kysely<DB>, id: number) =>
     id,
   )
     .leftJoin('advancedBoxScoreSnapshot as snapshot', 'snapshot.gameId', 'g.id')
-    .select(['snapshot.formatVersion', 'snapshot.payload']);
+    .leftJoin('cpoeSeasonModel as cpoeModel', 'cpoeModel.season', 'g.season')
+    .select([
+      'snapshot.formatVersion',
+      'snapshot.payload',
+      'cpoeModel.modelVersion as selectedCpoeModelVersion',
+    ]);
 
 type CanonicalRow = Awaited<
   ReturnType<ReturnType<typeof canonicalQuery>['execute']>

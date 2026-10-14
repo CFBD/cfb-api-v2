@@ -1,4 +1,7 @@
-import { PlayerPassingGame, TeamPassingGame } from '../passing/types';
+import {
+  SnapshotPlayerPassingGame,
+  SnapshotTeamPassingGame,
+} from '../passing/types';
 import { PlayerRushingGame, TeamRushingGame } from '../rushing/types';
 
 export interface StatsByQuarter {
@@ -116,13 +119,13 @@ export interface AdvancedBoxScore {
     scoringOpportunities: TeamScoringOpportunities[];
     fieldPosition: TeamFieldPosition[];
     /** Enriched offense/defense passing; empty when no qualifying rows exist. */
-    passing: TeamPassingGame[];
+    passing: SnapshotTeamPassingGame[];
     /** Enriched rushing, separate from the legacy rushing section. */
     rushingAdvanced: TeamRushingGame[];
   };
   players: {
     /** Enriched passing by athlete ID, including location coverage. */
-    passing: PlayerPassingGame[];
+    passing: SnapshotPlayerPassingGame[];
     /** Enriched rushing by athlete ID, including direction coverage. */
     rushing: PlayerRushingGame[];
     usage: PlayerGameUsage[];

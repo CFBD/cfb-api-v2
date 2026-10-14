@@ -8,6 +8,7 @@ import {
   snapshotQuery,
 } from './snapshot';
 import { BoxScoreWire } from './wire';
+import { currentBoxScoreCpoe } from './cpoeProjection';
 
 export const getAdvancedBoxScore = async (
   id: number,
@@ -19,6 +20,10 @@ export const getAdvancedBoxScore = async (
     const gameInfo = mapGameInfo(rows);
     const row = rows[0];
     if (row.formatVersion === 1 && isSnapshotPayload(row.payload)) {
+      const payload = currentBoxScoreCpoe(
+        row.payload,
+        row.selectedCpoeModelVersion,
+      );
       console.log('Advanced box score', {
         gameId: id,
         source: 'snapshot',
@@ -26,8 +31,8 @@ export const getAdvancedBoxScore = async (
       });
       return {
         gameInfo,
-        teams: row.payload.teams,
-        players: row.payload.players,
+        teams: payload.teams,
+        players: payload.players,
       };
     }
     reason =

@@ -23,7 +23,7 @@ import { DivisionClassification, SeasonType } from '../enums';
 @Tags('passing')
 export class PassingController extends Controller {
   /**
-   * Returns enriched pass attempts with stored PPA, success, and location-analysis eligibility.
+   * Returns enriched pass attempts with PPA, success, completion probability, CPOE, and source eligibility.
    * @param year Season year.
    * @param team Team name on either side of the pass. Either team or week is required.
    * @param week Week number. Either team or week is required.
@@ -35,6 +35,7 @@ export class PassingController extends Controller {
    * @param passerId Passer athlete ID.
    * @param targetId Intended target athlete ID.
    * @param outcome Pass outcome.
+   * @param cpoeEligible Filter by CPOE eligible attempts
    * @param classification Division classification. Defaults to `fbs`.
    * @isInt gameId
    * @isInt year
@@ -54,6 +55,7 @@ export class PassingController extends Controller {
     @Query() targetId?: string,
     @Query() outcome?: PassOutcome,
     @Query() classification?: DivisionClassification,
+    @Query() cpoeEligible?: boolean,
   ): Promise<PassingPlay[]> {
     return await getPassingPlays(
       gameId,
@@ -68,11 +70,12 @@ export class PassingController extends Controller {
       targetId,
       outcome,
       classification,
+      cpoeEligible,
     );
   }
 
   /**
-   * Returns passer production, advanced metrics, and pass-location breakdowns by season.
+   * Returns passer production, CPOE, advanced metrics, and pass-location breakdowns by season.
    * @param year Season year. Required unless passerId is specified.
    * @param seasonType Season type.
    * @param team Team name.
@@ -101,7 +104,7 @@ export class PassingController extends Controller {
   }
 
   /**
-   * Returns passer production, advanced metrics, and pass-location breakdowns by game.
+   * Returns passer production, CPOE, advanced metrics, and pass-location breakdowns by game.
    * @param year Season year. Required.
    * @param week Week number. Either passerId, team, or week is required.
    * @param seasonType Season type.
@@ -134,7 +137,7 @@ export class PassingController extends Controller {
   }
 
   /**
-   * Returns team passing production, advanced metrics, and pass-location
+   * Returns team passing production, CPOE, advanced metrics, and pass-location
    * breakdowns by season for offense and defense.
    * @param year Season year. Required unless team is specified.
    * @param seasonType Season type.
@@ -161,7 +164,7 @@ export class PassingController extends Controller {
   }
 
   /**
-   * Returns team passing production, advanced metrics, and pass-location
+   * Returns team passing production, CPOE, advanced metrics, and pass-location
    * breakdowns by game for offense and defense.
    * @param year Season year. Required.
    * @param week Week number. Either team or week is required.

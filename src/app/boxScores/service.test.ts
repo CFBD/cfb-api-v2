@@ -16,6 +16,8 @@ import {
 } from './snapshot';
 import { getAdvancedBoxScore } from './service';
 import { isSnapshotPayload } from './payload';
+import { currentBoxScoreCpoe } from './cpoeProjection';
+import { mapCpoeProduction, unavailableCpoe } from './cpoe';
 import captured from './fixtures/401752677-payload.json';
 const payload = (() => {
   if (!isSnapshotPayload(captured)) throw new Error('Invalid fixture');
@@ -55,6 +57,45 @@ const transaction = {
   setAccessMode: jest.fn(),
   execute: jest.fn(),
 };
+it.each(['accepted-v1', 'replacement-v2', null])(
+  'serves CPOE only while its model remains selected (%s)',
+  async (selectedCpoeModelVersion) => {
+    const scored = mapCpoeProduction({
+      cpoeAttemptsAvailable: 3,
+      cpoeCompletions: 2,
+      expectedCompletions: 1.23456,
+      cpoeVersions: 1,
+      cpoeModelVersion: 'accepted-v1',
+    });
+    const stored = structuredClone(payload);
+    for (const row of stored.teams.passing) {
+      Object.assign(row.offense, scored);
+      Object.assign(row.defense, scored);
+    }
+    for (const row of stored.players.passing) Object.assign(row, scored);
+    snapshotExecute.mockResolvedValue([
+      {
+        ...metadata,
+        formatVersion: 1,
+        payload: stored,
+        selectedCpoeModelVersion,
+      },
+    ]);
+    const result = await getAdvancedBoxScore(401752677);
+    const expected =
+      selectedCpoeModelVersion === 'accepted-v1' ? scored : unavailableCpoe();
+    expect(result.teams.passing.length).toBeGreaterThan(0);
+    expect(result.players.passing.length).toBeGreaterThan(0);
+    for (const row of result.teams.passing) {
+      expect(row.offense).toMatchObject(expected);
+      expect(row.defense).toMatchObject(expected);
+    }
+    for (const row of result.players.passing)
+      expect(row).toMatchObject(expected);
+    expect(stored.teams.passing[0].offense.cpoe).toBe(25.51);
+    expect(calculatePayload).not.toHaveBeenCalled();
+  },
+);
 beforeEach(() => {
   jest.clearAllMocks();
   jest.mocked(snapshotQuery).mockReturnValue(
@@ -79,7 +120,7 @@ it('serves a valid payload without calculating, ignoring age and reading canonic
     { ...metadata, formatVersion: 1, payload, generatedAt: new Date(0) },
   ]);
   const result = await getAdvancedBoxScore(401752677);
-  expect(result.teams).toEqual(payload.teams);
+  expect(result.teams).toEqual(currentBoxScoreCpoe(payload, null).teams);
   expect(result.gameInfo).toMatchObject({
     homeWinProb: 0.6,
     awayWinProb: 0.3,

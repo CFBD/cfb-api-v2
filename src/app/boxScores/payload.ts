@@ -1,3 +1,4 @@
+import { isOptionalCpoeProduction } from './cpoe';
 import { SnapshotPayload } from './wire';
 
 const object = (value: unknown): value is Record<string, unknown> =>
@@ -143,6 +144,7 @@ const isPassingLocations = (value: unknown): boolean =>
 
 export const isPassingProduction = (value: unknown): boolean =>
   object(value) &&
+  isOptionalCpoeProduction(value) &&
   isPassingBaseProduction(value) &&
   isPassingAdvancedProduction(value) &&
   number(value['locationEligibleAttempts']) &&

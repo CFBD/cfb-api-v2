@@ -9,6 +9,7 @@ import { ValidateError } from 'tsoa';
 
 import { kdb } from '../../config/database';
 import type { DB } from '../../config/types/db';
+import { cpoeAggregateSelections, mapCpoeProduction } from '../boxScores/cpoe';
 import { DivisionClassification, SeasonType } from '../enums';
 import {
   PassDepth,
@@ -21,6 +22,9 @@ import {
   PassingAdvancedProduction,
   PassingLocationProduction,
   PassingProduction,
+  SnapshotPassingProduction,
+  SnapshotPlayerPassingGame,
+  SnapshotTeamPassingGame,
   PlayerPassingGame,
   PlayerPassingSeason,
   TeamPassingGame,
@@ -204,6 +208,20 @@ type AggregateCondition = Expression<SqlBool>;
 type AggregateSelection = AliasedExpression<number | string | null, string>;
 type AggregateSide = 'offense' | 'defense';
 
+const cpoeEligibility = () => {
+  const eb = expressionBuilder<
+    PassingAggregateTables,
+    keyof PassingAggregateTables
+  >();
+  return eb.and([
+    eb('pp.parseStatus', '=', 'complete'),
+    eb('pp.airYards', 'is not', null),
+    eb('pp.isSpike', '=', false),
+    eb('pp.isThrowaway', '=', false),
+    eb('pp.isIntentionalGrounding', '=', false),
+  ]);
+};
+
 const aggregateSelections = (side?: AggregateSide): AggregateSelection[] => {
   const eb = expressionBuilder<
     PassingAggregateTables,
@@ -336,6 +354,10 @@ const aggregateSelections = (side?: AggregateSide): AggregateSelection[] => {
 
   return [
     ...production(sideConditions, prefix),
+    ...cpoeAggregateSelections(side),
+    count([...sideConditions, cpoeEligibility()]).as(
+      fieldName(prefix, 'cpoeEligibleAttempts'),
+    ),
     ...advanced(eligibleConditions, prefix),
     count(eligibleConditions).as(fieldName(prefix, 'locationEligibleAttempts')),
     count([...eligibleConditions, knownLocation]).as(
@@ -407,7 +429,6 @@ const mapBaseProduction = (
     incompletions: numericValue(row, field('incompletions')),
     interceptions: numericValue(row, field('interceptions')),
     completionRate: attempts === 0 ? null : round(completions / attempts, 3),
-    // cpoeEligibleAttempts: numericValue(row, field('cpoeEligibleAttempts')),
     airYardsAttemptsAvailable,
     totalAirYards:
       airYardsAttemptsAvailable === 0
@@ -477,6 +498,11 @@ const mapLocationProduction = (
 
 const mapProduction = (row: AggregateRow, prefix = ''): PassingProduction => ({
   ...mapBaseProduction(row, prefix),
+  ...mapCpoeProduction(row, prefix),
+  cpoeEligibleAttempts: numericValue(
+    row,
+    fieldName(prefix, 'cpoeEligibleAttempts'),
+  ),
   ...mapAdvancedProduction(row, prefix),
   locationEligibleAttempts: numericValue(
     row,
@@ -497,6 +523,18 @@ const mapProduction = (row: AggregateRow, prefix = ''): PassingProduction => ({
   },
 });
 
+const mapSnapshotProduction = (
+  row: AggregateRow,
+  prefix = '',
+): SnapshotPassingProduction => {
+  const { cpoeEligibleAttempts: _eligible, ...production } = mapProduction(
+    row,
+    prefix,
+  );
+  void _eligible;
+  return production;
+};
+
 export const getPassingPlays = async (
   gameId?: number,
   year?: number,
@@ -509,8 +547,8 @@ export const getPassingPlays = async (
   passerId?: string,
   targetId?: string,
   outcome?: PassOutcome,
-  // cpoeEligible?: boolean,
   classification: DivisionClassification = DivisionClassification.FBS,
+  cpoeEligible?: boolean,
 ): Promise<PassingPlay[]> => {
   validatePassingTeamWeekScope(year, week, team);
 
@@ -703,18 +741,7 @@ export const getPassingPlays = async (
       'pp.isSpike',
       'pp.isThrowaway',
       'pp.isIntentionalGrounding',
-      eb
-        .cast<boolean>(
-          eb.and([
-            eb('pp.parseStatus', '=', 'complete'),
-            eb('pp.airYards', 'is not', null),
-            eb('pp.isSpike', '=', false),
-            eb('pp.isThrowaway', '=', false),
-            eb('pp.isIntentionalGrounding', '=', false),
-          ]),
-          'boolean',
-        )
-        .as('cpoeEligible'),
+      eb.cast<boolean>(cpoeEligibility(), 'boolean').as('cpoeEligible'),
       'pp.parseStatus',
       'play.ppa',
       'play.success',
@@ -791,23 +818,27 @@ export const getPassingPlays = async (
   if (outcome !== undefined) {
     query = query.where('pp.outcome', '=', outcome);
   }
-  // if (cpoeEligible !== undefined) {
-  //   query = query.where((eb) =>
-  //     eb(
-  //       eb.and([
-  //         eb('pp.parseStatus', '=', 'complete'),
-  //         eb('pp.airYards', 'is not', null),
-  //         eb('pp.isSpike', '=', false),
-  //         eb('pp.isThrowaway', '=', false),
-  //         eb('pp.isIntentionalGrounding', '=', false),
-  //       ]),
-  //       '=',
-  //       cpoeEligible,
-  //     ),
-  //   );
-  // }
+  if (cpoeEligible !== undefined) {
+    query = query.where((eb) => eb(cpoeEligibility(), '=', cpoeEligible));
+  }
 
-  const rows = await query.execute();
+  const rows = await query
+    .leftJoin(
+      scopedCpoe(
+        kdb,
+        query
+          .clearSelect()
+          .clearOrderBy()
+          .select('game.id as gameId')
+          .distinct(),
+      ).as('cp'),
+      (join) =>
+        join
+          .onRef('cp.gameId', '=', 'game.id')
+          .onRef('cp.playId', '=', 'pp.playId'),
+    )
+    .select(['cp.completionProbability', 'cp.modelVersion as cpoeModelVersion'])
+    .execute();
 
   return rows.map(
     (row): PassingPlay => ({
@@ -848,7 +879,21 @@ export const getPassingPlays = async (
       isSpike: row.isSpike,
       isThrowaway: row.isThrowaway,
       isIntentionalGrounding: row.isIntentionalGrounding,
-      // cpoeEligible: row.cpoeEligible,
+      cpoeEligible: row.cpoeEligible,
+      completionProbability:
+        row.completionProbability == null
+          ? null
+          : round(Number(row.completionProbability), 3) || 0,
+      cpoe:
+        row.completionProbability == null
+          ? null
+          : round(
+              100 *
+                ((row.outcome === 'completion' ? 1 : 0) -
+                  Number(row.completionProbability)),
+              2,
+            ) || 0,
+      cpoeModelVersion: row.cpoeModelVersion ?? null,
       parseStatus: row.parseStatus as PassParseStatus,
       ppa: row.ppa === null ? null : Number(row.ppa),
       success: row.success,
@@ -856,6 +901,35 @@ export const getPassingPlays = async (
     }),
   );
 };
+
+// Materialize only predictions for the distinct games surviving the original
+// filters. This prevents the current view's source fingerprint from being
+// evaluated again for every attempt in the outer query.
+const scopedCpoe = (
+  executor: Kysely<DB>,
+  games: Expression<{ gameId: number }>,
+) =>
+  executor
+    .with('cpoeGames', () => games)
+    .with(
+      (cte) => cte('cpoePredictions').materialized(),
+      (db) =>
+        db
+          .selectFrom('cpoeGames')
+          .innerJoin(
+            'passPlayCpoeCurrent as prediction',
+            'prediction.gameId',
+            'cpoeGames.gameId',
+          )
+          .select([
+            'prediction.gameId',
+            'prediction.playId',
+            'prediction.completionProbability',
+            'prediction.modelVersion',
+          ]),
+    )
+    .selectFrom('cpoePredictions')
+    .selectAll();
 
 export const getPlayerPassingBySeason = async (
   year?: number,
@@ -871,6 +945,22 @@ export const getPlayerPassingBySeason = async (
     .selectFrom('game')
     .innerJoin('drive', 'drive.gameId', 'game.id')
     .innerJoin('play', 'play.driveId', 'drive.id')
+    // Join the small candidate set before role resolution. The existing
+    // unique-role predicate still rejects ambiguous or mismatched associations.
+    .$if(passerId !== undefined, (query) => {
+      if (passerId === undefined) return query;
+      return query.innerJoin(
+        kdb
+          .selectFrom('playStat')
+          .select('playId')
+          .distinct()
+          .where('athleteId', '=', passerId)
+          .where('statTypeId', 'in', [1, 4, 20])
+          .as('passerPlays'),
+        'passerPlays.playId',
+        'play.id',
+      );
+    })
     .innerJoin('passPlay as pp', 'pp.playId', 'play.id')
     .leftJoinLateral(
       (eb) =>
@@ -975,7 +1065,23 @@ export const getPlayerPassingBySeason = async (
     query = query.where('roles.passerId', '=', passerId);
   }
 
-  const rows = await query.execute();
+  const rows = await query
+    .leftJoin(
+      scopedCpoe(
+        kdb,
+        query
+          .clearSelect()
+          .clearGroupBy()
+          .clearOrderBy()
+          .select('game.id as gameId')
+          .distinct(),
+      ).as('cp'),
+      (join) =>
+        join
+          .onRef('cp.gameId', '=', 'game.id')
+          .onRef('cp.playId', '=', 'pp.playId'),
+    )
+    .execute();
 
   return rows.map((row) => ({
     season: row.season,
@@ -987,104 +1093,145 @@ export const getPlayerPassingBySeason = async (
   }));
 };
 
-const buildPlayerPassingGameQuery = (executor: Kysely<DB>, year?: number) => {
-  return executor
-    .selectFrom('game')
-    .innerJoin('drive', 'drive.gameId', 'game.id')
-    .innerJoin('play', 'play.driveId', 'drive.id')
-    .innerJoin('passPlay as pp', 'pp.playId', 'play.id')
-    .leftJoinLateral(
-      (eb) =>
-        eb
-          .selectFrom('playStat as ps')
-          .select((roleEb) => {
-            const passerStat = roleEb.or([
-              roleEb.and([
-                roleEb('pp.outcome', '=', 'completion'),
-                roleEb('ps.statTypeId', '=', 4),
-              ]),
-              roleEb.and([
-                roleEb('pp.outcome', '=', 'incompletion'),
-                roleEb('ps.statTypeId', '=', 1),
-              ]),
-              roleEb.and([
-                roleEb('pp.outcome', '=', 'interception'),
-                roleEb('ps.statTypeId', '=', 20),
-              ]),
-            ]);
-            const passerCount = roleEb.fn
-              .count<number | string>('ps.athleteId')
-              .distinct()
-              .filterWhere(passerStat);
+const buildPlayerPassingGameQuery = (
+  executor: Kysely<DB>,
+  year?: number,
+  passerId?: string,
+) => {
+  return (
+    executor
+      .selectFrom('game')
+      .innerJoin('drive', 'drive.gameId', 'game.id')
+      .innerJoin('play', 'play.driveId', 'drive.id')
+      // Join the small candidate set before role resolution. The existing
+      // unique-role predicate still rejects ambiguous or mismatched associations.
+      .$if(passerId !== undefined, (query) => {
+        if (passerId === undefined) return query;
+        return query.innerJoin(
+          executor
+            .selectFrom('playStat')
+            .select('playId')
+            .distinct()
+            .where('athleteId', '=', passerId)
+            .where('statTypeId', 'in', [1, 4, 20])
+            .as('passerPlays'),
+          'passerPlays.playId',
+          'play.id',
+        );
+      })
+      .innerJoin('passPlay as pp', 'pp.playId', 'play.id')
+      .leftJoinLateral(
+        (eb) =>
+          eb
+            .selectFrom('playStat as ps')
+            .select((roleEb) => {
+              const passerStat = roleEb.or([
+                roleEb.and([
+                  roleEb('pp.outcome', '=', 'completion'),
+                  roleEb('ps.statTypeId', '=', 4),
+                ]),
+                roleEb.and([
+                  roleEb('pp.outcome', '=', 'incompletion'),
+                  roleEb('ps.statTypeId', '=', 1),
+                ]),
+                roleEb.and([
+                  roleEb('pp.outcome', '=', 'interception'),
+                  roleEb('ps.statTypeId', '=', 20),
+                ]),
+              ]);
+              const passerCount = roleEb.fn
+                .count<number | string>('ps.athleteId')
+                .distinct()
+                .filterWhere(passerStat);
 
-            return roleEb
-              .case()
-              .when(roleEb(passerCount, '=', 1))
-              .then(
-                roleEb.fn.min<string>('ps.athleteId').filterWhere(passerStat),
-              )
-              .end()
-              .as('passerId');
-          })
-          .whereRef('ps.playId', '=', 'pp.playId')
-          .as('roles'),
-      (join) => join.onTrue(),
-    )
-    .innerJoin('athlete as passer', 'roles.passerId', 'passer.id')
-    .innerJoin('team as offenseTeam', 'play.offenseId', 'offenseTeam.id')
-    .leftJoin('conferenceTeam as offenseCt', (join) =>
-      join
-        .onRef('offenseTeam.id', '=', 'offenseCt.teamId')
-        .on((eb) =>
-          eb('offenseCt.startYear', '<=', year ?? eb.ref('game.season')),
-        )
-        .on((eb) =>
-          eb.or([
-            eb('offenseCt.endYear', '>=', year ?? eb.ref('game.season')),
-            eb('offenseCt.endYear', 'is', null),
-          ]),
-        ),
-    )
-    .leftJoin('conference as offenseConference', (join) =>
-      join.onRef('offenseCt.conferenceId', '=', 'offenseConference.id'),
-    )
-    .innerJoin('team as defenseTeam', 'play.defenseId', 'defenseTeam.id')
-    .select([
-      'game.id as gameId',
-      'game.season',
-      'game.week',
-      'game.seasonType',
-      'passer.id as playerId',
-      'passer.name as player',
-      'offenseTeam.school as team',
-      'offenseConference.abbreviation as conference',
-      'defenseTeam.school as opponent',
-    ])
-    .select(aggregateSelections())
-    .groupBy([
-      'game.id',
-      'game.season',
-      'game.week',
-      'game.seasonType',
-      'passer.id',
-      'passer.name',
-      'offenseTeam.school',
-      'offenseConference.abbreviation',
-      'defenseTeam.school',
-    ])
-    .orderBy('game.season', 'desc')
-    .orderBy('game.week')
-    .orderBy('game.id')
-    .orderBy('offenseTeam.school')
-    .orderBy('passer.name');
+              return roleEb
+                .case()
+                .when(roleEb(passerCount, '=', 1))
+                .then(
+                  roleEb.fn.min<string>('ps.athleteId').filterWhere(passerStat),
+                )
+                .end()
+                .as('passerId');
+            })
+            .whereRef('ps.playId', '=', 'pp.playId')
+            .as('roles'),
+        (join) => join.onTrue(),
+      )
+      .innerJoin('athlete as passer', 'roles.passerId', 'passer.id')
+      .innerJoin('team as offenseTeam', 'play.offenseId', 'offenseTeam.id')
+      .leftJoin('conferenceTeam as offenseCt', (join) =>
+        join
+          .onRef('offenseTeam.id', '=', 'offenseCt.teamId')
+          .on((eb) =>
+            eb('offenseCt.startYear', '<=', year ?? eb.ref('game.season')),
+          )
+          .on((eb) =>
+            eb.or([
+              eb('offenseCt.endYear', '>=', year ?? eb.ref('game.season')),
+              eb('offenseCt.endYear', 'is', null),
+            ]),
+          ),
+      )
+      .leftJoin('conference as offenseConference', (join) =>
+        join.onRef('offenseCt.conferenceId', '=', 'offenseConference.id'),
+      )
+      .innerJoin('team as defenseTeam', 'play.defenseId', 'defenseTeam.id')
+      .select([
+        'game.id as gameId',
+        'game.season',
+        'game.week',
+        'game.seasonType',
+        'passer.id as playerId',
+        'passer.name as player',
+        'offenseTeam.school as team',
+        'offenseConference.abbreviation as conference',
+        'defenseTeam.school as opponent',
+      ])
+      .select(aggregateSelections())
+      .groupBy([
+        'game.id',
+        'game.season',
+        'game.week',
+        'game.seasonType',
+        'passer.id',
+        'passer.name',
+        'offenseTeam.school',
+        'offenseConference.abbreviation',
+        'defenseTeam.school',
+      ])
+      .orderBy('game.season', 'desc')
+      .orderBy('game.week')
+      .orderBy('game.id')
+      .orderBy('offenseTeam.school')
+      .orderBy('passer.name')
+  );
 };
 
 export const getPlayerPassingForGame = async (
   executor: Kysely<DB>,
   gameId: number,
-): Promise<PlayerPassingGame[]> => {
-  const rows = await buildPlayerPassingGameQuery(executor)
-    .where('game.id', '=', gameId)
+): Promise<SnapshotPlayerPassingGame[]> => {
+  const query = buildPlayerPassingGameQuery(executor).where(
+    'game.id',
+    '=',
+    gameId,
+  );
+  const rows = await query
+    .leftJoin(
+      scopedCpoe(
+        executor,
+        query
+          .clearSelect()
+          .clearGroupBy()
+          .clearOrderBy()
+          .select('game.id as gameId')
+          .distinct(),
+      ).as('cp'),
+      (join) =>
+        join
+          .onRef('cp.gameId', '=', 'game.id')
+          .onRef('cp.playId', '=', 'pp.playId'),
+    )
     .execute();
   return rows.map((row) => ({
     gameId: row.gameId,
@@ -1096,7 +1243,7 @@ export const getPlayerPassingForGame = async (
     team: row.team,
     conference: row.conference,
     opponent: row.opponent,
-    ...mapProduction(row),
+    ...mapSnapshotProduction(row),
   }));
 };
 
@@ -1111,7 +1258,7 @@ export const getPlayerPassingByGame = async (
 ): Promise<PlayerPassingGame[]> => {
   validatePlayerPassingGameScope(year, week, team, passerId);
 
-  let query = buildPlayerPassingGameQuery(kdb, year).where(
+  let query = buildPlayerPassingGameQuery(kdb, year, passerId).where(
     'offenseConference.division',
     '=',
     classification,
@@ -1148,7 +1295,23 @@ export const getPlayerPassingByGame = async (
     query = query.where('roles.passerId', '=', passerId);
   }
 
-  const rows = await query.execute();
+  const rows = await query
+    .leftJoin(
+      scopedCpoe(
+        kdb,
+        query
+          .clearSelect()
+          .clearGroupBy()
+          .clearOrderBy()
+          .select('game.id as gameId')
+          .distinct(),
+      ).as('cp'),
+      (join) =>
+        join
+          .onRef('cp.gameId', '=', 'game.id')
+          .onRef('cp.playId', '=', 'pp.playId'),
+    )
+    .execute();
 
   return rows.map((row) => ({
     gameId: row.gameId,
@@ -1246,7 +1409,23 @@ export const getTeamPassingBySeason = async (
     );
   }
 
-  const rows = await query.execute();
+  const rows = await query
+    .leftJoin(
+      scopedCpoe(
+        kdb,
+        query
+          .clearSelect()
+          .clearGroupBy()
+          .clearOrderBy()
+          .select('game.id as gameId')
+          .distinct(),
+      ).as('cp'),
+      (join) =>
+        join
+          .onRef('cp.gameId', '=', 'game.id')
+          .onRef('cp.playId', '=', 'pp.playId'),
+    )
+    .execute();
 
   return rows.map((row) => ({
     season: row.season,
@@ -1325,9 +1504,28 @@ const buildTeamPassingGameQuery = (executor: Kysely<DB>, year?: number) => {
 export const getTeamPassingForGame = async (
   executor: Kysely<DB>,
   gameId: number,
-): Promise<TeamPassingGame[]> => {
-  const rows = await buildTeamPassingGameQuery(executor)
-    .where('game.id', '=', gameId)
+): Promise<SnapshotTeamPassingGame[]> => {
+  const query = buildTeamPassingGameQuery(executor).where(
+    'game.id',
+    '=',
+    gameId,
+  );
+  const rows = await query
+    .leftJoin(
+      scopedCpoe(
+        executor,
+        query
+          .clearSelect()
+          .clearGroupBy()
+          .clearOrderBy()
+          .select('game.id as gameId')
+          .distinct(),
+      ).as('cp'),
+      (join) =>
+        join
+          .onRef('cp.gameId', '=', 'game.id')
+          .onRef('cp.playId', '=', 'pp.playId'),
+    )
     .execute();
   return rows.map((row) => ({
     gameId: row.gameId,
@@ -1337,8 +1535,8 @@ export const getTeamPassingForGame = async (
     team: row.team,
     conference: row.conference,
     opponent: row.opponent,
-    offense: mapProduction(row, 'offense'),
-    defense: mapProduction(row, 'defense'),
+    offense: mapSnapshotProduction(row, 'offense'),
+    defense: mapSnapshotProduction(row, 'defense'),
   }));
 };
 
@@ -1386,7 +1584,23 @@ export const getTeamPassingByGame = async (
     );
   }
 
-  const rows = await query.execute();
+  const rows = await query
+    .leftJoin(
+      scopedCpoe(
+        kdb,
+        query
+          .clearSelect()
+          .clearGroupBy()
+          .clearOrderBy()
+          .select('game.id as gameId')
+          .distinct(),
+      ).as('cp'),
+      (join) =>
+        join
+          .onRef('cp.gameId', '=', 'game.id')
+          .onRef('cp.playId', '=', 'pp.playId'),
+    )
+    .execute();
 
   return rows.map((row) => ({
     gameId: row.gameId,
