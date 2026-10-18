@@ -22,8 +22,8 @@ Last reviewed: 2026-07-18
 - [Punting](../src/app/punting/README.md): generated core sync, read model,
   and the read-only benchmark.
 
-- [CPOE snapshot fields](references/cpoe-snapshots.md): scored-subset semantics,
-  legacy payload compatibility, and selected-model checks.
+- [CPOE response contract](references/cpoe-snapshots.md): public fields,
+  scored-subset semantics, and selected-model checks on stored snapshots.
 
 ## Task Routing
 

@@ -1,16 +1,19 @@
-import { SnapshotPassingProduction } from '../passing/types';
-import { currentSnapshotCpoe } from './cpoe';
-import { SnapshotPayload } from './wire';
+import { PassingProduction } from '../passing/types';
+import { currentSnapshotCpoe, StoredPassingProduction } from './cpoe';
+import { BoxScorePayload, SnapshotPayload } from './wire';
 
 export const currentTeamPassingCpoe = <
   T extends {
-    offense: SnapshotPassingProduction;
-    defense: SnapshotPassingProduction;
+    offense: StoredPassingProduction;
+    defense: StoredPassingProduction;
   },
 >(
   row: T,
   version: string | null | undefined,
-): T => ({
+): Omit<T, 'offense' | 'defense'> & {
+  offense: PassingProduction;
+  defense: PassingProduction;
+} => ({
   ...row,
   offense: currentSnapshotCpoe(row.offense, version),
   defense: currentSnapshotCpoe(row.defense, version),
@@ -19,7 +22,7 @@ export const currentTeamPassingCpoe = <
 export const currentBoxScoreCpoe = (
   payload: SnapshotPayload,
   version: string | null | undefined,
-): SnapshotPayload => ({
+): BoxScorePayload => ({
   teams: {
     ...payload.teams,
     passing: payload.teams.passing.map((row) =>

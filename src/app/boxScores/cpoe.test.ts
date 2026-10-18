@@ -19,25 +19,24 @@ import {
 
 jest.mock('../../config/database', () => ({ kdb: {} }));
 
-it('documents nullable metrics and optional fields for legacy snapshots in generated OpenAPI', () => {
+it('documents one required CPOE contract without stored-snapshot schemas in generated OpenAPI', () => {
   const document = JSON.parse(
     readFileSync(join(process.cwd(), 'build/swagger.json'), 'utf8'),
   );
-  for (const name of [
-    'SnapshotPassingProduction',
-    'SnapshotPlayerPassingGame',
-  ]) {
-    const schema = document.components.schemas[name];
-    for (const key of [
-      'cpoe',
-      'expectedCompletions',
-      'expectedCompletionRate',
-      'cpoeModelVersion',
-    ]) {
-      expect(schema.properties[key].nullable).toBe(true);
-      expect(schema.required).not.toContain(key);
-    }
-    expect(schema.properties.cpoeAttemptsAvailable.type).toBe('integer');
+  const schemas = document.components.schemas;
+  expect(
+    Object.keys(schemas).filter((name) => /Snapshot.*Passing/.test(name)),
+  ).toEqual([]);
+  const production = schemas.PassingProduction;
+  for (const key of ['cpoe', 'expectedCompletions', 'expectedCompletionRate']) {
+    expect(production.properties[key].nullable).toBe(true);
+    expect(production.required).toContain(key);
+  }
+  expect(production.properties.cpoeAttemptsAvailable.type).toBe('integer');
+  for (const name of ['TeamSeasonOverview', 'PreviewTeamStatistics']) {
+    expect(JSON.stringify(schemas[name].properties.passing)).toContain(
+      '#/components/schemas/TeamPassingSeason',
+    );
   }
 });
 
@@ -56,7 +55,6 @@ it('matches snapshot scored-subset math, including zero/one probabilities and mi
     expectedCompletions: 1.235,
     expectedCompletionRate: 0.412,
     cpoe: 25.51,
-    cpoeModelVersion: 'v1',
   });
   for (const expectedCompletions of [0, 1]) {
     expect(
@@ -74,9 +72,21 @@ it('matches snapshot scored-subset math, including zero/one probabilities and mi
   );
   expect(isOptionalCpoeProduction({ attempts: 20 })).toBe(true);
   expect(isOptionalCpoeProduction({ attempts: 20, cpoe: 0 })).toBe(false);
+  const projected = { attempts: 20, ...mapCpoeProduction(row) };
+  expect(isOptionalCpoeProduction(projected)).toBe(true);
   expect(
-    isOptionalCpoeProduction({ attempts: 20, ...mapCpoeProduction(row) }),
+    isOptionalCpoeProduction({ ...projected, cpoeModelVersion: 'v1' }),
   ).toBe(true);
+  expect(
+    isOptionalCpoeProduction({ ...projected, cpoeModelVersion: ' ' }),
+  ).toBe(false);
+  expect(
+    isOptionalCpoeProduction({
+      attempts: 20,
+      ...unavailableCpoe(),
+      cpoeModelVersion: 'v1',
+    }),
+  ).toBe(false);
 });
 
 it('fallback calculators use the current prediction view for team and player passing', async () => {

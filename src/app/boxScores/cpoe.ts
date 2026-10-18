@@ -1,25 +1,26 @@
 import { expressionBuilder } from 'kysely';
 
 import type { DB } from '../../config/types/db';
+import type { CpoeProduction, PassingProduction } from '../passing/types';
 
-export interface CpoeProduction {
-  /** Attempts with a current compatible probability; zero if unavailable.
-   * @isInt
-   */
-  cpoeAttemptsAvailable?: number;
-  /** Completions on that same scored subset.
-   * @isInt
-   */
-  cpoeCompletions?: number;
-  /** Sum of scored probabilities, rounded to three decimals after aggregation. */
-  expectedCompletions?: number | null;
-  /** Expected completions / scored attempts, 0–1, rounded to three decimals. */
-  expectedCompletionRate?: number | null;
-  /** Percentage points, two decimals; defense retains the offensive residual sign. */
-  cpoe?: number | null;
-  /** Selected release shared by the scored attempts; null if unavailable. */
+/**
+ * Stored snapshot form. Legacy payloads omit CPOE; the version is compared
+ * with the season's selected model on read and is never returned.
+ */
+export interface StoredCpoeProduction extends Partial<CpoeProduction> {
   cpoeModelVersion?: string | null;
 }
+
+export type StoredPassingProduction<
+  T extends CpoeProduction = PassingProduction,
+> = Omit<T, keyof CpoeProduction> & StoredCpoeProduction;
+
+export type StoredTeamPassing<
+  T extends { offense: PassingProduction; defense: PassingProduction },
+> = Omit<T, 'offense' | 'defense'> & {
+  offense: StoredPassingProduction;
+  defense: StoredPassingProduction;
+};
 
 interface Tables {
   cp: DB['passPlayCpoeCurrent'];
@@ -67,13 +68,12 @@ export const cpoeAggregateSelections = (side?: 'offense' | 'defense') => {
   ];
 };
 
-export const unavailableCpoe = (): Required<CpoeProduction> => ({
+export const unavailableCpoe = (): CpoeProduction => ({
   cpoeAttemptsAvailable: 0,
   cpoeCompletions: 0,
   expectedCompletions: null,
   expectedCompletionRate: null,
   cpoe: null,
-  cpoeModelVersion: null,
 });
 
 const round = (value: number, places: number) =>
@@ -82,7 +82,7 @@ const round = (value: number, places: number) =>
 export const mapCpoeProduction = (
   row: Record<string, string | number | null>,
   prefix = '',
-): Required<CpoeProduction> => {
+): CpoeProduction => {
   const get = (name: string) => row[field(prefix, name)];
   const attempts = Number(get('cpoeAttemptsAvailable') ?? 0);
   const completions = Number(get('cpoeCompletions') ?? 0);
@@ -112,15 +112,18 @@ export const mapCpoeProduction = (
     expectedCompletions: round(expected, 3),
     expectedCompletionRate: round(expected / attempts, 3),
     cpoe: round((100 * (completions - expected)) / attempts, 2),
-    cpoeModelVersion: version,
   };
 };
 
-/** Old format-1 payloads may omit the entire additive projection. */
+/**
+ * Old format-1 payloads may omit the entire additive projection. Projected
+ * (cached) values omit the version, so it is validated only when present.
+ */
 export const isOptionalCpoeProduction = (
   value: Record<string, unknown>,
 ): boolean => {
   const keys = Object.keys(unavailableCpoe());
+  const version = value.cpoeModelVersion;
   if (keys.every((key) => value[key] === undefined)) return true;
   const n = value.cpoeAttemptsAvailable;
   const c = value.cpoeCompletions;
@@ -137,8 +140,11 @@ export const isOptionalCpoeProduction = (
   )
     return false;
   if (n === 0)
-    return keys.every(
-      (key) => value[key] === unavailableCpoe()[key as keyof CpoeProduction],
+    return (
+      version == null &&
+      keys.every(
+        (key) => value[key] === unavailableCpoe()[key as keyof CpoeProduction],
+      )
     );
   return (
     typeof value.expectedCompletions === 'number' &&
@@ -152,25 +158,26 @@ export const isOptionalCpoeProduction = (
     typeof value.cpoe === 'number' &&
     Number.isFinite(value.cpoe) &&
     Math.abs(value.cpoe) <= 100 &&
-    typeof value.cpoeModelVersion === 'string' &&
-    !!value.cpoeModelVersion.trim()
+    (version === undefined || (typeof version === 'string' && !!version.trim()))
   );
 };
 
 /** Suppress a stored projection after withdrawal/replacement, without hiding base stats. */
-export const currentSnapshotCpoe = <T extends Partial<CpoeProduction>>(
+export const currentSnapshotCpoe = <T extends StoredCpoeProduction>(
   value: T,
   selectedVersion: string | null | undefined,
-): T & Required<CpoeProduction> => ({
-  ...value,
-  ...(selectedVersion && value.cpoeModelVersion === selectedVersion
-    ? {
-        cpoeAttemptsAvailable: value.cpoeAttemptsAvailable ?? 0,
-        cpoeCompletions: value.cpoeCompletions ?? 0,
-        expectedCompletions: value.expectedCompletions ?? null,
-        expectedCompletionRate: value.expectedCompletionRate ?? null,
-        cpoe: value.cpoe ?? null,
-        cpoeModelVersion: value.cpoeModelVersion ?? null,
-      }
-    : unavailableCpoe()),
-});
+): Omit<T, 'cpoeModelVersion'> & CpoeProduction => {
+  const { cpoeModelVersion, ...rest } = value;
+  return {
+    ...rest,
+    ...(selectedVersion && cpoeModelVersion === selectedVersion
+      ? {
+          cpoeAttemptsAvailable: value.cpoeAttemptsAvailable ?? 0,
+          cpoeCompletions: value.cpoeCompletions ?? 0,
+          expectedCompletions: value.expectedCompletions ?? null,
+          expectedCompletionRate: value.expectedCompletionRate ?? null,
+          cpoe: value.cpoe ?? null,
+        }
+      : unavailableCpoe()),
+  };
+};

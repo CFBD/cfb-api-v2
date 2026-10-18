@@ -1,6 +1,6 @@
 import {
+  StoredTeamSeasonSnapshotPayload,
   TeamSeasonAdvancedStats,
-  TeamSeasonSnapshotPayload,
 } from './seasonOverviewTypes';
 import {
   isPassingProduction,
@@ -95,7 +95,7 @@ export const isTeamSeasonSnapshotPayload = (
   value: unknown,
   season: number,
   team: string,
-): value is TeamSeasonSnapshotPayload =>
+): value is StoredTeamSeasonSnapshotPayload =>
   object(value) &&
   isSeasonAdvanced(value.advanced, season, team) &&
   object(value.players) &&

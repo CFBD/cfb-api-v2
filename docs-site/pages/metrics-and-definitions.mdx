@@ -105,6 +105,23 @@ The share of rushing attempts stopped at or behind the line of scrimmage.
 The share of short-yardage runs needing two or fewer yards that meet the
 success definition.
 
+## Passing
+
+### Completion probability
+
+CFBD's estimate of the chance that a pass attempt is completed, from 0 to 1.
+Probabilities cover FBS-vs-FBS games and exclude spikes, throwaways,
+intentional grounding, and attempts without air yards. Expected completions is
+the sum of these probabilities.
+
+### Completion Percentage Over Expected (CPOE)
+
+Completion rate minus expected completion rate, in percentage points rather
+than a decimal: `2.5` means 2.5 points above expected. Both rates use only
+attempts with a completion probability (`cpoeAttemptsAvailable`), which can be
+fewer than total attempts. Defensive CPOE describes opponents' passing, so
+lower values are better.
+
 ## Punting
 
 ### Gross and net punt yards
@@ -166,18 +183,3 @@ probabilities, model changes can affect comparisons across eras.
 
 See [Win probability methodology](./win-probability) for the three distinct
 models and their coverage.
-
-## Passing completion probability and CPOE
-
-### Completion probability
-
-The model's estimated chance that a pass will be completed, returned as a
-value from 0 to 1. Expected completions sum these probabilities; expected
-completion rate is their average across scored attempts.
-
-### Completion Percentage Over Expected (CPOE)
-
-Actual completion rate minus expected completion rate, expressed in percentage
-points and calculated over the same scored attempts. Positive values mean
-more completions than expected; negative values mean fewer. Defensive CPOE
-describes opponents' passing, so lower values are better.

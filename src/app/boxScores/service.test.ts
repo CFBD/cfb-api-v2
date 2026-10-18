@@ -67,12 +67,13 @@ it.each(['accepted-v1', 'replacement-v2', null])(
       cpoeVersions: 1,
       cpoeModelVersion: 'accepted-v1',
     });
+    const storedCpoe = { ...scored, cpoeModelVersion: 'accepted-v1' };
     const stored = structuredClone(payload);
     for (const row of stored.teams.passing) {
-      Object.assign(row.offense, scored);
-      Object.assign(row.defense, scored);
+      Object.assign(row.offense, storedCpoe);
+      Object.assign(row.defense, storedCpoe);
     }
-    for (const row of stored.players.passing) Object.assign(row, scored);
+    for (const row of stored.players.passing) Object.assign(row, storedCpoe);
     snapshotExecute.mockResolvedValue([
       {
         ...metadata,
@@ -89,9 +90,13 @@ it.each(['accepted-v1', 'replacement-v2', null])(
     for (const row of result.teams.passing) {
       expect(row.offense).toMatchObject(expected);
       expect(row.defense).toMatchObject(expected);
+      expect(row.offense).not.toHaveProperty('cpoeModelVersion');
+      expect(row.defense).not.toHaveProperty('cpoeModelVersion');
     }
-    for (const row of result.players.passing)
+    for (const row of result.players.passing) {
       expect(row).toMatchObject(expected);
+      expect(row).not.toHaveProperty('cpoeModelVersion');
+    }
     expect(stored.teams.passing[0].offense.cpoe).toBe(25.51);
     expect(calculatePayload).not.toHaveBeenCalled();
   },
@@ -109,7 +114,9 @@ beforeEach(() => {
     }),
   );
   canonicalExecute.mockResolvedValue([metadata]);
-  jest.mocked(calculatePayload).mockResolvedValue(payload);
+  jest
+    .mocked(calculatePayload)
+    .mockResolvedValue(currentBoxScoreCpoe(payload, null));
   (kdb.transaction as jest.Mock).mockReturnValue(transaction);
   transaction.setIsolationLevel.mockReturnValue(transaction);
   transaction.setAccessMode.mockReturnValue(transaction);
@@ -140,7 +147,9 @@ it.each([
     snapshotExecute.mockResolvedValue([
       { ...metadata, formatVersion, payload: value },
     ]);
-    expect((await getAdvancedBoxScore(1)).teams).toEqual(payload.teams);
+    expect((await getAdvancedBoxScore(1)).teams).toEqual(
+      currentBoxScoreCpoe(payload, null).teams,
+    );
     expect(transaction.setIsolationLevel).toHaveBeenCalledWith(
       'repeatable read',
     );

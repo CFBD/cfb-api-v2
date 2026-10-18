@@ -22,9 +22,6 @@ import {
   PassingAdvancedProduction,
   PassingLocationProduction,
   PassingProduction,
-  SnapshotPassingProduction,
-  SnapshotPlayerPassingGame,
-  SnapshotTeamPassingGame,
   PlayerPassingGame,
   PlayerPassingSeason,
   TeamPassingGame,
@@ -208,20 +205,6 @@ type AggregateCondition = Expression<SqlBool>;
 type AggregateSelection = AliasedExpression<number | string | null, string>;
 type AggregateSide = 'offense' | 'defense';
 
-const cpoeEligibility = () => {
-  const eb = expressionBuilder<
-    PassingAggregateTables,
-    keyof PassingAggregateTables
-  >();
-  return eb.and([
-    eb('pp.parseStatus', '=', 'complete'),
-    eb('pp.airYards', 'is not', null),
-    eb('pp.isSpike', '=', false),
-    eb('pp.isThrowaway', '=', false),
-    eb('pp.isIntentionalGrounding', '=', false),
-  ]);
-};
-
 const aggregateSelections = (side?: AggregateSide): AggregateSelection[] => {
   const eb = expressionBuilder<
     PassingAggregateTables,
@@ -355,9 +338,6 @@ const aggregateSelections = (side?: AggregateSide): AggregateSelection[] => {
   return [
     ...production(sideConditions, prefix),
     ...cpoeAggregateSelections(side),
-    count([...sideConditions, cpoeEligibility()]).as(
-      fieldName(prefix, 'cpoeEligibleAttempts'),
-    ),
     ...advanced(eligibleConditions, prefix),
     count(eligibleConditions).as(fieldName(prefix, 'locationEligibleAttempts')),
     count([...eligibleConditions, knownLocation]).as(
@@ -499,10 +479,6 @@ const mapLocationProduction = (
 const mapProduction = (row: AggregateRow, prefix = ''): PassingProduction => ({
   ...mapBaseProduction(row, prefix),
   ...mapCpoeProduction(row, prefix),
-  cpoeEligibleAttempts: numericValue(
-    row,
-    fieldName(prefix, 'cpoeEligibleAttempts'),
-  ),
   ...mapAdvancedProduction(row, prefix),
   locationEligibleAttempts: numericValue(
     row,
@@ -523,18 +499,6 @@ const mapProduction = (row: AggregateRow, prefix = ''): PassingProduction => ({
   },
 });
 
-const mapSnapshotProduction = (
-  row: AggregateRow,
-  prefix = '',
-): SnapshotPassingProduction => {
-  const { cpoeEligibleAttempts: _eligible, ...production } = mapProduction(
-    row,
-    prefix,
-  );
-  void _eligible;
-  return production;
-};
-
 export const getPassingPlays = async (
   gameId?: number,
   year?: number,
@@ -548,7 +512,6 @@ export const getPassingPlays = async (
   targetId?: string,
   outcome?: PassOutcome,
   classification: DivisionClassification = DivisionClassification.FBS,
-  cpoeEligible?: boolean,
 ): Promise<PassingPlay[]> => {
   validatePassingTeamWeekScope(year, week, team);
 
@@ -741,7 +704,6 @@ export const getPassingPlays = async (
       'pp.isSpike',
       'pp.isThrowaway',
       'pp.isIntentionalGrounding',
-      eb.cast<boolean>(cpoeEligibility(), 'boolean').as('cpoeEligible'),
       'pp.parseStatus',
       'play.ppa',
       'play.success',
@@ -818,9 +780,6 @@ export const getPassingPlays = async (
   if (outcome !== undefined) {
     query = query.where('pp.outcome', '=', outcome);
   }
-  if (cpoeEligible !== undefined) {
-    query = query.where((eb) => eb(cpoeEligibility(), '=', cpoeEligible));
-  }
 
   const rows = await query
     .leftJoin(
@@ -837,7 +796,7 @@ export const getPassingPlays = async (
           .onRef('cp.gameId', '=', 'game.id')
           .onRef('cp.playId', '=', 'pp.playId'),
     )
-    .select(['cp.completionProbability', 'cp.modelVersion as cpoeModelVersion'])
+    .select('cp.completionProbability')
     .execute();
 
   return rows.map(
@@ -879,7 +838,6 @@ export const getPassingPlays = async (
       isSpike: row.isSpike,
       isThrowaway: row.isThrowaway,
       isIntentionalGrounding: row.isIntentionalGrounding,
-      cpoeEligible: row.cpoeEligible,
       completionProbability:
         row.completionProbability == null
           ? null
@@ -893,7 +851,6 @@ export const getPassingPlays = async (
                   Number(row.completionProbability)),
               2,
             ) || 0,
-      cpoeModelVersion: row.cpoeModelVersion ?? null,
       parseStatus: row.parseStatus as PassParseStatus,
       ppa: row.ppa === null ? null : Number(row.ppa),
       success: row.success,
@@ -1210,7 +1167,7 @@ const buildPlayerPassingGameQuery = (
 export const getPlayerPassingForGame = async (
   executor: Kysely<DB>,
   gameId: number,
-): Promise<SnapshotPlayerPassingGame[]> => {
+): Promise<PlayerPassingGame[]> => {
   const query = buildPlayerPassingGameQuery(executor).where(
     'game.id',
     '=',
@@ -1243,7 +1200,7 @@ export const getPlayerPassingForGame = async (
     team: row.team,
     conference: row.conference,
     opponent: row.opponent,
-    ...mapSnapshotProduction(row),
+    ...mapProduction(row),
   }));
 };
 
@@ -1504,7 +1461,7 @@ const buildTeamPassingGameQuery = (executor: Kysely<DB>, year?: number) => {
 export const getTeamPassingForGame = async (
   executor: Kysely<DB>,
   gameId: number,
-): Promise<SnapshotTeamPassingGame[]> => {
+): Promise<TeamPassingGame[]> => {
   const query = buildTeamPassingGameQuery(executor).where(
     'game.id',
     '=',
@@ -1535,8 +1492,8 @@ export const getTeamPassingForGame = async (
     team: row.team,
     conference: row.conference,
     opponent: row.opponent,
-    offense: mapSnapshotProduction(row, 'offense'),
-    defense: mapSnapshotProduction(row, 'defense'),
+    offense: mapProduction(row, 'offense'),
+    defense: mapProduction(row, 'defense'),
   }));
 };
 

@@ -17,7 +17,7 @@ import {
 import {
   finite,
   legacyFloat,
-  SnapshotPayload,
+  BoxScorePayload,
   UnsupportedBoxScoreError,
 } from './wire';
 
@@ -30,7 +30,7 @@ const otherTeam = (teams: string[], team: string): string => {
 export const calculatePayload = async (
   db: Kysely<DB>,
   id: number,
-): Promise<SnapshotPayload> => {
+): Promise<BoxScorePayload> => {
   const teamResults = await teamQuery(db, id).execute();
   if (
     !teamResults.some((t) => t.homeAway === 'home') ||

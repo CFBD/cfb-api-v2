@@ -1,4 +1,3 @@
-import { CpoeProduction } from '../boxScores/cpoe';
 import { SeasonType } from '../enums';
 
 export type PassOutcome = 'completion' | 'incompletion' | 'interception';
@@ -73,14 +72,10 @@ export interface PassingPlay {
   isSpike: boolean;
   isThrowaway: boolean;
   isIntentionalGrounding: boolean;
-  /** Source eligibility; does not guarantee a current model prediction. */
-  cpoeEligible: boolean;
-  /** Current completion probability, 0–1, rounded to three decimals. */
+  /** Estimated chance of a completion, from 0 to 1; null if unavailable. */
   completionProbability: number | null;
-  /** Actual minus expected completion, in percentage points, two decimals. */
+  /** Completion over expected, in percentage points; null if unavailable. */
   cpoe: number | null;
-  /** Selected release for this prediction; null when unavailable. */
-  cpoeModelVersion: string | null;
   parseStatus: PassParseStatus;
   /** Stored offensive PPA, including zero and negative values. */
   ppa: number | null;
@@ -186,31 +181,30 @@ export interface PassingLocations {
   unknown: PassingLocationProduction;
 }
 
-/** Defense reports opponent production allowed without inverting PPA signs. */
+export interface CpoeProduction {
+  /**
+   * Attempts with a completion probability; denominator for CPOE metrics.
+   * @isInt
+   */
+  cpoeAttemptsAvailable: number;
+  /**
+   * Completions among attempts with a completion probability.
+   * @isInt
+   */
+  cpoeCompletions: number;
+  /** Sum of completion probabilities; null if unavailable. */
+  expectedCompletions: number | null;
+  /** Expected completions / cpoeAttemptsAvailable; null if unavailable. */
+  expectedCompletionRate: number | null;
+  /** Completion percentage over expected, in percentage points; null if unavailable. */
+  cpoe: number | null;
+}
+
+/** Defense reports opponent production allowed without inverting PPA or CPOE signs. */
 export interface PassingProduction
   extends PassingBaseProduction,
     PassingAdvancedProduction,
     CpoeProduction {
-  /** Attempts with a current compatible probability; zero if unavailable.
-   * @isInt
-   */
-  cpoeAttemptsAvailable: number;
-  /** Completions on exactly the scored subset.
-   * @isInt
-   */
-  cpoeCompletions: number;
-  /** Sum of scored probabilities, rounded to three decimals. */
-  expectedCompletions: number | null;
-  /** Expected completions / scored attempts, 0–1, three decimals. */
-  expectedCompletionRate: number | null;
-  /** Percentage points, two decimals; defense retains the offensive sign. */
-  cpoe: number | null;
-  /** Selected release for the scored subset; null if unavailable. */
-  cpoeModelVersion: string | null;
-  /** Source-eligible attempts, independent of model coverage.
-   * @isInt
-   */
-  cpoeEligibleAttempts: number;
   /**
    * Attempts eligible for advanced metrics and location analysis. Existing
    * overall production includes ineligible attempts; location buckets do not.
@@ -272,28 +266,4 @@ export interface TeamPassingGame {
   opponent: string;
   offense: PassingProduction;
   defense: PassingProduction;
-}
-
-/** Legacy snapshots may omit CPOE; source eligibility is standalone-only. */
-export interface SnapshotPassingProduction
-  extends Omit<
-      PassingProduction,
-      keyof CpoeProduction | 'cpoeEligibleAttempts'
-    >,
-    CpoeProduction {}
-
-export interface SnapshotPlayerPassingGame
-  extends Omit<PlayerPassingGame, keyof PassingProduction>,
-    SnapshotPassingProduction {}
-
-export interface SnapshotTeamPassingGame
-  extends Omit<TeamPassingGame, 'offense' | 'defense'> {
-  offense: SnapshotPassingProduction;
-  defense: SnapshotPassingProduction;
-}
-
-export interface SnapshotTeamPassingSeason
-  extends Omit<TeamPassingSeason, 'offense' | 'defense'> {
-  offense: SnapshotPassingProduction;
-  defense: SnapshotPassingProduction;
 }

@@ -10,7 +10,6 @@ import {
   PostgresQueryCompiler,
 } from 'kysely';
 import { ValidateError } from 'tsoa';
-import { PassingController } from './controller';
 
 import { kdb } from '../../config/database';
 import { DB } from '../../config/types/db';
@@ -137,7 +136,6 @@ const emptyLocation = {
   airYardsPerAttempt: null,
 };
 const emptyAggregateRow = {
-  cpoeEligibleAttempts: 0,
   ...emptyBaseRow,
   ...emptyAdvanced,
   locationEligibleAttempts: 0,
@@ -186,9 +184,7 @@ const passingPlayRow = {
   isSpike: false,
   isThrowaway: false,
   isIntentionalGrounding: false,
-  cpoeEligible: true,
   completionProbability: null,
-  cpoeModelVersion: null,
   parseStatus: 'complete',
   ppa: '1.23456',
   success: true,
@@ -201,7 +197,6 @@ const productionRow = {
   completions: '2',
   incompletions: '1',
   interceptions: '1',
-  cpoeEligibleAttempts: '3',
   airYardsAttemptsAvailable: '3',
   totalAirYards: '20',
   averageDepthOfTarget: '6.6667',
@@ -309,9 +304,7 @@ describe('getPassingPlays', () => {
         isSpike: false,
         isThrowaway: false,
         isIntentionalGrounding: false,
-        cpoeEligible: true,
         completionProbability: null,
-        cpoeModelVersion: null,
         cpoe: null,
         parseStatus: 'complete',
         ppa: 1.23456,
@@ -620,7 +613,6 @@ describe('player passing aggregates', () => {
         incompletions: 1,
         interceptions: 1,
         completionRate: 0.5,
-        cpoeEligibleAttempts: 3,
         airYardsAttemptsAvailable: 3,
         totalAirYards: 20,
         averageDepthOfTarget: 6.7,
@@ -932,7 +924,6 @@ describe('team passing aggregates', () => {
       incompletions: 1,
       interceptions: 1,
       completionRate: 0.5,
-      cpoeEligibleAttempts: 3,
       airYardsAttemptsAvailable: 3,
       totalAirYards: -2,
       averageDepthOfTarget: -0.7,
@@ -948,7 +939,6 @@ describe('team passing aggregates', () => {
       incompletions: 0,
       interceptions: 0,
       completionRate: null,
-      cpoeEligibleAttempts: 0,
       airYardsAttemptsAvailable: 0,
       totalAirYards: null,
       averageDepthOfTarget: null,
@@ -1096,13 +1086,11 @@ describe('passing advanced metrics and location mapping', () => {
       expect(result.defense).toEqual({
         ...emptyBaseRow,
         ...emptyAdvanced,
-        cpoeEligibleAttempts: 0,
         cpoeAttemptsAvailable: 0,
         cpoeCompletions: 0,
         expectedCompletions: null,
         expectedCompletionRate: null,
         cpoe: null,
-        cpoeModelVersion: null,
         completionRate: null,
         locationEligibleAttempts: 0,
         locationAvailableAttempts: 0,
@@ -1147,8 +1135,8 @@ describe('passing advanced metrics and location mapping', () => {
     expect(sql).toContain('not case when');
     expect(sql).toContain('"pp"."pass_depth" in');
     expect(sql).toContain('"pp"."pass_direction" in');
-    // Throwaway exclusion applies only to the two CPOE eligibility counts.
-    expect(sql.match(/"pp"\."is_throwaway"/g)).toHaveLength(2);
+    // Throwaways remain eligible for advanced and location metrics.
+    expect(sql).not.toContain('"pp"."is_throwaway"');
     expect(sql).toContain('"pp"."is_spike" =');
     expect(sql).toContain('"pp"."is_intentional_grounding" =');
     expect(sql).toContain('"pp"."parse_status" <>');
@@ -1196,57 +1184,35 @@ describe('standalone CPOE contract', () => {
             targetId: null,
             passerId: null,
             completionProbability: p,
-            cpoeModelVersion: p === null ? null : 'test-v2',
           },
         ]),
       );
       const [result] = await getPassingPlays(undefined, 2026, 1);
       expect(result).toMatchObject({
         outcome,
-        cpoeEligible: true,
         completionProbability: probability,
         cpoe,
-        cpoeModelVersion: p === null ? null : 'test-v2',
         targetId: null,
         passerId: null,
       });
       expect(Object.is(result.cpoe, -0)).toBe(false);
+      expect(result).not.toHaveProperty('cpoeEligible');
+      expect(result).not.toHaveProperty('cpoeModelVersion');
     },
   );
 
-  test.each([true, false, undefined])(
-    'forwards and compiles source eligibility=%s',
-    async (eligible) => {
-      const queries: CompiledQuery<unknown>[] = [];
-      const db = createCompileDatabase(queries);
-      selectFrom.mockImplementation(db.selectFrom.bind(db));
-      await new PassingController().getPassingPlays(
-        2026,
-        undefined,
-        1,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        eligible,
-      );
-      expect(queries).toHaveLength(1);
-      const { sql, parameters } = queries[0];
-      expect(sql.match(/"pp"\."is_throwaway"/g)).toHaveLength(
-        eligible === undefined ? 2 : 4,
-      );
-      if (eligible !== undefined) expect(parameters.at(-1)).toBe(eligible);
-      expect(sql).toContain('"pp"."air_yards" is not null');
-      expect(sql).toContain('as "cpoe_eligible"');
-      expect(sql).not.toContain('"cp"."play_id" is not null');
-      await db.destroy();
-    },
-  );
+  test('plays query selects only the completion probability from predictions', async () => {
+    const queries: CompiledQuery<unknown>[] = [];
+    const db = createCompileDatabase(queries);
+    selectFrom.mockImplementation(db.selectFrom.bind(db));
+    await getPassingPlays(undefined, 2026, 1);
+    expect(queries).toHaveLength(1);
+    const { sql } = queries[0];
+    expect(sql).toContain('"cp"."completion_probability"');
+    expect(sql).not.toContain('as "cpoe_eligible"');
+    expect(sql).not.toContain('as "cpoe_model_version"');
+    await db.destroy();
+  });
 
   const handlers = [
     {
@@ -1273,7 +1239,6 @@ describe('standalone CPOE contract', () => {
         ...productionRow,
         attempts: '5',
         completions: '3',
-        cpoeEligibleAttempts: '4',
         cpoeAttemptsAvailable: '3',
         cpoeCompletions: '2',
         expectedCompletions: '1.8',
@@ -1298,28 +1263,26 @@ describe('standalone CPOE contract', () => {
           attempts: 5,
           completions: 3,
           completionRate: 0.6,
-          cpoeEligibleAttempts: 4,
           cpoeAttemptsAvailable: 3,
           cpoeCompletions: 2,
           expectedCompletions: 1.8,
           expectedCompletionRate: 0.6,
           cpoe: 6.67,
-          cpoeModelVersion: 'test-v2',
         });
         for (const bucket of Object.values(production.locations)) {
           expect(bucket).not.toHaveProperty('cpoe');
-          expect(bucket).not.toHaveProperty('cpoeEligibleAttempts');
         }
+        expect(production).not.toHaveProperty('cpoeEligibleAttempts');
+        expect(production).not.toHaveProperty('cpoeModelVersion');
       }
     },
   );
 
   test.each(handlers)(
-    '$name returns explicit unavailability independently of eligibility',
+    '$name returns explicit unavailability without scored attempts',
     async ({ team, run }) => {
       const unscored = {
         ...productionRow,
-        cpoeEligibleAttempts: 3,
         cpoeAttemptsAvailable: 0,
         cpoeCompletions: 0,
         expectedCompletions: null,
@@ -1341,13 +1304,11 @@ describe('standalone CPOE contract', () => {
         ? [result.offense, result.defense]
         : [result]) {
         expect(production).toMatchObject({
-          cpoeEligibleAttempts: 3,
           cpoeAttemptsAvailable: 0,
           cpoeCompletions: 0,
           expectedCompletions: null,
           expectedCompletionRate: null,
           cpoe: null,
-          cpoeModelVersion: null,
         });
       }
     },
@@ -1386,7 +1347,6 @@ describe('standalone CPOE contract', () => {
       createQueryBuilder([
         {
           ...productionRow,
-          cpoeEligibleAttempts: 4,
           cpoeAttemptsAvailable: '4',
           cpoeCompletions: '2',
           expectedCompletions: '2.2',
@@ -1404,7 +1364,6 @@ describe('standalone CPOE contract', () => {
       createQueryBuilder([
         {
           ...productionRow,
-          cpoeEligibleAttempts: 3,
           cpoeAttemptsAvailable: 3,
           cpoeCompletions: 2,
           expectedCompletions: 1.23456,
@@ -1420,7 +1379,7 @@ describe('standalone CPOE contract', () => {
     });
   });
 
-  test('conflicting releases suppress only scored metrics, retaining source eligibility', async () => {
+  test('conflicting releases suppress only scored metrics, retaining base production', async () => {
     const diagnostic = jest
       .spyOn(console, 'error')
       .mockImplementation(() => {});
@@ -1429,7 +1388,6 @@ describe('standalone CPOE contract', () => {
         createQueryBuilder([
           {
             ...productionRow,
-            cpoeEligibleAttempts: 3,
             cpoeAttemptsAvailable: 3,
             cpoeCompletions: 2,
             expectedCompletions: 1.8,
@@ -1441,13 +1399,11 @@ describe('standalone CPOE contract', () => {
       expect((await getPlayerPassingBySeason(2026))[0]).toMatchObject({
         attempts: 4,
         completions: 2,
-        cpoeEligibleAttempts: 3,
         cpoeAttemptsAvailable: 0,
         cpoeCompletions: 0,
         expectedCompletions: null,
         expectedCompletionRate: null,
         cpoe: null,
-        cpoeModelVersion: null,
       });
       expect(diagnostic).toHaveBeenCalledTimes(1);
     } finally {
@@ -1455,7 +1411,7 @@ describe('standalone CPOE contract', () => {
     }
   });
 
-  test('generated schemas require standalone fields and retain optional snapshot CPOE', () => {
+  test('generated schemas require CPOE fields without eligibility or model version', () => {
     const doc = JSON.parse(
       readFileSync(join(process.cwd(), 'build/swagger.json'), 'utf8'),
     );
@@ -1465,11 +1421,7 @@ describe('standalone CPOE contract', () => {
       'PlayerPassingGame',
     ]) {
       const schema = doc.components.schemas[name];
-      for (const key of [
-        'cpoeEligibleAttempts',
-        'cpoeAttemptsAvailable',
-        'cpoeCompletions',
-      ]) {
+      for (const key of ['cpoeAttemptsAvailable', 'cpoeCompletions']) {
         expect(schema.required).toContain(key);
         expect(schema.properties[key].type).toBe('integer');
       }
@@ -1477,35 +1429,28 @@ describe('standalone CPOE contract', () => {
         'expectedCompletions',
         'expectedCompletionRate',
         'cpoe',
-        'cpoeModelVersion',
       ]) {
         expect(schema.required).toContain(key);
         expect(schema.properties[key].nullable).toBe(true);
       }
+      expect(schema.properties).not.toHaveProperty('cpoeEligibleAttempts');
+      expect(schema.properties).not.toHaveProperty('cpoeModelVersion');
     }
     const play = doc.components.schemas.PassingPlay;
-    for (const key of [
-      'cpoeEligible',
-      'completionProbability',
-      'cpoe',
-      'cpoeModelVersion',
-    ]) {
+    for (const key of ['completionProbability', 'cpoe']) {
       expect(play.required).toContain(key);
+      expect(play.properties[key].nullable).toBe(true);
     }
-    expect(play.properties.completionProbability.nullable).toBe(true);
-    expect(doc.paths['/passing/plays'].get.parameters).toContainEqual(
-      expect.objectContaining({
-        name: 'cpoeEligible',
-        required: false,
-        schema: expect.objectContaining({ type: 'boolean' }),
-      }),
-    );
+    expect(play.properties).not.toHaveProperty('cpoeEligible');
+    expect(play.properties).not.toHaveProperty('cpoeModelVersion');
+    expect(
+      doc.paths['/passing/plays'].get.parameters.map(
+        ({ name }: { name: string }) => name,
+      ),
+    ).not.toContain('cpoeEligible');
     expect(
       doc.components.schemas.PassingLocationProduction.properties,
-    ).not.toHaveProperty('cpoeEligibleAttempts');
-    expect(
-      doc.components.schemas.SnapshotPassingProduction.properties,
-    ).not.toHaveProperty('cpoeEligibleAttempts');
+    ).not.toHaveProperty('cpoe');
   });
 });
 

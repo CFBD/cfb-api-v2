@@ -122,7 +122,7 @@ export const getGamePreview = async (gameId: number): Promise<GamePreview> => {
     [game.homeTeam, game.awayTeam].map(async (team) => {
       try {
         return await previewCache(
-          `team:${team.id}:${game.season}`,
+          `team:${team.id}:${game.season}:cpoe1`,
           600000,
           (v): v is import('./previewSnapshots').PreviewSnapshotTeam =>
             validSnapshot(v) && snapshotIdentity(v, game, team.id),

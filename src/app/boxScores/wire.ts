@@ -1,3 +1,5 @@
+import { PlayerPassingGame, TeamPassingGame } from '../passing/types';
+import { StoredPassingProduction, StoredTeamPassing } from './cpoe';
 import { AdvancedBoxScore, PlayerGameUsage, PlayerPPA } from './types';
 
 // Legacy non-finite numbers serialize to null. Keep public declarations intact.
@@ -15,17 +17,26 @@ type LegacyPlayer<T> = LegacyWire<Omit<T, 'player' | 'team' | 'position'>> & {
   team: string | null;
   position: string | null;
 };
-export interface SnapshotPayload {
+interface Payload<TeamPassing, PlayerPassing> {
   teams: LegacyWire<
     Omit<AdvancedBoxScore['teams'], 'passing' | 'rushingAdvanced'>
   > &
-    Pick<AdvancedBoxScore['teams'], 'passing' | 'rushingAdvanced'>;
+    Pick<AdvancedBoxScore['teams'], 'rushingAdvanced'> & {
+      passing: TeamPassing[];
+    };
   players: {
     usage: LegacyPlayer<PlayerGameUsage>[];
     ppa: LegacyPlayer<PlayerPPA>[];
-  } & Pick<AdvancedBoxScore['players'], 'passing' | 'rushing'>;
+    passing: PlayerPassing[];
+  } & Pick<AdvancedBoxScore['players'], 'rushing'>;
 }
-export interface BoxScoreWire extends SnapshotPayload {
+/** Response shape; stored CPOE is projected through the selected model. */
+export type BoxScorePayload = Payload<TeamPassingGame, PlayerPassingGame>;
+export type SnapshotPayload = Payload<
+  StoredTeamPassing<TeamPassingGame>,
+  StoredPassingProduction<PlayerPassingGame>
+>;
+export interface BoxScoreWire extends BoxScorePayload {
   gameInfo: LegacyWire<AdvancedBoxScore['gameInfo']>;
 }
 export const finite = (value: number): number | null =>

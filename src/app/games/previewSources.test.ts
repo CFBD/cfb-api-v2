@@ -12,6 +12,8 @@ import {
 } from './previewSnapshots';
 import { isTeamSeasonSnapshotPayload } from '../teams/seasonOverviewPayload';
 import { formatSeasonAdvancedStats } from '../teams/seasonOverviewFormatting';
+import { currentTeamPassingCpoe } from '../boxScores/cpoeProjection';
+import { mapCpoeProduction, unavailableCpoe } from '../boxScores/cpoe';
 import fixture from '../teams/fixtures/team-season-snapshots/contract.json';
 import { GameStatus } from '../enums';
 import {
@@ -29,7 +31,7 @@ import {
 import { validSnapshot, validGame, validEnrichment } from './previewValidation';
 
 const payload =
-  (): import('../teams/seasonOverviewTypes').TeamSeasonSnapshotPayload => {
+  (): import('../teams/seasonOverviewTypes').StoredTeamSeasonSnapshotPayload => {
     const copy = structuredClone(fixture);
     if (!isTeamSeasonSnapshotPayload(copy, 2025, 'Michigan'))
       throw Error('fixture invalid');
@@ -196,7 +198,7 @@ it('preserves every complete snapshot metric and labels per-team fallback', asyn
     season: 2025,
     isPreviousSeason: true,
     advanced: formatSeasonAdvancedStats(prior.advanced),
-    passing: prior.passing,
+    passing: prior.passing && currentTeamPassingCpoe(prior.passing, null),
     rushing: prior.rushing,
   });
   expect(home.keyPlayers.passing).toMatchObject({
@@ -208,6 +210,45 @@ it('preserves every complete snapshot metric and labels per-team fallback', asyn
   expect(validSnapshot(home)).toBe(true);
   expect(queries).toHaveLength(2);
 });
+it.each(['accepted-v1', 'replacement-v2', null])(
+  'serves preview CPOE only while its model remains selected (%s)',
+  async (selectedCpoeModelVersion) => {
+    const scored = mapCpoeProduction({
+      cpoeAttemptsAvailable: 3,
+      cpoeCompletions: 2,
+      expectedCompletions: 1.23456,
+      cpoeVersions: 1,
+      cpoeModelVersion: 'accepted-v1',
+    });
+    const stored = payload();
+    if (!stored.passing) throw Error('fixture missing passing');
+    Object.assign(stored.passing.offense, {
+      ...scored,
+      cpoeModelVersion: 'accepted-v1',
+    });
+    await install((q) =>
+      q.parameters.includes(130)
+        ? [
+            {
+              teamId: 130,
+              season: game.season,
+              formatVersion: 1,
+              generatedAt: new Date('2026-01-02Z'),
+              payload: stored,
+              selectedCpoeModelVersion,
+            },
+          ]
+        : [],
+    );
+    const [home] = await readPreviewSnapshots(game, Date.now() + 8000);
+    const offense = home.statistics.data?.passing?.offense;
+    expect(offense).toMatchObject(
+      selectedCpoeModelVersion === 'accepted-v1' ? scored : unavailableCpoe(),
+    );
+    expect(offense).not.toHaveProperty('cpoeModelVersion');
+    expect(validSnapshot(home)).toBe(true);
+  },
+);
 it.each(['invalid', 'failure'])(
   'never falls back after %s current snapshot',
   async (mode) => {

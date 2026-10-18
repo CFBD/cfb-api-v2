@@ -1,5 +1,6 @@
 import { TeamSeasonStatRankings } from './seasonStatRankingTypes';
-import { SnapshotTeamPassingSeason } from '../passing/types';
+import { StoredTeamPassing } from '../boxScores/cpoe';
+import { TeamPassingSeason } from '../passing/types';
 import { TeamRushingSeason } from '../rushing/types';
 
 export interface TeamSeasonAdvancedStats {
@@ -194,9 +195,14 @@ export interface TeamSeasonPlayerUsage extends TeamSeasonPlayerIdentity {
 export interface TeamSeasonSnapshotPayload {
   advanced: TeamSeasonAdvancedStats;
   players: { ppa: TeamSeasonPlayerPpa[]; usage: TeamSeasonPlayerUsage[] };
-  passing: SnapshotTeamPassingSeason | null;
+  passing: TeamPassingSeason | null;
   rushing: TeamRushingSeason | null;
 }
+/** Stored form; CPOE is projected through the selected model before return. */
+export type StoredTeamSeasonSnapshotPayload = Omit<
+  TeamSeasonSnapshotPayload,
+  'passing'
+> & { passing: StoredTeamPassing<TeamPassingSeason> | null };
 export interface TeamSeasonRankedRating {
   /** Rating/efficiency rounded to two decimal places. */
   rating: number | null;

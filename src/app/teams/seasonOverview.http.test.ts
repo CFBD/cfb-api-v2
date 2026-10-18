@@ -6,6 +6,7 @@ import spec from '../../../build/swagger.json';
 import errorHandler from '../../config/errors';
 import { getTeamSeasonOverview } from './seasonOverview';
 import { isTeamSeasonSnapshotPayload } from './seasonOverviewPayload';
+import { currentTeamPassingCpoe } from '../boxScores/cpoeProjection';
 import fixture from './fixtures/team-season-snapshots/contract.json';
 import { updateQuotas } from '../../config/middleware/quotas';
 import { authDb } from '../../config/database';
@@ -56,6 +57,7 @@ beforeEach(() => {
 it('generated route serves the single overview object and preserves successful quota charge', async () => {
   const overview = {
     ...payload,
+    passing: payload.passing && currentTeamPassingCpoe(payload.passing, null),
     teamId: 130,
     team: 'Michigan',
     season: 2025,

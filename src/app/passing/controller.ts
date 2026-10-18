@@ -23,7 +23,7 @@ import { DivisionClassification, SeasonType } from '../enums';
 @Tags('passing')
 export class PassingController extends Controller {
   /**
-   * Returns enriched pass attempts with PPA, success, completion probability, CPOE, and source eligibility.
+   * Returns enriched pass attempts with PPA, success, completion probability, and CPOE.
    * @param year Season year.
    * @param team Team name on either side of the pass. Either team or week is required.
    * @param week Week number. Either team or week is required.
@@ -35,7 +35,6 @@ export class PassingController extends Controller {
    * @param passerId Passer athlete ID.
    * @param targetId Intended target athlete ID.
    * @param outcome Pass outcome.
-   * @param cpoeEligible Filter by CPOE eligible attempts
    * @param classification Division classification. Defaults to `fbs`.
    * @isInt gameId
    * @isInt year
@@ -55,7 +54,6 @@ export class PassingController extends Controller {
     @Query() targetId?: string,
     @Query() outcome?: PassOutcome,
     @Query() classification?: DivisionClassification,
-    @Query() cpoeEligible?: boolean,
   ): Promise<PassingPlay[]> {
     return await getPassingPlays(
       gameId,
@@ -70,7 +68,6 @@ export class PassingController extends Controller {
       targetId,
       outcome,
       classification,
-      cpoeEligible,
     );
   }
 

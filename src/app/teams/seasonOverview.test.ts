@@ -58,9 +58,10 @@ it.each(['accepted-v1', 'replacement-v2', null])(
       cpoeVersions: 1,
       cpoeModelVersion: 'accepted-v1',
     });
+    const storedCpoe = { ...scored, cpoeModelVersion: 'accepted-v1' };
     const payload = structuredClone(fixture);
-    Object.assign(payload.passing.offense, scored);
-    Object.assign(payload.passing.defense, scored);
+    Object.assign(payload.passing.offense, storedCpoe);
+    Object.assign(payload.passing.defense, storedCpoe);
     const { db } = await database([
       { ...row, payload, selected_cpoe_model_version },
     ]);
@@ -79,7 +80,10 @@ it.each(['accepted-v1', 'replacement-v2', null])(
       ...fixture.passing.defense,
       ...expected,
     });
-    expect(payload.passing.offense).toMatchObject(scored);
+    expect(result.overview.passing?.offense).not.toHaveProperty(
+      'cpoeModelVersion',
+    );
+    expect(payload.passing.offense).toMatchObject(storedCpoe);
     await db.destroy();
   },
 );

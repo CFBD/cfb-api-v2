@@ -1,5 +1,6 @@
+import { currentTeamPassingCpoe } from '../boxScores/cpoeProjection';
 import {
-  TeamSeasonSnapshotPayload,
+  StoredTeamSeasonSnapshotPayload,
   TeamSeasonPlayerPpa,
   TeamSeasonPlayerUsage,
 } from '../teams/seasonOverviewTypes';
@@ -67,7 +68,7 @@ const descending = (a: number | null, b: number | null) =>
   a === null ? (b === null ? 0 : 1) : b === null ? -1 : b - a;
 export const projectPreviewPlayers = (
   season: number,
-  payload: TeamSeasonSnapshotPayload | null,
+  payload: StoredTeamSeasonSnapshotPayload | null,
   reason: 'no_data' | 'source_error' | 'invalid_data' | null,
   sourceUpdatedAt: string | null,
 ): PreviewKeyPlayers => {
@@ -170,10 +171,16 @@ export const readPreviewSnapshots = async (
     optionalRead(() =>
       previewRead(deadline, (db) =>
         db
-          .selectFrom('teamSeasonSnapshot')
-          .where('teamId', 'in', ids)
-          .where('season', '=', season)
-          .selectAll()
+          .selectFrom('teamSeasonSnapshot as snapshot')
+          .leftJoin(
+            'cpoeSeasonModel as cpoeModel',
+            'cpoeModel.season',
+            'snapshot.season',
+          )
+          .where('snapshot.teamId', 'in', ids)
+          .where('snapshot.season', '=', season)
+          .selectAll('snapshot')
+          .select('cpoeModel.modelVersion as selectedCpoeModelVersion')
           .execute(),
       ),
     );
@@ -192,7 +199,7 @@ export const readPreviewSnapshots = async (
     const selected =
       currentRow ?? previous?.data?.find((r) => r.teamId === team.id);
     let reason: 'no_data' | 'source_error' | 'invalid_data' | null = null;
-    let payload: TeamSeasonSnapshotPayload | null = null;
+    let payload: StoredTeamSeasonSnapshotPayload | null = null;
     let sourceUpdatedAt: string | null = null;
     const source = currentRow ? current : (previous ?? current);
     if (!source.data)
@@ -219,7 +226,13 @@ export const readPreviewSnapshots = async (
             season: selected.season,
             isPreviousSeason: selected.season !== game.season,
             advanced: formatSeasonAdvancedStats(payload.advanced),
-            passing: payload.passing,
+            passing:
+              payload.passing === null
+                ? null
+                : currentTeamPassingCpoe(
+                    payload.passing,
+                    selected.selectedCpoeModelVersion,
+                  ),
             rushing: payload.rushing,
           }
         : null,
