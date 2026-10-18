@@ -1,0 +1,1257 @@
+[
+  {
+    "name": "40185667999",
+    "origin": "observed",
+    "context": {
+      "season": 2026,
+      "week": 2,
+      "seasonType": "regular",
+      "period": 1,
+      "clock": "00:06:37",
+      "down": 4
+    },
+    "source": {
+      "id": "40185667999",
+      "driveId": "4018566794",
+      "gameId": 401856679,
+      "driveNumber": 3,
+      "playNumber": 4,
+      "homeTeamId": 130,
+      "awayTeamId": 201,
+      "puntingTeamId": 201,
+      "receivingTeamId": 130,
+      "prefixes": [
+        {
+          "teamId": 201,
+          "prefix": "OU"
+        },
+        {
+          "teamId": 130,
+          "prefix": "UOM"
+        }
+      ],
+      "yardLine": 82,
+      "distance": 4,
+      "playTypeId": 8,
+      "playText": "(06:37) #43 G.Miller punt 82 yards to the UOM00, Touchback PENALTY UOM Running Into The Kicker (#0 K.Bell) 5 yards from OU 18 to OU 23. NO PLAY. UOM is challenging the ruling on the field - \"\". CALL UPHELD",
+      "yardsGained": 5
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": false,
+      "countsAsPlayerPunt": false,
+      "countsAsReturn": false,
+      "startYardLine": 18,
+      "puntYards": 82,
+      "touchback": true,
+      "noPlay": true,
+      "penaltyPresent": true,
+      "netPuntYards": null,
+      "parseStatus": "excluded"
+    }
+  },
+  {
+    "name": "40187106798",
+    "origin": "observed",
+    "context": {
+      "season": 2026,
+      "week": 7,
+      "seasonType": "regular",
+      "period": 1,
+      "clock": "00:04:35",
+      "down": 4
+    },
+    "source": {
+      "id": "40187106798",
+      "driveId": "4018710676",
+      "gameId": 401871067,
+      "driveNumber": 3,
+      "playNumber": 5,
+      "homeTeamId": 2393,
+      "awayTeamId": 48,
+      "puntingTeamId": 48,
+      "receivingTeamId": 2393,
+      "prefixes": [
+        {
+          "teamId": 48,
+          "prefix": "DELA"
+        },
+        {
+          "teamId": 48,
+          "prefix": "DEL"
+        },
+        {
+          "teamId": 2393,
+          "prefix": "MTSU"
+        }
+      ],
+      "yardLine": 79,
+      "distance": 14,
+      "playTypeId": 14,
+      "playText": "(04:48) #39 J.Cupitt punt 49 yards to the MTSU30 #3 C.Lacy return 3 yards to the MTSU33 (#2 K.Ali) PENALTY MTSU Personal Foul (#19 A.Singleton) 15 yards from MTSU30 to MTSU15",
+      "yardsGained": 0
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsReturn": null,
+      "startYardLine": 21,
+      "puntYards": 49,
+      "returnYards": null,
+      "kickEndYardLine": 70,
+      "returnEndYardLine": null,
+      "endYardLine": 85,
+      "netPuntYards": null,
+      "penaltyPresent": true,
+      "returnerToken": "#3 C.Lacy",
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "401856659271",
+    "origin": "observed",
+    "context": {
+      "season": 2026,
+      "week": 1,
+      "seasonType": "regular",
+      "period": 2,
+      "clock": "00:04:01",
+      "down": 4
+    },
+    "source": {
+      "id": "401856659271",
+      "driveId": "40185665911",
+      "gameId": 401856659,
+      "driveNumber": 7,
+      "playNumber": 4,
+      "homeTeamId": 96,
+      "awayTeamId": 2754,
+      "puntingTeamId": 96,
+      "receivingTeamId": 2754,
+      "prefixes": [
+        {
+          "teamId": 96,
+          "prefix": "UK"
+        },
+        {
+          "teamId": 2754,
+          "prefix": "YSU"
+        }
+      ],
+      "yardLine": 28,
+      "distance": 2,
+      "playTypeId": 14,
+      "playText": "(04:11) #48 T.O'Hara punt 45 yards to the YSU27 muffed by #88 P.Bjork at YSU27 recovered by UK #14 T.Bryant at YSU28, End Of Play",
+      "yardsGained": 1
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsReturn": true,
+      "startYardLine": 28,
+      "puntYards": 45,
+      "returnYards": 1,
+      "kickEndYardLine": 73,
+      "returnEndYardLine": 72,
+      "endYardLine": 72,
+      "endingPossessionTeamId": 96,
+      "muffed": true,
+      "receivingPossessionLost": true,
+      "punterToken": "#48 T.O'Hara",
+      "receiverToken": "#88 P.Bjork",
+      "returnerToken": "#88 P.Bjork",
+      "parseStatus": "complete"
+    }
+  },
+  {
+    "name": "401856793359",
+    "origin": "observed",
+    "context": {
+      "season": 2026,
+      "week": 3,
+      "seasonType": "regular",
+      "period": 2,
+      "clock": "00:02:13",
+      "down": 4
+    },
+    "source": {
+      "id": "401856793359",
+      "driveId": "40185679315",
+      "gameId": 401856793,
+      "driveNumber": 9,
+      "playNumber": 6,
+      "homeTeamId": 12,
+      "awayTeamId": 2459,
+      "puntingTeamId": 2459,
+      "receivingTeamId": 12,
+      "prefixes": [
+        {
+          "teamId": 2459,
+          "prefix": "NIU"
+        },
+        {
+          "teamId": 12,
+          "prefix": "ARIZ"
+        }
+      ],
+      "yardLine": 72,
+      "distance": 7,
+      "playTypeId": 34,
+      "playText": "Caleb Smith 69 Yd Punt Return (Michael Salgado-Medina Kick)",
+      "yardsGained": 69
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsReturn": true,
+      "startYardLine": 28,
+      "puntYards": null,
+      "returnYards": 69,
+      "kickEndYardLine": null,
+      "returnEndYardLine": 0,
+      "endYardLine": 0,
+      "netPuntYards": null,
+      "returnTouchdown": true,
+      "punterToken": null,
+      "returnerToken": "Caleb Smith",
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "401871067343",
+    "origin": "observed",
+    "context": {
+      "season": 2026,
+      "week": 7,
+      "seasonType": "regular",
+      "period": 2,
+      "clock": "00:03:44",
+      "down": 4
+    },
+    "source": {
+      "id": "401871067343",
+      "driveId": "40187106715",
+      "gameId": 401871067,
+      "driveNumber": 9,
+      "playNumber": 5,
+      "homeTeamId": 2393,
+      "awayTeamId": 48,
+      "puntingTeamId": 48,
+      "receivingTeamId": 2393,
+      "prefixes": [
+        {
+          "teamId": 48,
+          "prefix": "DELA"
+        },
+        {
+          "teamId": 48,
+          "prefix": "DEL"
+        },
+        {
+          "teamId": 2393,
+          "prefix": "MTSU"
+        }
+      ],
+      "yardLine": 86,
+      "distance": 11,
+      "playTypeId": 14,
+      "playText": "(03:45) #39 J.Cupitt punt 53 yards to the MTSU33 #7 H.Wasson return 3 yards to the MTSU36 (#80 M.McKinley-Daniels)",
+      "yardsGained": 3
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsReturn": true,
+      "startYardLine": 14,
+      "puntYards": 53,
+      "returnYards": 3,
+      "individualReturnYards": 3,
+      "kickEndYardLine": 67,
+      "returnEndYardLine": 64,
+      "endYardLine": 64,
+      "netPuntYards": 50,
+      "punterToken": "#39 J.Cupitt",
+      "returnerToken": "#7 H.Wasson",
+      "parseStatus": "complete"
+    }
+  },
+  {
+    "name": "401871067511",
+    "origin": "observed",
+    "context": {
+      "season": 2026,
+      "week": 7,
+      "seasonType": "regular",
+      "period": 3,
+      "clock": "00:07:45",
+      "down": 4
+    },
+    "source": {
+      "id": "401871067511",
+      "driveId": "40187106726",
+      "gameId": 401871067,
+      "driveNumber": 17,
+      "playNumber": 4,
+      "homeTeamId": 2393,
+      "awayTeamId": 48,
+      "puntingTeamId": 2393,
+      "receivingTeamId": 48,
+      "prefixes": [
+        {
+          "teamId": 48,
+          "prefix": "DELA"
+        },
+        {
+          "teamId": 48,
+          "prefix": "DEL"
+        },
+        {
+          "teamId": 2393,
+          "prefix": "MTSU"
+        }
+      ],
+      "yardLine": 16,
+      "distance": 7,
+      "playTypeId": 52,
+      "playText": "(07:51) #92 A.Logan punt 52 yards to the DELA32 fair catch by #0 B.Graves at DELA32",
+      "yardsGained": 0
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsPlayerPunt": true,
+      "countsAsReturn": false,
+      "startYardLine": 16,
+      "yardsToGoal": 84,
+      "distance": 7,
+      "puntYards": 52,
+      "returnYards": null,
+      "kickEndYardLine": 68,
+      "returnEndYardLine": null,
+      "endYardLine": 68,
+      "endingPossessionTeamId": 48,
+      "netPuntYards": 52,
+      "fairCatch": true,
+      "punterToken": "#92 A.Logan",
+      "receiverToken": "#0 B.Graves",
+      "returnerToken": null,
+      "parseStatus": "complete"
+    }
+  },
+  {
+    "name": "401856668195",
+    "origin": "observed",
+    "context": {
+      "captured": "2026-10-14 read-only Phase 6 correction audit"
+    },
+    "source": {
+      "id": "401856668195",
+      "driveId": "4018566688",
+      "gameId": 401856668,
+      "driveNumber": 6,
+      "playNumber": 12,
+      "period": 1,
+      "yardLine": 44,
+      "distance": 30,
+      "playTypeId": 29,
+      "playText": "(00:35) #37 T.White punt 50 yards to the MSU06 #0 J.Robinson return for loss of 6 yards to the fumbled by #0 J.Robinson at recovered by MSU #6 N.Barrett at MSU00. Texas A&M SAFETY, clock 00:26",
+      "yardsGained": 56,
+      "clock": "0:26",
+      "homeTeamId": 245,
+      "awayTeamId": 2623,
+      "puntingTeamId": 245,
+      "receivingTeamId": 2623,
+      "prefixes": [
+        {
+          "teamId": 245,
+          "prefix": "TA&M"
+        },
+        {
+          "teamId": 245,
+          "prefix": "TAMU"
+        },
+        {
+          "teamId": 245,
+          "prefix": "TAM"
+        },
+        {
+          "teamId": 2623,
+          "prefix": "MOST"
+        },
+        {
+          "teamId": 2623,
+          "prefix": "MSU"
+        },
+        {
+          "teamId": 245,
+          "prefix": "A&M"
+        }
+      ]
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "puntYards": 50,
+      "returnYards": -6
+    }
+  },
+  {
+    "name": "401856668825",
+    "origin": "observed",
+    "context": {
+      "captured": "2026-10-14 read-only Phase 6 correction audit"
+    },
+    "source": {
+      "id": "401856668825",
+      "driveId": "4018566688",
+      "gameId": 401856668,
+      "driveNumber": 6,
+      "playNumber": 11,
+      "period": 1,
+      "yardLine": 44,
+      "distance": 30,
+      "playTypeId": 29,
+      "playText": "(00:35) #37 T.White punt 50 yards to the MSU06 #0 J.Robinson return for loss of 6 yards to the MSU06 fumbled by #0 J.Robinson at MSU06, Touchback. Texas A&M SAFETY, clock 00:26 PENALTY MSU Illegal Bat (#6 M.Miller)",
+      "yardsGained": -6,
+      "clock": "0:35",
+      "homeTeamId": 245,
+      "awayTeamId": 2623,
+      "puntingTeamId": 245,
+      "receivingTeamId": 2623,
+      "prefixes": [
+        {
+          "teamId": 245,
+          "prefix": "TA&M"
+        },
+        {
+          "teamId": 245,
+          "prefix": "TAMU"
+        },
+        {
+          "teamId": 245,
+          "prefix": "TAM"
+        },
+        {
+          "teamId": 2623,
+          "prefix": "MOST"
+        },
+        {
+          "teamId": 2623,
+          "prefix": "MSU"
+        },
+        {
+          "teamId": 245,
+          "prefix": "A&M"
+        }
+      ]
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "puntYards": 50,
+      "returnYards": null,
+      "countsAsReturn": null
+    }
+  },
+  {
+    "name": "401856674485",
+    "origin": "observed",
+    "context": {
+      "captured": "2026-10-14 read-only Phase 6 correction audit"
+    },
+    "source": {
+      "id": "401856674485",
+      "driveId": "40185667419",
+      "gameId": 401856674,
+      "driveNumber": 12,
+      "playNumber": 5,
+      "period": 3,
+      "yardLine": 74,
+      "distance": 9,
+      "playTypeId": 14,
+      "playText": "(14:17) #32 A.Asparuhov punt 54 yards to the UK20 #12 B.Coffman return 16 yards to the UK36 (#88 J.Lindsey) PENALTY UK Holding (#10 D.Williams) 10 yards from UK20 to UK10",
+      "yardsGained": 0,
+      "clock": "14:06",
+      "homeTeamId": 96,
+      "awayTeamId": 333,
+      "puntingTeamId": 333,
+      "receivingTeamId": 96,
+      "prefixes": [
+        {
+          "teamId": 96,
+          "prefix": "UK"
+        },
+        {
+          "teamId": 333,
+          "prefix": "ALA"
+        },
+        {
+          "teamId": 96,
+          "prefix": "UKY"
+        },
+        {
+          "teamId": 96,
+          "prefix": "KEN"
+        },
+        {
+          "teamId": 333,
+          "prefix": "UA"
+        },
+        {
+          "teamId": 333,
+          "prefix": "BAMA"
+        }
+      ]
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsReturn": null,
+      "puntYards": 54,
+      "returnYards": null,
+      "individualReturnYards": null,
+      "returnEndYardLine": null,
+      "endYardLine": 90,
+      "netPuntYards": null,
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "401856683551",
+    "origin": "observed",
+    "context": {
+      "captured": "2026-10-14 read-only Phase 6 correction audit"
+    },
+    "source": {
+      "id": "401856683551",
+      "driveId": "40185668327",
+      "gameId": 401856683,
+      "driveNumber": 17,
+      "playNumber": 5,
+      "period": 3,
+      "yardLine": 26,
+      "distance": 9,
+      "playTypeId": 14,
+      "playText": "(02:13) #37 T.White punt 56 yards to the ASU18 #18 J.Moss return 18 yards to the ASU36 (#21 R.Coney) PENALTY ASU Illegal Block in Back (#10 C.Smith) 10 yards from ASU33 to ASU23",
+      "yardsGained": 15,
+      "clock": "2:02",
+      "homeTeamId": 245,
+      "awayTeamId": 9,
+      "puntingTeamId": 245,
+      "receivingTeamId": 9,
+      "prefixes": [
+        {
+          "teamId": 245,
+          "prefix": "TA&M"
+        },
+        {
+          "teamId": 9,
+          "prefix": "ASU"
+        },
+        {
+          "teamId": 245,
+          "prefix": "TAMU"
+        },
+        {
+          "teamId": 245,
+          "prefix": "TAM"
+        },
+        {
+          "teamId": 245,
+          "prefix": "A&M"
+        }
+      ]
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsReturn": null,
+      "puntYards": 56,
+      "returnYards": null,
+      "individualReturnYards": null,
+      "returnEndYardLine": null,
+      "endYardLine": 77,
+      "netPuntYards": null,
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "401858226587",
+    "origin": "observed",
+    "context": {
+      "captured": "2026-10-14 read-only Phase 6 correction audit"
+    },
+    "source": {
+      "id": "401858226587",
+      "driveId": "40185822624",
+      "gameId": 401858226,
+      "driveNumber": 15,
+      "playNumber": 5,
+      "period": 4,
+      "yardLine": 72,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "(13:38) #94 D.Joyce punt 52 yards to the WFU20 #8 C.Hernandez return 27 yards to the WFU47 (#4 C.Pruitt) PENALTY WFU Holding (#43 F.Cusano) 10 yards from WFU20 to WFU10",
+      "yardsGained": 0,
+      "clock": "13:27",
+      "homeTeamId": 154,
+      "awayTeamId": 2390,
+      "puntingTeamId": 2390,
+      "receivingTeamId": 154,
+      "prefixes": [
+        {
+          "teamId": 2390,
+          "prefix": "MIA"
+        },
+        {
+          "teamId": 154,
+          "prefix": "WAKE F"
+        },
+        {
+          "teamId": 154,
+          "prefix": "WAKE"
+        },
+        {
+          "teamId": 2390,
+          "prefix": "UM"
+        },
+        {
+          "teamId": 154,
+          "prefix": "WFU"
+        },
+        {
+          "teamId": 2390,
+          "prefix": "MIAMI"
+        },
+        {
+          "teamId": 154,
+          "prefix": "DEACS"
+        },
+        {
+          "teamId": 2390,
+          "prefix": "CANES"
+        },
+        {
+          "teamId": 154,
+          "prefix": "WF"
+        }
+      ]
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsReturn": null,
+      "puntYards": 52,
+      "returnYards": null,
+      "individualReturnYards": null,
+      "returnEndYardLine": null,
+      "endYardLine": 90,
+      "netPuntYards": null,
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "401858226673",
+    "origin": "observed",
+    "context": {
+      "captured": "2026-10-14 read-only Phase 6 correction audit"
+    },
+    "source": {
+      "id": "401858226673",
+      "driveId": "40185822629",
+      "gameId": 401858226,
+      "driveNumber": 19,
+      "playNumber": 4,
+      "period": 4,
+      "yardLine": 85,
+      "distance": 9,
+      "playTypeId": 14,
+      "playText": "(07:32) #94 D.Joyce punt 54 yards to the WFU31 #8 C.Hernandez return 59 yards to the MIA10 (#9 C.Smith) PENALTY WFU Holding (#26 F.Gillens) 10 yards from WFU45 to WFU35",
+      "yardsGained": 14,
+      "clock": "7:14",
+      "homeTeamId": 154,
+      "awayTeamId": 2390,
+      "puntingTeamId": 2390,
+      "receivingTeamId": 154,
+      "prefixes": [
+        {
+          "teamId": 2390,
+          "prefix": "MIA"
+        },
+        {
+          "teamId": 154,
+          "prefix": "WAKE F"
+        },
+        {
+          "teamId": 154,
+          "prefix": "WAKE"
+        },
+        {
+          "teamId": 2390,
+          "prefix": "UM"
+        },
+        {
+          "teamId": 154,
+          "prefix": "WFU"
+        },
+        {
+          "teamId": 2390,
+          "prefix": "MIAMI"
+        },
+        {
+          "teamId": 154,
+          "prefix": "DEACS"
+        },
+        {
+          "teamId": 2390,
+          "prefix": "CANES"
+        },
+        {
+          "teamId": 154,
+          "prefix": "WF"
+        }
+      ]
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsReturn": null,
+      "puntYards": 54,
+      "returnYards": null,
+      "individualReturnYards": null,
+      "returnEndYardLine": null,
+      "endYardLine": 65,
+      "netPuntYards": null,
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "-618 alternate fair catch",
+    "origin": "observed",
+    "context": {
+      "season": 2024,
+      "week": 4,
+      "seasonType": "regular",
+      "period": 2,
+      "clock": "00:11:10",
+      "down": 4
+    },
+    "source": {
+      "id": "-618",
+      "driveId": "-88",
+      "gameId": 401628492,
+      "driveNumber": 6,
+      "playNumber": 6,
+      "homeTeamId": 194,
+      "awayTeamId": 276,
+      "puntingTeamId": 276,
+      "receivingTeamId": 194,
+      "prefixes": [
+        {
+          "teamId": 194,
+          "prefix": "OHIOST"
+        },
+        {
+          "teamId": 194,
+          "prefix": "OSU"
+        },
+        {
+          "teamId": 276,
+          "prefix": "HERD"
+        },
+        {
+          "teamId": 276,
+          "prefix": "MAR"
+        },
+        {
+          "teamId": 276,
+          "prefix": "MRSH"
+        },
+        {
+          "teamId": 276,
+          "prefix": "MU"
+        }
+      ],
+      "yardLine": 61,
+      "distance": 6,
+      "playTypeId": 52,
+      "playText": "A.Clark punts 47 yards to OSU 14, Center-M.Bosset. Fair catch by B.Inniss.",
+      "yardsGained": 47
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsReturn": false,
+      "startYardLine": 39,
+      "puntYards": 47,
+      "kickEndYardLine": 86,
+      "endYardLine": 86,
+      "fairCatch": true,
+      "outOfBounds": false,
+      "netPuntYards": 47,
+      "punterToken": "A.Clark",
+      "receiverToken": "B.Inniss",
+      "parseStatus": "complete"
+    }
+  },
+  {
+    "name": "-686 alternate return tackled",
+    "origin": "observed",
+    "context": {
+      "season": 2024,
+      "week": 4,
+      "seasonType": "regular",
+      "period": 3,
+      "clock": "00:03:50",
+      "down": 4
+    },
+    "source": {
+      "id": "-686",
+      "driveId": "-96",
+      "gameId": 401628492,
+      "driveNumber": 14,
+      "playNumber": 8,
+      "homeTeamId": 194,
+      "awayTeamId": 276,
+      "puntingTeamId": 276,
+      "receivingTeamId": 194,
+      "prefixes": [
+        {
+          "teamId": 194,
+          "prefix": "OHIOST"
+        },
+        {
+          "teamId": 194,
+          "prefix": "OSU"
+        },
+        {
+          "teamId": 276,
+          "prefix": "HERD"
+        },
+        {
+          "teamId": 276,
+          "prefix": "MAR"
+        },
+        {
+          "teamId": 276,
+          "prefix": "MRSH"
+        },
+        {
+          "teamId": 276,
+          "prefix": "MU"
+        }
+      ],
+      "yardLine": 63,
+      "distance": 6,
+      "playTypeId": 52,
+      "playText": "A.Clark punts 37 yards to OSU 26, Center-M.Bosset. B.Inniss returned punt from the OSU 26. Tackled by MSH at OSU 47.",
+      "yardsGained": 37
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsReturn": true,
+      "countsAsPlayerReturn": true,
+      "startYardLine": 37,
+      "puntYards": 37,
+      "kickEndYardLine": 74,
+      "returnYards": 21,
+      "individualReturnYards": 21,
+      "returnEndYardLine": 53,
+      "endYardLine": 53,
+      "netPuntYards": 16,
+      "fairCatch": false,
+      "outOfBounds": false,
+      "returnerToken": "B.Inniss",
+      "parseStatus": "complete"
+    }
+  },
+  {
+    "name": "-872 alternate return pushed out of bounds",
+    "origin": "observed",
+    "context": {
+      "season": 2024,
+      "week": 6,
+      "seasonType": "regular",
+      "period": 4,
+      "clock": "00:05:56",
+      "down": 4
+    },
+    "source": {
+      "id": "-872",
+      "driveId": "-122",
+      "gameId": 401628504,
+      "driveNumber": 19,
+      "playNumber": 5,
+      "homeTeamId": 194,
+      "awayTeamId": 2294,
+      "puntingTeamId": 194,
+      "receivingTeamId": 2294,
+      "prefixes": [
+        {
+          "teamId": 194,
+          "prefix": "OHIOST"
+        },
+        {
+          "teamId": 194,
+          "prefix": "OSU"
+        },
+        {
+          "teamId": 2294,
+          "prefix": "IOW"
+        },
+        {
+          "teamId": 2294,
+          "prefix": "IOWA"
+        }
+      ],
+      "yardLine": 34,
+      "distance": 1,
+      "playTypeId": 52,
+      "playText": "J.McGuire punts 43 yards to IOW 23, Center-J.Ferlmann. K.Wetjen returned punt from the IOW 23. Pushed out of bounds by OSU at IOW 35.",
+      "yardsGained": 43
+    },
+    "associations": [],
+    "expected": {
+      "countsAsReturn": true,
+      "startYardLine": 34,
+      "puntYards": 43,
+      "kickEndYardLine": 77,
+      "returnYards": 12,
+      "returnEndYardLine": 65,
+      "endYardLine": 65,
+      "netPuntYards": 31,
+      "outOfBounds": false,
+      "returnerToken": "K.Wetjen",
+      "parseStatus": "complete"
+    }
+  },
+  {
+    "name": "-2271 alternate return without a final spot",
+    "origin": "observed",
+    "context": {
+      "season": 2024,
+      "week": 5,
+      "seasonType": "regular",
+      "period": 1,
+      "clock": "00:12:41",
+      "down": 4
+    },
+    "source": {
+      "id": "-2271",
+      "driveId": "-302",
+      "gameId": 401645335,
+      "driveNumber": 2,
+      "playNumber": 5,
+      "homeTeamId": 2226,
+      "awayTeamId": 2681,
+      "puntingTeamId": 2681,
+      "receivingTeamId": 2226,
+      "prefixes": [
+        {
+          "teamId": 2226,
+          "prefix": "FAU"
+        },
+        {
+          "teamId": 2681,
+          "prefix": "WAG"
+        },
+        {
+          "teamId": 2681,
+          "prefix": "WAGNER"
+        },
+        {
+          "teamId": 2681,
+          "prefix": "WC"
+        }
+      ],
+      "yardLine": 70,
+      "distance": 5,
+      "playTypeId": 52,
+      "playText": "J.Brown punts 54 yards to FAU 16, Center-WAG. O.Hayes returned punt from the FAU 16. O.Hayes ran out of bounds.",
+      "yardsGained": 54
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsReturn": true,
+      "startYardLine": 30,
+      "puntYards": 54,
+      "kickEndYardLine": 84,
+      "returnYards": null,
+      "endYardLine": null,
+      "netPuntYards": null,
+      "returnerToken": "O.Hayes",
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "-252 compact receiver-first fair catch",
+    "origin": "observed",
+    "context": {
+      "season": 2021,
+      "week": 1,
+      "seasonType": "regular",
+      "period": 2,
+      "clock": "00:07:09",
+      "down": 4
+    },
+    "source": {
+      "id": "-252",
+      "driveId": "-30",
+      "gameId": 401310699,
+      "driveNumber": 9,
+      "playNumber": 4,
+      "homeTeamId": 21,
+      "awayTeamId": 166,
+      "puntingTeamId": 166,
+      "receivingTeamId": 21,
+      "prefixes": [
+        {
+          "teamId": 21,
+          "prefix": "SDS"
+        },
+        {
+          "teamId": 21,
+          "prefix": "SDSU"
+        },
+        {
+          "teamId": 166,
+          "prefix": "NMS"
+        },
+        {
+          "teamId": 166,
+          "prefix": "NMSU"
+        }
+      ],
+      "yardLine": 78,
+      "distance": 7,
+      "playTypeId": 52,
+      "playText": "Josh Carlson punts 36 yards to SDSU42, Jordan Byrd Fair Catch",
+      "yardsGained": 0
+    },
+    "associations": [],
+    "expected": {
+      "countsAsReturn": false,
+      "startYardLine": 22,
+      "puntYards": 36,
+      "kickEndYardLine": 58,
+      "endYardLine": 58,
+      "fairCatch": true,
+      "netPuntYards": 36,
+      "receiverToken": "Jordan Byrd",
+      "parseStatus": "complete"
+    }
+  },
+  {
+    "name": "-195 compact spot-first return with unknown alias",
+    "origin": "observed",
+    "context": {
+      "season": 2021,
+      "week": 1,
+      "seasonType": "regular",
+      "period": 1,
+      "clock": "00:12:01",
+      "down": 4
+    },
+    "source": {
+      "id": "-195",
+      "driveId": "-23",
+      "gameId": 401310699,
+      "driveNumber": 2,
+      "playNumber": 7,
+      "homeTeamId": 21,
+      "awayTeamId": 166,
+      "puntingTeamId": 21,
+      "receivingTeamId": 166,
+      "prefixes": [
+        {
+          "teamId": 21,
+          "prefix": "SDS"
+        },
+        {
+          "teamId": 21,
+          "prefix": "SDSU"
+        },
+        {
+          "teamId": 166,
+          "prefix": "NMS"
+        },
+        {
+          "teamId": 166,
+          "prefix": "NMSU"
+        }
+      ],
+      "yardLine": 31,
+      "distance": 13,
+      "playTypeId": 52,
+      "playText": "Matt Araiza punts 63 yards to NMSt6, Robert Downs III returns to NMSt12 for 6 yards",
+      "yardsGained": 6
+    },
+    "associations": [],
+    "expected": {
+      "countsAsReturn": true,
+      "startYardLine": 31,
+      "puntYards": 63,
+      "kickEndYardLine": null,
+      "returnYards": 6,
+      "netPuntYards": 57,
+      "returnerToken": "Robert Downs III",
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "-18121 stat-crew return",
+    "origin": "observed",
+    "context": {
+      "season": 2020,
+      "week": 6,
+      "seasonType": "regular",
+      "period": 3,
+      "clock": "00:12:40",
+      "down": 4
+    },
+    "source": {
+      "id": "-18121",
+      "driveId": "-2335",
+      "gameId": 401212477,
+      "driveNumber": 14,
+      "playNumber": 9,
+      "homeTeamId": 58,
+      "awayTeamId": 151,
+      "puntingTeamId": 58,
+      "receivingTeamId": 151,
+      "prefixes": [
+        {
+          "teamId": 58,
+          "prefix": "USF"
+        },
+        {
+          "teamId": 151,
+          "prefix": "ECU"
+        }
+      ],
+      "yardLine": 38,
+      "distance": 12,
+      "playTypeId": 52,
+      "playText": "25-K.Scribner punts 47 yards from USF 38. 22-T.Snead to ECU 23 for 8 yards (29-B.Norris).",
+      "yardsGained": 8
+    },
+    "associations": [],
+    "expected": {
+      "countsAsReturn": true,
+      "startYardLine": 38,
+      "puntYards": 47,
+      "kickEndYardLine": 85,
+      "returnYards": 8,
+      "returnEndYardLine": 77,
+      "endYardLine": 77,
+      "netPuntYards": 39,
+      "punterToken": "#25 K.Scribner",
+      "returnerToken": "#22 T.Snead",
+      "parseStatus": "complete"
+    }
+  },
+  {
+    "name": "-18366 stat-crew return out of bounds",
+    "origin": "observed",
+    "context": {
+      "season": 2020,
+      "week": 9,
+      "seasonType": "regular",
+      "period": 4,
+      "clock": "00:07:17",
+      "down": 4
+    },
+    "source": {
+      "id": "-18366",
+      "driveId": "-2361",
+      "gameId": 401207162,
+      "driveNumber": 18,
+      "playNumber": 6,
+      "homeTeamId": 2226,
+      "awayTeamId": 2636,
+      "puntingTeamId": 2636,
+      "receivingTeamId": 2226,
+      "prefixes": [
+        {
+          "teamId": 2226,
+          "prefix": "FAU"
+        },
+        {
+          "teamId": 2636,
+          "prefix": "UTSA"
+        }
+      ],
+      "yardLine": 70,
+      "distance": 10,
+      "playTypeId": 52,
+      "playText": "35-L.Dean punts 52 yards from UTSA 30. 83-L.Wester runs ob at FAU 45 for 27 yards.",
+      "yardsGained": 27
+    },
+    "associations": [],
+    "expected": {
+      "countsAsReturn": true,
+      "startYardLine": 30,
+      "puntYards": 52,
+      "kickEndYardLine": 82,
+      "returnYards": 27,
+      "returnEndYardLine": 55,
+      "endYardLine": 55,
+      "netPuntYards": 25,
+      "outOfBounds": false,
+      "punterToken": "#35 L.Dean",
+      "returnerToken": "#83 L.Wester",
+      "parseStatus": "complete"
+    }
+  },
+  {
+    "name": "-960 kickoff typed as punt",
+    "origin": "observed",
+    "context": {
+      "season": 2024,
+      "week": 6,
+      "seasonType": "regular",
+      "period": 2,
+      "clock": "00:01:48",
+      "down": 0
+    },
+    "source": {
+      "id": "-960",
+      "driveId": "-133",
+      "gameId": 401628508,
+      "driveNumber": 9,
+      "playNumber": 1,
+      "homeTeamId": 158,
+      "awayTeamId": 164,
+      "puntingTeamId": 164,
+      "receivingTeamId": 158,
+      "prefixes": [
+        {
+          "teamId": 158,
+          "prefix": "NEB"
+        },
+        {
+          "teamId": 164,
+          "prefix": "RU"
+        },
+        {
+          "teamId": 164,
+          "prefix": "RUT"
+        }
+      ],
+      "yardLine": 35,
+      "distance": 0,
+      "playTypeId": 52,
+      "playText": "J.Hohl kicks 63 yards from NEB 35 to the RUT 2. Fair catch by C.Dremel.",
+      "yardsGained": 63
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": false,
+      "countsAsPlayerPunt": false,
+      "countsAsReturn": false,
+      "parseStatus": "excluded"
+    }
+  }
+]

@@ -1,0 +1,1074 @@
+[
+  {
+    "name": "ordinary return",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to the DEF20 B.Returner return 12 yards to the DEF32",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "puntYards": 50,
+      "returnYards": 12,
+      "startYardLine": 30,
+      "kickEndYardLine": 80,
+      "returnEndYardLine": 68,
+      "endYardLine": 68,
+      "netPuntYards": 38,
+      "countsAsPunt": true,
+      "countsAsReturn": true,
+      "punterToken": "A.Punter",
+      "returnerToken": "B.Returner",
+      "parseStatus": "complete"
+    }
+  },
+  {
+    "name": "negative return",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to the DEF20 B.Returner return -5 yards to the DEF15",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "returnYards": -5,
+      "individualReturnYards": -5,
+      "returnEndYardLine": 85,
+      "netPuntYards": 55
+    }
+  },
+  {
+    "name": "zero return",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to the DEF20 B.Returner return 0 yards to the DEF20",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "countsAsReturn": true,
+      "returnYards": 0,
+      "netPuntYards": 50
+    }
+  },
+  {
+    "name": "fair catch",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 52,
+      "playText": "A.Punter punt 50 yards to the DEF20 fair catch by #0 B.Returner at DEF20",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "countsAsReturn": false,
+      "returnYards": null,
+      "netPuntYards": 50,
+      "receiverToken": "#0 B.Returner",
+      "returnerToken": null
+    }
+  },
+  {
+    "name": "touchback",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 52,
+      "playText": "A.Punter punt 70 yards to the DEF00, Touchback",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "puntYards": 70,
+      "kickEndYardLine": 100,
+      "endYardLine": 80,
+      "netPuntYards": 50
+    }
+  },
+  {
+    "name": "legacy narration",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "Alex Punter punted 50 yards to DEF20, returned by Ben Returner for 12 yards to DEF32",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "puntYards": 50,
+      "returnYards": 12,
+      "returnerToken": "Ben Returner",
+      "endYardLine": 68
+    }
+  },
+  {
+    "name": "off-type punt",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 8,
+      "playText": "A.Punter punt 50 yards to the DEF20 B.Returner return 12 yards to the DEF32 PENALTY DEF Personal Foul 15 yards from DEF32 to DEF17",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "returnYards": 12,
+      "endYardLine": 83,
+      "netPuntYards": 38
+    }
+  },
+  {
+    "name": "unknown gross",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt to the DEF20 B.Returner return 12 yards to the DEF32",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsPlayerPunt": true,
+      "puntYards": null,
+      "returnYards": 12,
+      "countsAsReturn": true,
+      "kickEndYardLine": 80,
+      "returnEndYardLine": 68,
+      "endYardLine": 68,
+      "netPuntYards": null
+    }
+  },
+  {
+    "name": "missing narration",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 52,
+      "playText": null,
+      "yardsGained": 40
+    },
+    "associations": [],
+    "expected": {
+      "puntYards": null,
+      "returnYards": null,
+      "countsAsReturn": null,
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "missing starting spot",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": null,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to the DEF20 B.Returner return 12 yards to the DEF32",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "startYardLine": null,
+      "yardsToGoal": null,
+      "puntYards": 50,
+      "returnYards": 12,
+      "kickEndYardLine": 80,
+      "endYardLine": 68,
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "invalid starting spot",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 101,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to the DEF20 B.Returner return 12 yards to the DEF32",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "startYardLine": null,
+      "puntYards": 50
+    }
+  },
+  {
+    "name": "contradictory kick endpoint",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to the DEF10 B.Returner return 12 yards to the DEF22",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "puntYards": 50,
+      "returnYards": 12,
+      "kickEndYardLine": null,
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "penalty without supported enforcement",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to the DEF20 B.Returner return 12 yards to the DEF32 PENALTY OFF Holding 10 yards",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "returnEndYardLine": null,
+      "endYardLine": null,
+      "netPuntYards": null,
+      "parseStatus": "partial",
+      "countsAsReturn": null,
+      "returnYards": null
+    }
+  },
+  {
+    "name": "nullified touchback",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 8,
+      "playText": "A.Punter punt 70 yards to DEF00, Touchback PENALTY OFF Holding NO PLAY",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": false,
+      "countsAsPlayerPunt": false,
+      "countsAsReturn": false,
+      "noPlay": true,
+      "parseStatus": "excluded"
+    }
+  },
+  {
+    "name": "fake punt",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 5,
+      "playText": "A.Punter fake punt rush for 7 yards",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": false,
+      "puntYards": null,
+      "parseStatus": "excluded"
+    }
+  },
+  {
+    "name": "appended punt commentary",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 5,
+      "playText": "A.Runner rush for 7 yards. Punt team comes onto field",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": false,
+      "puntYards": null,
+      "parseStatus": "excluded"
+    }
+  },
+  {
+    "name": "ambiguous candidate",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 8,
+      "playText": "Punt formation, penalty before snap",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": null,
+      "countsAsReturn": null,
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "blocked team punt",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 17,
+      "playText": "A.Punter punt BLOCKED blocked by B.Blocker recovered by OFF A.Punter at OFF20, End Of Play",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsPlayerPunt": false,
+      "puntYards": 0,
+      "countsAsPlayerReturn": null,
+      "countsAsReturn": true,
+      "returnYards": 10,
+      "returnEndYardLine": 20,
+      "netPuntYards": -10,
+      "blocked": true,
+      "blockerToken": "B.Blocker",
+      "endYardLine": 20
+    }
+  },
+  {
+    "name": "laterals with explicit team total",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to the DEF20 B.Returner return 12 yards to the DEF32 lateral to B.Other for 5 yards, team return total 17 yards",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "returnYards": 17,
+      "individualReturnYards": null,
+      "countsAsPlayerReturn": null,
+      "endYardLine": null
+    }
+  },
+  {
+    "name": "laterals without team total",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to the DEF20 B.Returner return 12 yards to the DEF32 lateral to B.Other for 5 yards",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "returnYards": null,
+      "individualReturnYards": null,
+      "countsAsPlayerReturn": null
+    }
+  },
+  {
+    "name": "proven source revision",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to the DEF20 B.Returner return 12 yards to the DEF32",
+      "yardsGained": 999,
+      "supersededByPlayId": "90071992547409932"
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": false,
+      "parseStatus": "excluded",
+      "reasons": ["superseded_source"]
+    }
+  },
+  {
+    "name": "unresolved duplicate candidates",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to the DEF20 B.Returner return 12 yards to the DEF32",
+      "yardsGained": 999,
+      "ambiguousRevision": true
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": null,
+      "countsAsReturn": null,
+      "netPuntYards": null,
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "negative gross punt",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 52,
+      "playText": "A.Punter punt -5 yards to OFF25, out of bounds",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "puntYards": -5,
+      "kickEndYardLine": 25,
+      "netPuntYards": -5,
+      "countsAsReturn": false
+    }
+  },
+  {
+    "name": "blocked recovery beyond line",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 17,
+      "playText": "A.Punter punt BLOCKED blocked by B.Blocker recovered by OFF A.Other at OFF35, End Of Play",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsPlayerPunt": false,
+      "countsAsReturn": false,
+      "puntYards": 5,
+      "returnYards": null,
+      "endYardLine": 35,
+      "netPuntYards": 5
+    }
+  },
+  {
+    "name": "blocked missing accounting",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 17,
+      "playText": "A.Punter punt BLOCKED blocked by B.Blocker",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "countsAsPunt": true,
+      "countsAsPlayerPunt": false,
+      "puntYards": null,
+      "countsAsReturn": null,
+      "netPuntYards": null,
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "zero gross punt",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 52,
+      "playText": "A.Punter punt 0 yards to OFF30, downed",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "puntYards": 0,
+      "returnYards": null,
+      "countsAsReturn": false,
+      "kickEndYardLine": 30,
+      "endYardLine": 30,
+      "netPuntYards": 0
+    }
+  },
+  {
+    "name": "return attempt unknown yards",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to DEF20 B.Returner return to DEF32",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "puntYards": 50,
+      "countsAsReturn": true,
+      "countsAsPlayerReturn": true,
+      "returnYards": null,
+      "returnEndYardLine": 68,
+      "endYardLine": 68,
+      "netPuntYards": null,
+      "returnerToken": "B.Returner",
+      "parseStatus": "partial"
+    }
+  },
+  {
+    "name": "ordinary fumble with later recovery movement",
+    "origin": "synthetic",
+    "source": {
+      "id": "90071992547409930",
+      "driveId": "90071992547409931",
+      "gameId": 100,
+      "driveNumber": 1,
+      "playNumber": 1,
+      "homeTeamId": 1,
+      "awayTeamId": 2,
+      "puntingTeamId": 1,
+      "receivingTeamId": 2,
+      "prefixes": [
+        {
+          "teamId": 1,
+          "prefix": "OFF"
+        },
+        {
+          "teamId": 2,
+          "prefix": "DEF"
+        }
+      ],
+      "yardLine": 30,
+      "distance": 7,
+      "playTypeId": 14,
+      "playText": "A.Punter punt 50 yards to DEF20 B.Returner return 12 yards to DEF32 fumbled recovered by OFF A.Other at DEF35, A.Other advances to DEF40",
+      "yardsGained": 999
+    },
+    "associations": [],
+    "expected": {
+      "puntYards": 50,
+      "returnYards": 12,
+      "returnEndYardLine": 68,
+      "endYardLine": null,
+      "endingPossessionTeamId": 1,
+      "netPuntYards": 38,
+      "receivingPossessionLost": true
+    }
+  }
+]

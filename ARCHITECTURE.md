@@ -363,7 +363,6 @@ services publication/backfill; canonical school renames require rebuilding
 stored labels. Services disposable PostgreSQL checks pass; historical source parity and
 performance checks remain pending before activation.
 
-
 The manual `scripts/compare-team-season.ts` helper is invoked by the services
 comparison runner, not API startup or Jest. It compares stdin payloads against
 all five existing service calculations using the runner's explicit read-only
@@ -376,7 +375,6 @@ three decimal places; yardage averages and points per opportunity use at most
 two. Counts and nulls are preserved. Stored calculations retain full precision,
 so existing snapshots benefit without regeneration. This formatting is specific
 to the overview; legacy endpoints and the source-parity runner remain unchanged.
-
 
 Season overview responses also join live `record` and `ratings` fields onto the
 stored snapshot by canonical team ID and requested season. CORE, SRS and SP+
@@ -391,7 +389,6 @@ Games/wins/losses/ties are returned under `record`, and CORE/Elo/SRS/SP+ under
 `ratings` (`core`, `elo`, `srs`, `sp`). These fields are read in the same SQL
 statement, outside snapshot JSONB, so they update without a snapshot rebuild.
 A snapshot is still required; ratings and records do not provide a fallback.
-
 
 CORE/SRS/SP+ metrics now expose `{ rating, rank }` pairs. `ratings.fpi` exposes
 four efficiency pairs (`overall`, `offense`, `defense`, `specialTeams`), not the
@@ -484,3 +481,14 @@ attach context only when team, source season and snapshot publication time
 match; absolute expiry is preserved. Failure returns null context without
 changing base-stat availability. Deployment and production regeneration remain
 separate operations; see the canonical web team-stat-rankings specs.
+
+## Punting
+
+Punting routes read `punt_play`, which the services punting writer fills with
+one normalized, attributed row per punt during live post-processing and
+backfill. Each request uses one read-only repeatable-read snapshot with three
+bulk SELECTs: game participants, season affiliations, and stored punts by
+`game_id`. Team aggregates read `punt_play` alone; only plays join `play`.
+Games without stored punts are omitted from aggregates. Requests never parse
+play text, repair data or call a provider. See the
+[punting README](src/app/punting/README.md).

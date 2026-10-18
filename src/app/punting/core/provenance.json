@@ -1,0 +1,13 @@
+{
+  "generatedBy": "cfbd-services/scripts/sync-punting-core.js",
+  "sourceRevision": "6c1a69c1e0796800de658d9acc7f80d834d5a833",
+  "parserVersion": 3,
+  "files": {
+    "index.ts": "8cdb4bd32fa45ecaebc29a19cc3ccdfe19de5deb1f3e028e2cb77f74a976918c",
+    "types.ts": "b10fb9b6f28c099b4b69b6f627232927bd2cc8cabbacce60e521b9871a8408c1",
+    "normalize.ts": "a42dbbf39da99edafdc444cb1afc8104001f637239398e80804a9ffcfd620c00",
+    "roles.ts": "b948ce38fe9f679562020a56e3df86ecb9edcf94d75b68392808c156d07d9aba",
+    "fixtures/observed.json": "55ede058086a0ffd398920bdb7cf2692bafc20a1931ee1a9156f6d2bdddad256",
+    "fixtures/synthetic.json": "04a8e9be9c0b3dd1118cf905986fe6c9600189ffa201c9b01be80f915075ab1d"
+  }
+}

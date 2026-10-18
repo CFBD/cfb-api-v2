@@ -19,6 +19,8 @@ Last reviewed: 2026-07-18
   reference material.
 - [C# SDK generation](references/csharp-sdk-generation.md): schema naming,
   compatibility, stale-source cleanup, and pre-push compilation checks.
+- [Punting](../src/app/punting/README.md): generated core sync, read model,
+  and the read-only benchmark.
 
 ## Task Routing
 

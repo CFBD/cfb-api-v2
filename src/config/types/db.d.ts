@@ -792,6 +792,41 @@ export interface Ppa {
   yardLine: number;
 }
 
+export interface PuntPlay {
+  blockerId: Int8 | null;
+  countsAsPlayerPunt: boolean | null;
+  countsAsPlayerReturn: boolean | null;
+  countsAsPunt: boolean | null;
+  countsAsReturn: boolean | null;
+  endingPossessionTeamId: number | null;
+  endYardLine: number | null;
+  gameId: number;
+  hasPenalty: boolean | null;
+  isBlocked: boolean | null;
+  isDowned: boolean | null;
+  isFairCatch: boolean | null;
+  isMuffed: boolean | null;
+  isOutOfBounds: boolean | null;
+  isReceivingTeamTurnover: boolean | null;
+  isReturnTouchdown: boolean | null;
+  isTouchback: boolean | null;
+  kickEndYardLine: number | null;
+  netPuntYards: number | null;
+  parserVersion: number;
+  parseStatus: string;
+  playId: Int8;
+  punterId: Int8 | null;
+  puntingTeamId: number;
+  puntYards: number | null;
+  receiverId: Int8 | null;
+  receivingTeamId: number;
+  returnEndYardLine: number | null;
+  returnerId: Int8 | null;
+  returnerYards: number | null;
+  returnYards: number | null;
+  startYardLine: number | null;
+}
+
 export interface Ratings {
   dDbHavoc: Numeric | null;
   dExplosiveness: Numeric | null;
@@ -1195,6 +1230,7 @@ export interface DB {
   pollType: PollType;
   position: Position;
   ppa: Ppa;
+  puntPlay: PuntPlay;
   ratings: Ratings;
   ratingSystems: RatingSystems;
   recruit: Recruit;

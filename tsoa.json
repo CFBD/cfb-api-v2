@@ -57,6 +57,11 @@
         "description": "Enriched rushing attempts and player and team rushing production."
       },
       {
+        "name": "punting",
+        "x-displayName": "Punting",
+        "description": "Enriched punt plays and player and team punting production."
+      },
+      {
         "name": "teams",
         "x-displayName": "Teams",
         "description": "Teams, rosters, matchups, talent ratings, and ATS records."

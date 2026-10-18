@@ -95,6 +95,16 @@ describe('service principal operation policy', () => {
     expect(getExporterOperations()).toContain('GET /games');
     expect(getExporterOperations()).toContain('GET /info/usage');
     expect(getExporterOperations()).toContain('GET /passing/plays');
+    for (const route of [
+      'plays',
+      'players/season',
+      'players/games',
+      'teams/season',
+      'teams/games',
+    ]) {
+      expect(getExporterOperations()).toContain(`GET /punting/${route}`);
+      expect(getPageOperations()).not.toContain(`GET /punting/${route}`);
+    }
     for (const path of exporterDeniedPaths) {
       expect(getExporterOperations()).not.toContain(`GET ${path}`);
     }
@@ -140,7 +150,7 @@ describe('service principal operation policy', () => {
       );
     }
 
-    expect(generated).toHaveLength(88);
+    expect(generated).toHaveLength(93);
   });
 
   test('fails closed for malformed or duplicate OpenAPI operation metadata', () => {
