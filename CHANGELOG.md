@@ -1,3 +1,12 @@
+# [5.33.0](https://github.com/CFBD/cfb-api-v2/compare/v5.32.1...v5.33.0) (2026-10-18)
+
+
+### Features
+
+* **cpoe:** cpoe implementation and cleanup ([aa89fa4](https://github.com/CFBD/cfb-api-v2/commit/aa89fa42573cca5a2faaf5bf94b9c5a4ecbd89a3))
+* **passing:** adding cpoe stats ([8a49c8f](https://github.com/CFBD/cfb-api-v2/commit/8a49c8f405f4c37c5a150b99766445e1475970d5))
+* **punting:** enriched punting endpoints ([6a45e52](https://github.com/CFBD/cfb-api-v2/commit/6a45e52139b0922fd590f1ab0519f8ad4d369e4b))
+
 ## [5.32.1](https://github.com/CFBD/cfb-api-v2/compare/v5.32.0...v5.32.1) (2026-10-03)
 
 
