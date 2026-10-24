@@ -9,8 +9,14 @@ import { ValidateError } from 'tsoa';
 
 import { kdb } from '../../config/database';
 import type { DB } from '../../config/types/db';
-import { cpoeAggregateSelections, mapCpoeProduction } from '../boxScores/cpoe';
+import {
+  cpoeAggregateSelections,
+  mapCpoeProduction,
+  unavailableCpoe,
+} from '../boxScores/cpoe';
 import { DivisionClassification, SeasonType } from '../enums';
+import { aggregateTeamSeasonCpoe, teamSeasonKey } from './teamSeasonCpoe';
+import { readTeamPassingSeasonSnapshots } from './teamSeasonSnapshots';
 import {
   PassDepth,
   PassDirection,
@@ -205,7 +211,10 @@ type AggregateCondition = Expression<SqlBool>;
 type AggregateSelection = AliasedExpression<number | string | null, string>;
 type AggregateSide = 'offense' | 'defense';
 
-const aggregateSelections = (side?: AggregateSide): AggregateSelection[] => {
+const aggregateSelections = (
+  side?: AggregateSide,
+  includeCpoe = true,
+): AggregateSelection[] => {
   const eb = expressionBuilder<
     PassingAggregateTables,
     keyof PassingAggregateTables
@@ -337,7 +346,7 @@ const aggregateSelections = (side?: AggregateSide): AggregateSelection[] => {
 
   return [
     ...production(sideConditions, prefix),
-    ...cpoeAggregateSelections(side),
+    ...(includeCpoe ? cpoeAggregateSelections(side) : []),
     ...advanced(eligibleConditions, prefix),
     count(eligibleConditions).as(fieldName(prefix, 'locationEligibleAttempts')),
     count([...eligibleConditions, knownLocation]).as(
@@ -362,9 +371,9 @@ const aggregateSelections = (side?: AggregateSide): AggregateSelection[] => {
   ];
 };
 
-const teamAggregateSelections = (): AggregateSelection[] => [
-  ...aggregateSelections('offense'),
-  ...aggregateSelections('defense'),
+const teamAggregateSelections = (includeCpoe = true): AggregateSelection[] => [
+  ...aggregateSelections('offense', includeCpoe),
+  ...aggregateSelections('defense', includeCpoe),
 ];
 
 const numericValue = (row: AggregateRow, field: string): number =>
@@ -1290,107 +1299,244 @@ export const getTeamPassingBySeason = async (
   team?: string,
   conference?: string,
   classification: DivisionClassification = DivisionClassification.FBS,
+  database: Kysely<DB> = kdb,
 ): Promise<TeamPassingSeason[]> => {
   validateTeamPassingSeasonScope(year, team);
 
-  let query = kdb
-    .selectFrom('game')
-    .innerJoin('drive', 'drive.gameId', 'game.id')
-    .innerJoin('play', 'play.driveId', 'drive.id')
-    .innerJoin('passPlay as pp', 'pp.playId', 'play.id')
-    .innerJoin('gameTeam as representedGt', 'game.id', 'representedGt.gameId')
-    .innerJoin(
-      'team as representedTeam',
-      'representedGt.teamId',
-      'representedTeam.id',
-    )
-    .leftJoin('conferenceTeam as representedCt', (join) =>
-      join
-        .onRef('representedTeam.id', '=', 'representedCt.teamId')
-        .on((eb) =>
-          eb('representedCt.startYear', '<=', year ?? eb.ref('game.season')),
+  // Team-season snapshots aggregate every season type, so only whole-season
+  // requests can be served from them. Any gap falls back to the live read.
+  if (!seasonType || seasonType === SeasonType.Both) {
+    const snapshot = await readTeamPassingSeasonSnapshots(database, {
+      year,
+      team,
+      conference,
+      classification,
+    });
+    if (snapshot.status === 'found') return snapshot.rows;
+    console.info('Team passing season snapshot fallback', {
+      season: snapshot.season,
+      teamId: snapshot.teamId,
+      reason: snapshot.reason,
+    });
+  }
+  return queryTeamPassingBySeason(
+    year,
+    seasonType,
+    team,
+    conference,
+    classification,
+    database,
+  );
+};
+
+/** Live team-season aggregate over plays and current CPOE predictions. */
+export const queryTeamPassingBySeason = async (
+  year?: number,
+  seasonType?: SeasonType,
+  team?: string,
+  conference?: string,
+  classification: DivisionClassification = DivisionClassification.FBS,
+  database: Kysely<DB> = kdb,
+): Promise<TeamPassingSeason[]> => {
+  validateTeamPassingSeasonScope(year, team);
+
+  return database
+    .transaction()
+    .setIsolationLevel('repeatable read')
+    .setAccessMode('read only')
+    .execute(async (executor) => {
+      // These scoped reads spend more time compiling JIT code than it saves.
+      // Transaction-local configuration resets before the pooled connection returns.
+      await executor
+        .selectNoFrom((eb) =>
+          eb
+            .fn<string>('set_config', [
+              eb.val('jit'),
+              eb.val('off'),
+              eb.val(true),
+            ])
+            .as('jit'),
         )
-        .on((eb) =>
+        .execute();
+      let scope = executor
+        .selectFrom('game')
+        .innerJoin(
+          'gameTeam as representedGt',
+          'game.id',
+          'representedGt.gameId',
+        )
+        .innerJoin(
+          'team as representedTeam',
+          'representedGt.teamId',
+          'representedTeam.id',
+        )
+        .leftJoin('conferenceTeam as representedCt', (join) =>
+          join
+            .onRef('representedTeam.id', '=', 'representedCt.teamId')
+            .on((eb) =>
+              eb(
+                'representedCt.startYear',
+                '<=',
+                year ?? eb.ref('game.season'),
+              ),
+            )
+            .on((eb) =>
+              eb.or([
+                eb(
+                  'representedCt.endYear',
+                  '>=',
+                  year ?? eb.ref('game.season'),
+                ),
+                eb('representedCt.endYear', 'is', null),
+              ]),
+            ),
+        )
+        .leftJoin('conference as representedConference', (join) =>
+          join.onRef(
+            'representedCt.conferenceId',
+            '=',
+            'representedConference.id',
+          ),
+        )
+        .where('representedConference.division', '=', classification)
+        .select([
+          'game.id as gameId',
+          'game.season',
+          'representedTeam.id',
+          'representedTeam.school',
+          'representedConference.abbreviation as conference',
+        ]);
+
+      if (year !== undefined) {
+        scope = scope.where('game.season', '=', year);
+      }
+      if (seasonType && seasonType !== SeasonType.Both) {
+        scope = scope.where('game.seasonType', '=', seasonType);
+      }
+      if (team !== undefined) {
+        const value = team.toLowerCase();
+        scope = scope.where((eb) =>
           eb.or([
-            eb('representedCt.endYear', '>=', year ?? eb.ref('game.season')),
-            eb('representedCt.endYear', 'is', null),
+            eb(eb.fn('lower', ['representedTeam.school']), '=', value),
+            eb(eb.fn('lower', ['representedTeam.abbreviation']), '=', value),
           ]),
-        ),
-    )
-    .leftJoin('conference as representedConference', (join) =>
-      join.onRef('representedCt.conferenceId', '=', 'representedConference.id'),
-    )
-    .where((eb) =>
-      eb.or([
-        eb('play.offenseId', '=', eb.ref('representedTeam.id')),
-        eb('play.defenseId', '=', eb.ref('representedTeam.id')),
-      ]),
-    )
-    .where('representedConference.division', '=', classification)
-    .select([
-      'game.season',
-      'representedTeam.school as team',
-      'representedConference.abbreviation as conference',
-    ])
-    .select(teamAggregateSelections())
-    .groupBy([
-      'game.season',
-      'representedTeam.school',
-      'representedConference.abbreviation',
-    ])
-    .orderBy('game.season', 'desc')
-    .orderBy('representedTeam.school');
+        );
+      }
+      if (conference !== undefined) {
+        const value = conference.toLowerCase();
+        scope = scope.where((eb) =>
+          eb.or([
+            eb(eb.fn('lower', ['representedConference.name']), '=', value),
+            eb(
+              eb.fn('lower', ['representedConference.abbreviation']),
+              '=',
+              value,
+            ),
+          ]),
+        );
+      }
 
-  if (year !== undefined) {
-    query = query.where('game.season', '=', year);
-  }
-  if (seasonType && seasonType !== SeasonType.Both) {
-    query = query.where('game.seasonType', '=', seasonType);
-  }
-  if (team !== undefined) {
-    const value = team.toLowerCase();
-    query = query.where((eb) =>
-      eb.or([
-        eb(eb.fn('lower', ['representedTeam.school']), '=', value),
-        eb(eb.fn('lower', ['representedTeam.abbreviation']), '=', value),
-      ]),
-    );
-  }
-  if (conference !== undefined) {
-    const value = conference.toLowerCase();
-    query = query.where((eb) =>
-      eb.or([
-        eb(eb.fn('lower', ['representedConference.name']), '=', value),
-        eb(eb.fn('lower', ['representedConference.abbreviation']), '=', value),
-      ]),
-    );
-  }
+      // Reuse season-valid participants before touching plays. Keeping this CTE
+      // separate also prevents the play/team OR predicate from reducing the
+      // planner's estimate for the prediction game scope to a single row.
+      const scoped = executor.with(
+        (cte) => cte('passingTeamGames').materialized(),
+        () => scope,
+      );
+      const attempts = scoped
+        .selectFrom('passingTeamGames as representedTeam')
+        .innerJoin('drive', 'drive.gameId', 'representedTeam.gameId')
+        .innerJoin('play', 'play.driveId', 'drive.id')
+        .innerJoin('passPlay as pp', 'pp.playId', 'play.id')
+        .where((eb) =>
+          eb.or([
+            eb('play.offenseId', '=', eb.ref('representedTeam.id')),
+            eb('play.defenseId', '=', eb.ref('representedTeam.id')),
+          ]),
+        )
+        .select([
+          'representedTeam.season',
+          'representedTeam.school as team',
+          'representedTeam.conference',
+        ])
+        .groupBy([
+          'representedTeam.season',
+          'representedTeam.school',
+          'representedTeam.conference',
+        ]);
+      const production = attempts
+        .select(teamAggregateSelections(false))
+        .orderBy('representedTeam.season', 'desc')
+        .orderBy('representedTeam.school');
 
-  const rows = await query
-    .leftJoin(
-      scopedCpoe(
-        kdb,
-        query
-          .clearSelect()
-          .clearGroupBy()
-          .clearOrderBy()
-          .select('game.id as gameId')
-          .distinct(),
-      ).as('cp'),
-      (join) =>
-        join
-          .onRef('cp.gameId', '=', 'game.id')
-          .onRef('cp.playId', '=', 'pp.playId'),
-    )
-    .execute();
+      // Stored rows only narrow the candidate game set. Every probability still
+      // comes from the current view, which applies model/source/eligibility checks.
+      const predictionGames = executor
+        .with(
+          (cte) => cte('storedPredictionGames').materialized(),
+          (db) =>
+            db
+              .selectFrom('passPlayCpoe as stored')
+              .innerJoin('play as storedPlay', 'storedPlay.id', 'stored.playId')
+              .innerJoin(
+                'drive as storedDrive',
+                'storedDrive.id',
+                'storedPlay.driveId',
+              )
+              .where(
+                'storedDrive.gameId',
+                'in',
+                scope.clearSelect().select('game.id'),
+              )
+              .select('storedDrive.gameId')
+              .distinct(),
+        )
+        .selectFrom(scope.as('games'))
+        .where('games.gameId', 'in', (eb) =>
+          eb.selectFrom('storedPredictionGames').select('gameId'),
+        )
+        .select('games.gameId')
+        .distinct();
 
-  return rows.map((row) => ({
-    season: row.season,
-    team: row.team,
-    conference: row.conference,
-    offense: mapProduction(row, 'offense'),
-    defense: mapProduction(row, 'defense'),
-  }));
+      // Read current predictions once. Joining this result back to season-wide
+      // attempts lets underestimates produce repeated scans. Match the small
+      // participant set in memory instead, using one repeatable-read snapshot.
+      const participants = await scope.execute();
+      const rows = await production.execute();
+      const predictions = await executor
+        .selectFrom(scopedCpoe(executor, predictionGames).as('cp'))
+        .innerJoin('play', 'play.id', 'cp.playId')
+        .innerJoin('passPlay as pp', 'pp.playId', 'cp.playId')
+        .select([
+          'cp.gameId',
+          'cp.playId',
+          'cp.completionProbability',
+          'cp.modelVersion',
+          'play.offenseId',
+          'play.defenseId',
+          'pp.outcome',
+        ])
+        .execute();
+      const byTeam = aggregateTeamSeasonCpoe(participants, predictions);
+      return rows.map((row) => {
+        const scored = byTeam.get(
+          teamSeasonKey(row.season, row.team, row.conference),
+        );
+        return {
+          season: row.season,
+          team: row.team,
+          conference: row.conference,
+          offense: {
+            ...mapProduction(row, 'offense'),
+            ...(scored?.offense ?? unavailableCpoe()),
+          },
+          defense: {
+            ...mapProduction(row, 'defense'),
+            ...(scored?.defense ?? unavailableCpoe()),
+          },
+        };
+      });
+    });
 };
 
 const buildTeamPassingGameQuery = (executor: Kysely<DB>, year?: number) => {

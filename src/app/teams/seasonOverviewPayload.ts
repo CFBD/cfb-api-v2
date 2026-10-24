@@ -6,6 +6,8 @@ import {
   isPassingProduction,
   isTeamRushingProduction,
 } from '../boxScores/payload';
+import { StoredTeamPassing } from '../boxScores/cpoe';
+import { TeamPassingSeason } from '../passing/types';
 
 const object = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -91,6 +93,14 @@ const enriched = (
     production(value.offense) &&
     production(value.defense));
 
+/** Stored team-season passing; CPOE still needs selected-model projection. */
+export const isStoredTeamPassingSeason = (
+  value: unknown,
+  season: number,
+  team: string,
+): value is StoredTeamPassing<TeamPassingSeason> | null =>
+  enriched(value, season, team, isPassingProduction);
+
 export const isTeamSeasonSnapshotPayload = (
   value: unknown,
   season: number,
@@ -112,7 +122,7 @@ export const isTeamSeasonSnapshotPayload = (
       player(row, season, team) &&
       numbers(row.usage, ['overall', ...ppaKeys.slice(1)], true),
   ) &&
-  enriched(value.passing, season, team, isPassingProduction) &&
+  isStoredTeamPassingSeason(value.passing, season, team) &&
   enriched(value.rushing, season, team, isTeamRushingProduction);
 
 // Shared snapshot projection predicate. Optional ranking metadata never affects availability.

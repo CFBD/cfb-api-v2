@@ -24,6 +24,8 @@ Last reviewed: 2026-07-18
 
 - [CPOE response contract](references/cpoe-snapshots.md): public fields,
   scored-subset semantics, and selected-model checks on stored snapshots.
+- [Passing season performance](references/passing-season-performance.md):
+  full-season query design, read-only benchmark and verification evidence.
 
 ## Task Routing
 

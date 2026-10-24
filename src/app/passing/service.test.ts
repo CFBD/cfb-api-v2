@@ -20,12 +20,22 @@ import {
   getPlayerPassingBySeason,
   getTeamPassingByGame,
   getTeamPassingBySeason,
+  queryTeamPassingBySeason,
 } from './service';
+import { readTeamPassingSeasonSnapshots } from './teamSeasonSnapshots';
 
+jest.mock('./teamSeasonSnapshots', () => ({
+  readTeamPassingSeasonSnapshots: jest.fn(),
+}));
 jest.mock('../../config/database', () => ({
   db: {},
   authDb: {},
-  kdb: { selectFrom: jest.fn(), with: jest.fn() },
+  kdb: {
+    selectFrom: jest.fn(),
+    selectNoFrom: jest.fn(),
+    with: jest.fn(),
+    transaction: jest.fn(),
+  },
 }));
 
 const selectFrom = kdb.selectFrom as jest.Mock;
@@ -76,6 +86,7 @@ const createCompileDatabase = (
     },
   });
   (kdb.with as jest.Mock).mockImplementation(db.with.bind(db));
+  (kdb.transaction as jest.Mock).mockImplementation(db.transaction.bind(db));
   return db;
 };
 
@@ -209,11 +220,18 @@ const productionRow = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  (kdb.selectNoFrom as jest.Mock).mockReturnValue(createQueryBuilder());
   const creator = {
     with: () => creator,
-    selectFrom: () => createQueryBuilder(),
+    selectFrom: (...args: unknown[]) => selectFrom(...args),
   };
   (kdb.with as jest.Mock).mockReturnValue(creator);
+  const transaction = {
+    setIsolationLevel: jest.fn().mockReturnThis(),
+    setAccessMode: jest.fn().mockReturnThis(),
+    execute: jest.fn((callback) => callback(kdb)),
+  };
+  (kdb.transaction as jest.Mock).mockReturnValue(transaction);
 });
 
 describe('getPassingPlays', () => {
@@ -452,7 +470,7 @@ describe('passing availability field names', () => {
     },
     {
       endpoint: 'teams/season',
-      run: () => getTeamPassingBySeason(2026),
+      run: () => queryTeamPassingBySeason(2026),
       team: true,
     },
     {
@@ -678,11 +696,17 @@ describe('player passing aggregates', () => {
 
     await getPlayerPassingBySeason(2026);
     await getPlayerPassingByGame(2026, 1);
-    await getTeamPassingBySeason(2026);
+    await queryTeamPassingBySeason(2026);
     await getTeamPassingByGame(2026, 1);
 
-    expect(compiledQueries).toHaveLength(4);
-    for (const { sql } of compiledQueries) {
+    expect(compiledQueries).toHaveLength(7);
+    const aggregates = [
+      compiledQueries[0],
+      compiledQueries[1],
+      compiledQueries[4],
+      compiledQueries[6],
+    ];
+    for (const { sql } of aggregates) {
       expect(sql).toContain('from "game"');
       expect(sql).toContain('inner join "pass_play" as "pp"');
       expect(sql).toContain('then "play"."yards_gained"');
@@ -701,7 +725,7 @@ describe('player passing aggregates', () => {
       expect(sql).toContain('"roles"."passer_id" = "passer"."id"');
       expect(sql).toContain('count(*) filter(where "pp"."outcome" =');
     }
-    for (const { sql } of compiledQueries.slice(2)) {
+    for (const { sql } of aggregates.slice(2)) {
       expect(sql).not.toContain('play_stat');
       expect(sql).not.toContain('lateral');
       expect(sql).toContain(
@@ -761,7 +785,7 @@ describe('player passing aggregates', () => {
       undefined,
       '4685151',
     );
-    await getTeamPassingBySeason(undefined, undefined, 'Michigan');
+    await queryTeamPassingBySeason(undefined, undefined, 'Michigan');
 
     expect(compiledQueries[0].sql).toContain(
       '"offense_ct"."start_year" <= "game"."season"',
@@ -769,10 +793,10 @@ describe('player passing aggregates', () => {
     expect(compiledQueries[0].sql).toContain(
       '"offense_ct"."end_year" >= "game"."season"',
     );
-    expect(compiledQueries[1].sql).toContain(
+    expect(compiledQueries[2].sql).toContain(
       '"represented_ct"."start_year" <= "game"."season"',
     );
-    expect(compiledQueries[1].sql).toContain(
+    expect(compiledQueries[2].sql).toContain(
       '"represented_ct"."end_year" >= "game"."season"',
     );
 
@@ -916,7 +940,7 @@ describe('team passing aggregates', () => {
     ]);
     selectFrom.mockReturnValue(builder);
 
-    const [result] = await getTeamPassingBySeason(2026);
+    const [result] = await queryTeamPassingBySeason(2026);
 
     expect(result.offense).toMatchObject({
       attempts: 4,
@@ -998,7 +1022,7 @@ describe('passing advanced metrics and location mapping', () => {
   test.each([
     { run: () => getPlayerPassingBySeason(2026), team: false },
     { run: () => getPlayerPassingByGame(2026, 1), team: false },
-    { run: () => getTeamPassingBySeason(2026), team: true },
+    { run: () => queryTeamPassingBySeason(2026), team: true },
     { run: () => getTeamPassingByGame(2026, 1), team: true },
   ])('maps all metrics and every bucket for $run', async ({ run, team }) => {
     const advancedRow = {
@@ -1129,9 +1153,9 @@ describe('passing advanced metrics and location mapping', () => {
     const compiledQueries: CompiledQuery<unknown>[] = [];
     const compileDb = createCompileDatabase(compiledQueries);
     selectFrom.mockImplementation(compileDb.selectFrom.bind(compileDb));
-    await getTeamPassingBySeason(2026);
-    expect(compiledQueries).toHaveLength(1);
-    const [{ sql, parameters }] = compiledQueries;
+    await queryTeamPassingBySeason(2026);
+    expect(compiledQueries).toHaveLength(4);
+    const { sql, parameters } = compiledQueries[2];
     expect(sql).toContain('not case when');
     expect(sql).toContain('"pp"."pass_depth" in');
     expect(sql).toContain('"pp"."pass_direction" in');
@@ -1228,13 +1252,13 @@ describe('standalone CPOE contract', () => {
     {
       name: 'team season',
       team: true,
-      run: () => getTeamPassingBySeason(2026),
+      run: () => queryTeamPassingBySeason(2026),
     },
     { name: 'team game', team: true, run: () => getTeamPassingByGame(2026, 1) },
   ];
   test.each(handlers)(
     '$name uses the scored subset and preserves location fields',
-    async ({ team, run }) => {
+    async ({ name, team, run }) => {
       const scored = {
         ...productionRow,
         attempts: '5',
@@ -1255,6 +1279,64 @@ describe('standalone CPOE contract', () => {
             : scored,
         ]),
       );
+      if (name === 'team season') {
+        const builder = selectFrom();
+        builder.execute
+          .mockResolvedValueOnce([
+            {
+              gameId: 1,
+              season: 2026,
+              id: 1,
+              school: 'Test',
+              conference: null,
+            },
+            {
+              gameId: 1,
+              season: 2026,
+              id: 2,
+              school: 'Test',
+              conference: null,
+            },
+          ])
+          .mockResolvedValueOnce([
+            {
+              season: 2026,
+              team: 'Test',
+              conference: null,
+              ...prefixFields('offense', scored),
+              ...prefixFields('defense', scored),
+            },
+          ])
+          .mockResolvedValueOnce([
+            {
+              gameId: 1,
+              playId: '1',
+              offenseId: 1,
+              defenseId: 2,
+              outcome: 'completion',
+              completionProbability: 0.6,
+              modelVersion: 'test-v2',
+            },
+            {
+              gameId: 1,
+              playId: '2',
+              offenseId: 1,
+              defenseId: 2,
+              outcome: 'completion',
+              completionProbability: 0.6,
+              modelVersion: 'test-v2',
+            },
+            {
+              gameId: 1,
+              playId: '3',
+              offenseId: 1,
+              defenseId: 2,
+              outcome: 'incompletion',
+              completionProbability: 0.6,
+              modelVersion: 'test-v2',
+            },
+          ]);
+      }
       const [result] = await run();
       const productions =
         'offense' in result ? [result.offense, result.defense] : [result];
@@ -1314,13 +1396,14 @@ describe('standalone CPOE contract', () => {
     },
   );
 
-  test('all five public queries use one bounded optional current-prediction join', async () => {
+  test('play/player/team-game queries use bounded current-prediction joins', async () => {
     const queries: CompiledQuery<unknown>[] = [];
     const db = createCompileDatabase(queries);
     selectFrom.mockImplementation(db.selectFrom.bind(db));
     await getPassingPlays(undefined, 2026, 1);
-    for (const handler of handlers) await handler.run();
-    expect(queries).toHaveLength(5);
+    for (const handler of handlers.filter((h) => h.name !== 'team season'))
+      await handler.run();
+    expect(queries).toHaveLength(4);
     for (const { sql, parameters } of queries) {
       expect(sql.match(/join "pass_play_cpoe_current"/g)).toHaveLength(1);
       expect(sql).toContain('"cpoe_predictions" as materialized');
@@ -1488,13 +1571,6 @@ describe('CPOE game scope', () => {
       value: '5141741',
     },
     {
-      name: 'team across seasons',
-      run: () => getTeamPassingBySeason(undefined, SeasonType.Both, 'Michigan'),
-      filter: 'lower("represented_team"."school") =',
-      boundary: '"represented_ct"."start_year" <= "game"."season"',
-      value: 'michigan',
-    },
-    {
       name: 'player game with all filters',
       run: () =>
         getPlayerPassingByGame(
@@ -1556,6 +1632,168 @@ describe('CPOE game scope', () => {
       expect(sql).toContain('"cpoe_predictions" as materialized');
       expect(sql).toContain('"prediction"."game_id" = "cpoe_games"."game_id"');
       await db.destroy();
+    },
+  );
+});
+
+describe('team-season passing read', () => {
+  test.each([
+    {
+      year: 2025,
+      seasonType: SeasonType.Regular,
+      team: undefined,
+      conference: undefined,
+      classification: DivisionClassification.FBS,
+    },
+    {
+      year: 2026,
+      seasonType: SeasonType.Postseason,
+      team: undefined,
+      conference: 'SEC',
+      classification: DivisionClassification.FBS,
+    },
+    {
+      year: undefined,
+      seasonType: SeasonType.Both,
+      team: 'Michigan',
+      conference: undefined,
+      classification: DivisionClassification.FBS,
+    },
+    {
+      year: 2026,
+      seasonType: undefined,
+      team: undefined,
+      conference: undefined,
+      classification: DivisionClassification.FCS,
+    },
+  ])(
+    'keeps all three reads in the requested scope %j',
+    async ({ year, seasonType, team, conference, classification }) => {
+      const queries: CompiledQuery<unknown>[] = [];
+      const db = createCompileDatabase(queries);
+      await queryTeamPassingBySeason(
+        year,
+        seasonType,
+        team,
+        conference,
+        classification,
+        db,
+      );
+      expect(queries).toHaveLength(4);
+      const [configuration, participants, production, predictions] = queries;
+      expect(configuration.sql).toBe('select set_config($1, $2, $3) as "jit"');
+      expect(configuration.parameters).toEqual(['jit', 'off', true]);
+      expect(participants.sql).not.toContain('join "play"');
+      expect(production.sql).not.toContain('pass_play_cpoe');
+      expect(production.sql).toContain(
+        'order by "represented_team"."season" desc, "represented_team"."school"',
+      );
+      expect(
+        predictions.sql.match(/join "pass_play_cpoe_current"/g),
+      ).toHaveLength(1);
+      expect(predictions.sql).toContain(
+        '"stored_prediction_games" as materialized',
+      );
+      expect(predictions.sql).toContain(
+        '"stored_drive"."game_id" in (select "game"."id"',
+      );
+      expect(predictions.sql).toContain('"cp"."completion_probability"');
+      expect(predictions.sql).not.toContain(
+        '"stored"."completion_probability"',
+      );
+      expect(predictions.sql).not.toContain('group by');
+      for (const { sql, parameters } of [
+        participants,
+        production,
+        predictions,
+      ]) {
+        expect(parameters).toContain(classification);
+        if (year !== undefined) expect(parameters).toContain(year);
+        else
+          expect(sql).toContain(
+            '"represented_ct"."start_year" <= "game"."season"',
+          );
+        if (team) expect(parameters).toContain(team.toLowerCase());
+        if (conference) expect(parameters).toContain(conference.toLowerCase());
+        if (seasonType && seasonType !== SeasonType.Both)
+          expect(parameters).toContain(seasonType);
+        else expect(sql).not.toContain('"game"."season_type" =');
+      }
+      await db.destroy();
+    },
+  );
+
+  test('requires one read-only repeatable-read snapshot and propagates prediction failures', async () => {
+    const failure = new Error('prediction query failed');
+    const builder = createQueryBuilder();
+    builder.execute
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockRejectedValueOnce(failure);
+    selectFrom.mockReturnValue(builder);
+    await expect(queryTeamPassingBySeason(2026)).rejects.toBe(failure);
+    expect(kdb.transaction).toHaveBeenCalledTimes(1);
+    const transaction = (kdb.transaction as jest.Mock).mock.results[0].value;
+    expect(transaction.setIsolationLevel).toHaveBeenCalledWith(
+      'repeatable read',
+    );
+    expect(transaction.setAccessMode).toHaveBeenCalledWith('read only');
+  });
+});
+
+describe('team-season passing source', () => {
+  const readSnapshots = readTeamPassingSeasonSnapshots as jest.Mock;
+  const stored = [{ season: 2026, team: 'Michigan', conference: 'B1G' }];
+
+  test.each([undefined, SeasonType.Both])(
+    'serves seasonType=%s from complete snapshots',
+    async (seasonType) => {
+      readSnapshots.mockResolvedValue({ status: 'found', rows: stored });
+      await expect(
+        getTeamPassingBySeason(
+          2026,
+          seasonType,
+          'Michigan',
+          'B1G',
+          DivisionClassification.FCS,
+        ),
+      ).resolves.toBe(stored);
+      expect(readSnapshots).toHaveBeenCalledWith(kdb, {
+        year: 2026,
+        team: 'Michigan',
+        conference: 'B1G',
+        classification: DivisionClassification.FCS,
+      });
+      expect(kdb.transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  test('falls back to the live read when snapshots are incomplete', async () => {
+    readSnapshots.mockResolvedValue({
+      status: 'incomplete',
+      reason: 'missing-snapshot',
+      season: 2025,
+      teamId: 2,
+    });
+    const info = jest.spyOn(console, 'info').mockImplementation(() => {});
+    selectFrom.mockReturnValue(createQueryBuilder());
+    await expect(getTeamPassingBySeason(2025)).resolves.toEqual([]);
+    expect(info).toHaveBeenCalledWith('Team passing season snapshot fallback', {
+      season: 2025,
+      teamId: 2,
+      reason: 'missing-snapshot',
+    });
+    expect(kdb.transaction).toHaveBeenCalledTimes(1);
+    info.mockRestore();
+  });
+
+  test.each([SeasonType.Regular, SeasonType.Postseason])(
+    'reads %s splits live because snapshots aggregate all season types',
+    async (seasonType) => {
+      selectFrom.mockReturnValue(createQueryBuilder());
+      await getTeamPassingBySeason(2026, seasonType);
+      expect(readSnapshots).not.toHaveBeenCalled();
+      expect(kdb.transaction).toHaveBeenCalledTimes(1);
     },
   );
 });

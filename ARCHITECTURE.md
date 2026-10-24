@@ -492,3 +492,29 @@ bulk SELECTs: game participants, season affiliations, and stored punts by
 Games without stored punts are omitted from aggregates. Requests never parse
 play text, repair data or call a provider. See the
 [punting README](src/app/punting/README.md).
+
+## Passing team seasons
+
+`GET /passing/teams/season` without a season type, or with `both`, reads
+`team_season_snapshot.payload -> 'passing'` for the season-valid participants in
+scope and projects stored CPOE through the season's selected model, like season
+overviews. The response comes from snapshots only when every in-scope
+team-season with pass plays has a valid format-1 snapshot whose conference
+matches; unsnapshotted participants trigger a bounded pass-play probe. Any gap
+serves the live read below for the whole request rather than a partial result.
+Snapshots aggregate all season types, so `regular` and `postseason` always read
+live. Snapshot CPOE reflects the predictions current when services last rebuilt
+that team-season.
+
+The live read uses a read-only repeatable-read transaction for
+three bulk SELECTs: filtered season-valid game participants, unchanged ordinary
+passing aggregates, and current CPOE predictions. The scoped prediction read
+first excludes games without any stored predictions, but obtains probability
+values only from `pass_play_cpoe_current`. It retains the view's source/model
+validity checks. In-memory CPOE aggregation preserves game/team attribution,
+conference grouping multiplicity, model consistency, defensive sign and final
+rounding. The shared snapshot prevents source or policy changes between reads
+from producing inconsistent results. A transaction-local JIT setting avoids
+compilation overhead and resets before the connection returns to the pool.
+Other passing routes retain their existing
+queries. See [performance verification](docs/references/passing-season-performance.md).

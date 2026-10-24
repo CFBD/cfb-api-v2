@@ -22,3 +22,5 @@ API_ENDPOINTS.md
 !/scripts/csharp-smoke/
 !/docs/references/csharp-sdk-generation.md
 !/docs/references/cpoe-snapshots.md
+!/docs/references/passing-season-performance.md
+!/scripts/benchmark-passing.ts
