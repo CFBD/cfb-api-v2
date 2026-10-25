@@ -170,8 +170,11 @@ apply independently in each process. Monthly quotas remain database-backed.
 The standard concurrency limiter allows two active requests per individual
 API user per configured endpoint across both workers in one API container. This
 covers `/live/plays` (across all game IDs), `/plays/stats`,
-`/stats/player/season`, `/stats/season/advanced`, `/stats/game/advanced`, and
-`/stats/player/success/game`. Separate containers have independent coordinators.
+`/stats/player/season`, `/stats/season/advanced`, `/stats/game/advanced`,
+`/stats/player/success/game`, `/stats/player/success`, `/ppa/players/season`,
+`/passing/players/season`, and `/rushing/players/season`. The player season
+reads were added after parallel per-player, all-career sweeps saturated
+database I/O. Separate containers have independent coordinators.
 The primary owns admission leases; workers acquire and release them over IPC.
 Excess requests receive 429 with `Retry-After: 1` before quota reservation.
 Unavailable or timed-out admission returns 503 with `Retry-After: 1`, without

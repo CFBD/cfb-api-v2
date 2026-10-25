@@ -53,6 +53,32 @@ const concurrencyLimit = createConcurrencyLimit([
     maxConcurrent: 2,
     leaseMs: 75000,
   },
+  // Player season reads without a year aggregate whole careers; parallel
+  // per-player sweeps saturated database I/O.
+  {
+    path: '/stats/player/success',
+    methods: ['GET'],
+    maxConcurrent: 2,
+    leaseMs: 75000,
+  },
+  {
+    path: '/ppa/players/season',
+    methods: ['GET'],
+    maxConcurrent: 2,
+    leaseMs: 75000,
+  },
+  {
+    path: '/passing/players/season',
+    methods: ['GET'],
+    maxConcurrent: 2,
+    leaseMs: 75000,
+  },
+  {
+    path: '/rushing/players/season',
+    methods: ['GET'],
+    maxConcurrent: 2,
+    leaseMs: 75000,
+  },
 ]);
 
 export default {

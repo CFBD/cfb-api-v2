@@ -211,6 +211,10 @@ describe('per-user concurrency limit middleware', () => {
     '/stats/season/advanced',
     '/stats/game/advanced',
     '/stats/player/success/game',
+    '/stats/player/success',
+    '/ppa/players/season',
+    '/passing/players/season',
+    '/rushing/players/season',
   ])('limits concurrent requests to %s', async (path) => {
     const first = createResponse();
     const second = createResponse();
@@ -242,6 +246,45 @@ describe('per-user concurrency limit middleware', () => {
 
     first.res.emit('finish');
     second.res.emit('finish');
+  });
+
+  test('keeps separate slots for each player season endpoint', async () => {
+    const paths = [
+      '/stats/player/success',
+      '/stats/player/success/game',
+      '/ppa/players/season',
+      '/passing/players/season',
+      '/rushing/players/season',
+    ];
+    const saturated = [createResponse(), createResponse()];
+    for (const { res } of saturated)
+      await middlewares.concurrencyLimit(
+        createRequest(1, paths[0]),
+        res,
+        jest.fn(),
+      );
+    const blocked = createResponse();
+    const blockedNext = jest.fn();
+    await middlewares.concurrencyLimit(
+      createRequest(1, paths[0]),
+      blocked.res,
+      blockedNext,
+    );
+    expect(blockedNext).not.toHaveBeenCalled();
+    expect(blocked.status).toHaveBeenCalledWith(429);
+
+    // A full /stats/player/success does not hold slots on the others.
+    const others = paths.slice(1).map(() => createResponse());
+    const othersNext = paths.slice(1).map(() => jest.fn());
+    for (const [index, path] of paths.slice(1).entries())
+      await middlewares.concurrencyLimit(
+        createRequest(1, path),
+        others[index].res,
+        othersNext[index],
+      );
+    othersNext.forEach((next) => expect(next).toHaveBeenCalledTimes(1));
+
+    [...saturated, ...others].forEach(({ res }) => res.emit('finish'));
   });
 
   test('shares live-play slots across games and route variants, independently per user', async () => {
