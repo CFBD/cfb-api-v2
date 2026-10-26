@@ -89,6 +89,10 @@ export interface PlayerPPA {
   cumulative: PlayerStatsByQuarter;
 }
 
+export interface AdvancedBoxScoreError {
+  message: string;
+}
+
 export interface AdvancedBoxScore {
   gameInfo: {
     homeTeam: string;

@@ -18,6 +18,7 @@ import { getAdvancedBoxScore } from './service';
 import { isSnapshotPayload } from './payload';
 import { currentBoxScoreCpoe } from './cpoeProjection';
 import { mapCpoeProduction, unavailableCpoe } from './cpoe';
+import { UnsupportedBoxScoreError } from './wire';
 import captured from './fixtures/401752677-payload.json';
 const payload = (() => {
   if (!isSnapshotPayload(captured)) throw new Error('Invalid fixture');
@@ -178,8 +179,13 @@ it('propagates general database errors and ambiguous participants', async () => 
   snapshotExecute.mockRejectedValue(new Error('connection lost'));
   await expect(getAdvancedBoxScore(1)).rejects.toThrow('connection lost');
   expect(calculatePayload).not.toHaveBeenCalled();
-  expect(() => mapGameInfo([])).toThrow();
-  expect(() => mapGameInfo([metadata, metadata])).toThrow();
+  expect(() => mapGameInfo([])).toThrow(UnsupportedBoxScoreError);
+  expect(() => mapGameInfo([metadata, metadata])).toThrow(
+    'Missing or ambiguous box score participants',
+  );
+  expect(() => mapGameInfo([metadata, metadata])).not.toThrow(
+    UnsupportedBoxScoreError,
+  );
 });
 it('validates all nested buckets and primitive fields, allowing harmless additions', () => {
   expect(isSnapshotPayload(payload)).toBe(true);

@@ -1,6 +1,6 @@
 import { CamelCasePlugin, Kysely } from 'kysely';
 import { DB } from '../../config/types/db';
-import { BoxScoreWire } from './wire';
+import { BoxScoreWire, UnsupportedBoxScoreError } from './wire';
 
 export const canonicalQuery = (db: Kysely<DB>, id: number) =>
   db
@@ -44,6 +44,8 @@ type CanonicalRow = Awaited<
   ReturnType<ReturnType<typeof canonicalQuery>['execute']>
 >[number];
 export const mapGameInfo = (rows: CanonicalRow[]): BoxScoreWire['gameInfo'] => {
+  if (rows.length === 0)
+    throw new UnsupportedBoxScoreError('Missing box score participants');
   if (rows.length !== 1)
     throw new Error('Missing or ambiguous box score participants');
   const row = rows[0];
