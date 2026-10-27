@@ -8,6 +8,7 @@ import {
 } from '../boxScores/payload';
 import { StoredTeamPassing } from '../boxScores/cpoe';
 import { TeamPassingSeason } from '../passing/types';
+import { TeamRushingSeason } from '../rushing/types';
 
 const object = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -101,6 +102,14 @@ export const isStoredTeamPassingSeason = (
 ): value is StoredTeamPassing<TeamPassingSeason> | null =>
   enriched(value, season, team, isPassingProduction);
 
+/** Stored team-season rushing, served exactly as stored. */
+export const isStoredTeamRushingSeason = (
+  value: unknown,
+  season: number,
+  team: string,
+): value is TeamRushingSeason | null =>
+  enriched(value, season, team, isTeamRushingProduction);
+
 export const isTeamSeasonSnapshotPayload = (
   value: unknown,
   season: number,
@@ -123,7 +132,7 @@ export const isTeamSeasonSnapshotPayload = (
       numbers(row.usage, ['overall', ...ppaKeys.slice(1)], true),
   ) &&
   isStoredTeamPassingSeason(value.passing, season, team) &&
-  enriched(value.rushing, season, team, isTeamRushingProduction);
+  isStoredTeamRushingSeason(value.rushing, season, team);
 
 // Shared snapshot projection predicate. Optional ranking metadata never affects availability.
 export const isSeasonAdvanced = (

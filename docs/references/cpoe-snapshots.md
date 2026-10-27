@@ -35,12 +35,13 @@ directly. Join it by both game ID and play ID, and materialize predictions only
 for the distinct games that survive the original filters; a play-ID-only join
 expands source checks across unrelated games.
 
-`/passing/teams/season` for whole seasons (no season type, or `both`) returns
-stored team-season passing with the same model-version projection, falling back
-to the live read when any in-scope team-season with pass plays lacks a valid
-snapshot. Like season overviews, it serves stored CPOE until services rebuilds
-the snapshot, so source corrections that invalidate predictions need a rescore
-or snapshot rebuild before the endpoint reflects them.
+`/passing/teams/season` for FBS whole seasons (no season type, or `both`)
+returns stored team-season passing with the same model-version projection,
+falling back to the live read when any in-scope team-season with pass plays
+lacks a valid snapshot. Like season overviews, it serves stored CPOE until
+services rebuilds the snapshot, so source corrections that invalidate
+predictions need a rescore or snapshot rebuild before the endpoint reflects
+them.
 
 The live team-season read uses three bulk reads in a read-only, repeatable-read
 transaction: season-valid game participants, ordinary passing aggregates, and

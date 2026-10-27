@@ -33,10 +33,11 @@ async function main() {
       '../src/app/metrics/service'
     );
     const { getPlayerUsage } = await import('../src/app/players/service');
-    const { getTeamPassingBySeason } = await import(
+    // Live aggregates; the public reads prefer these same snapshots.
+    const { queryTeamPassingBySeason } = await import(
       '../src/app/passing/service'
     );
-    const { getTeamRushingBySeason } = await import(
+    const { queryTeamRushingBySeason } = await import(
       '../src/app/rushing/service'
     );
     const single = <T>(rows: T[]): T | null => {
@@ -137,7 +138,7 @@ async function main() {
     );
     await check('passing', payload.passing, async () =>
       single(
-        await getTeamPassingBySeason(
+        await queryTeamPassingBySeason(
           season,
           undefined,
           team,
@@ -148,7 +149,7 @@ async function main() {
     );
     await check('rushing', payload.rushing, async () =>
       single(
-        await getTeamRushingBySeason(
+        await queryTeamRushingBySeason(
           season,
           undefined,
           team,

@@ -897,6 +897,266 @@ const scopedCpoe = (
     .selectFrom('cpoePredictions')
     .selectAll();
 
+interface PasserRoleTables {
+  pp: DB['passPlay'];
+}
+
+// One passer per attempt: exactly one distinct athlete credited with the
+// outcome's stat type. Shared so production and CPOE resolve identically.
+const passerRoles = () =>
+  expressionBuilder<DB & PasserRoleTables, 'pp'>()
+    .selectFrom('playStat as ps')
+    .select((roleEb) => {
+      const passerStat = roleEb.or([
+        roleEb.and([
+          roleEb('pp.outcome', '=', 'completion'),
+          roleEb('ps.statTypeId', '=', 4),
+        ]),
+        roleEb.and([
+          roleEb('pp.outcome', '=', 'incompletion'),
+          roleEb('ps.statTypeId', '=', 1),
+        ]),
+        roleEb.and([
+          roleEb('pp.outcome', '=', 'interception'),
+          roleEb('ps.statTypeId', '=', 20),
+        ]),
+      ]);
+      const passerCount = roleEb.fn
+        .count<number | string>('ps.athleteId')
+        .distinct()
+        .filterWhere(passerStat);
+
+      return roleEb
+        .case()
+        .when(roleEb(passerCount, '=', 1))
+        .then(roleEb.fn.min<string>('ps.athleteId').filterWhere(passerStat))
+        .end()
+        .as('passerId');
+    })
+    .whereRef('ps.playId', '=', 'pp.playId')
+    .as('roles');
+
+// These scoped reads spend more time compiling JIT code than it saves.
+// Transaction-local configuration resets before the pooled connection returns.
+const disableTransactionJit = (executor: Kysely<DB>) =>
+  executor
+    .selectNoFrom((eb) =>
+      eb
+        .fn<string>('set_config', [eb.val('jit'), eb.val('off'), eb.val(true)])
+        .as('jit'),
+    )
+    .execute();
+
+const playerSeasonKey = (
+  season: number,
+  playerId: string | null,
+  team: string,
+  conference: string | null,
+): string => JSON.stringify([season, playerId, team, conference]);
+
+/**
+ * Current-prediction CPOE per season, passer, team and conference, read from
+ * the predictions outward. Joining predictions to every season attempt lets
+ * the planner's small estimates for both sides produce a nested loop over all
+ * pairs. Only season type needs filtering here: every other base filter is
+ * part of the key, so CPOE for an excluded group never matches a result row.
+ * Team and conference only narrow the candidate games.
+ */
+const playerSeasonCpoe = (
+  executor: Kysely<DB>,
+  scope: {
+    year?: number;
+    seasonType?: SeasonType;
+    team?: string;
+    conference?: string;
+    passerId?: string;
+  },
+) => {
+  const { year, seasonType, team, conference, passerId } = scope;
+  let games = executor.selectFrom('game').select('game.id as gameId');
+  if (year !== undefined) {
+    games = games.where('game.season', '=', year);
+  }
+  if (seasonType && seasonType !== SeasonType.Both) {
+    games = games.where('game.seasonType', '=', seasonType);
+  }
+  if (team !== undefined) {
+    const value = team.toLowerCase();
+    games = games.where('game.id', 'in', (eb) =>
+      eb
+        .selectFrom('gameTeam as teamGt')
+        .innerJoin('team as scopeTeam', 'scopeTeam.id', 'teamGt.teamId')
+        .select('teamGt.gameId')
+        .where((teamEb) =>
+          teamEb.or([
+            teamEb(teamEb.fn('lower', ['scopeTeam.school']), '=', value),
+            teamEb(teamEb.fn('lower', ['scopeTeam.abbreviation']), '=', value),
+          ]),
+        ),
+    );
+  }
+  if (conference !== undefined) {
+    // Any affiliation year: a superset of the base query's season-valid match.
+    const value = conference.toLowerCase();
+    games = games.where('game.id', 'in', (eb) =>
+      eb
+        .selectFrom('gameTeam as conferenceGt')
+        .innerJoin(
+          'conferenceTeam as scopeCt',
+          'scopeCt.teamId',
+          'conferenceGt.teamId',
+        )
+        .innerJoin(
+          'conference as scopeConference',
+          'scopeConference.id',
+          'scopeCt.conferenceId',
+        )
+        .select('conferenceGt.gameId')
+        .where((conferenceEb) =>
+          conferenceEb.or([
+            conferenceEb(
+              conferenceEb.fn('lower', ['scopeConference.name']),
+              '=',
+              value,
+            ),
+            conferenceEb(
+              conferenceEb.fn('lower', ['scopeConference.abbreviation']),
+              '=',
+              value,
+            ),
+          ]),
+        ),
+    );
+  }
+  if (passerId !== undefined) {
+    games = games.where('game.id', 'in', (eb) =>
+      eb
+        .selectFrom('playStat')
+        .innerJoin('play as passerPlay', 'passerPlay.id', 'playStat.playId')
+        .innerJoin(
+          'drive as passerDrive',
+          'passerDrive.id',
+          'passerPlay.driveId',
+        )
+        .select('passerDrive.gameId')
+        .where('playStat.athleteId', '=', passerId)
+        .where('playStat.statTypeId', 'in', [1, 4, 20]),
+    );
+  }
+
+  // Stored rows only narrow the candidate games; the current view still
+  // applies every model, source and eligibility check.
+  const predictionGames = executor
+    .with(
+      (cte) => cte('storedPredictionGames').materialized(),
+      (db) =>
+        db
+          .selectFrom('passPlayCpoe as stored')
+          .innerJoin('play as storedPlay', 'storedPlay.id', 'stored.playId')
+          .innerJoin(
+            'drive as storedDrive',
+            'storedDrive.id',
+            'storedPlay.driveId',
+          )
+          .where(
+            'storedDrive.gameId',
+            'in',
+            games.clearSelect().select('game.id'),
+          )
+          .select('storedDrive.gameId')
+          .distinct(),
+    )
+    .selectFrom(games.as('games'))
+    .where('games.gameId', 'in', (eb) =>
+      eb.selectFrom('storedPredictionGames').select('gameId'),
+    )
+    .select('games.gameId')
+    .distinct();
+
+  // Aggregate per offense team ID and model version before joining any
+  // dimension: with both sides underestimated, a team-first nested loop would
+  // otherwise rescan every resolved prediction once per team.
+  return (
+    executor
+      .with(
+        (cte) => cte('passerPredictions').materialized(),
+        (db) =>
+          db
+            .selectFrom(scopedCpoe(executor, predictionGames).as('cp'))
+            .innerJoin('game', 'game.id', 'cp.gameId')
+            .innerJoin('play', 'play.id', 'cp.playId')
+            .innerJoin('passPlay as pp', 'pp.playId', 'cp.playId')
+            .leftJoinLateral(passerRoles(), (join) => join.onTrue())
+            .where('roles.passerId', 'is not', null)
+            .select([
+              'game.season',
+              'roles.passerId',
+              'play.offenseId',
+              'cp.modelVersion',
+            ])
+            .select((eb) => [
+              eb.fn.count<number | string>('cp.playId').as('attempts'),
+              eb.fn
+                .count<number | string>('cp.playId')
+                .filterWhere('pp.outcome', '=', 'completion')
+                .as('completions'),
+              eb.fn
+                .sum<number | string | null>('cp.completionProbability')
+                .as('expected'),
+            ])
+            .groupBy([
+              'game.season',
+              'roles.passerId',
+              'play.offenseId',
+              'cp.modelVersion',
+            ]),
+      )
+      .selectFrom('passerPredictions as scored')
+      .innerJoin('team as offenseTeam', 'offenseTeam.id', 'scored.offenseId')
+      .leftJoin('conferenceTeam as offenseCt', (join) =>
+        join
+          .onRef('offenseTeam.id', '=', 'offenseCt.teamId')
+          .onRef('offenseCt.startYear', '<=', 'scored.season')
+          .on((eb) =>
+            eb.or([
+              eb('offenseCt.endYear', '>=', eb.ref('scored.season')),
+              eb('offenseCt.endYear', 'is', null),
+            ]),
+          ),
+      )
+      .leftJoin('conference as offenseConference', (join) =>
+        join.onRef('offenseCt.conferenceId', '=', 'offenseConference.id'),
+      )
+      .select([
+        'scored.season',
+        'scored.passerId as playerId',
+        'offenseTeam.school as team',
+        'offenseConference.abbreviation as conference',
+      ])
+      // The same fields as cpoeAggregateSelections, summed over the groups.
+      .select((eb) => [
+        eb.fn
+          .sum<number | string>('scored.attempts')
+          .as('cpoeAttemptsAvailable'),
+        eb.fn.sum<number | string>('scored.completions').as('cpoeCompletions'),
+        eb.fn
+          .sum<number | string | null>('scored.expected')
+          .as('expectedCompletions'),
+        eb.fn
+          .count<number | string>('scored.modelVersion')
+          .distinct()
+          .as('cpoeVersions'),
+        eb.fn.min<string>('scored.modelVersion').as('cpoeModelVersion'),
+      ])
+      .groupBy([
+        'scored.season',
+        'scored.passerId',
+        'offenseTeam.school',
+        'offenseConference.abbreviation',
+      ])
+  );
+};
+
 export const getPlayerPassingBySeason = async (
   year?: number,
   seasonType?: SeasonType,
@@ -907,156 +1167,130 @@ export const getPlayerPassingBySeason = async (
 ): Promise<PlayerPassingSeason[]> => {
   validatePlayerPassingSeasonScope(year, passerId);
 
-  let query = kdb
-    .selectFrom('game')
-    .innerJoin('drive', 'drive.gameId', 'game.id')
-    .innerJoin('play', 'play.driveId', 'drive.id')
-    // Join the small candidate set before role resolution. The existing
-    // unique-role predicate still rejects ambiguous or mismatched associations.
-    .$if(passerId !== undefined, (query) => {
-      if (passerId === undefined) return query;
-      return query.innerJoin(
-        kdb
-          .selectFrom('playStat')
-          .select('playId')
-          .distinct()
-          .where('athleteId', '=', passerId)
-          .where('statTypeId', 'in', [1, 4, 20])
-          .as('passerPlays'),
-        'passerPlays.playId',
-        'play.id',
-      );
-    })
-    .innerJoin('passPlay as pp', 'pp.playId', 'play.id')
-    .leftJoinLateral(
-      (eb) =>
-        eb
-          .selectFrom('playStat as ps')
-          .select((roleEb) => {
-            const passerStat = roleEb.or([
-              roleEb.and([
-                roleEb('pp.outcome', '=', 'completion'),
-                roleEb('ps.statTypeId', '=', 4),
-              ]),
-              roleEb.and([
-                roleEb('pp.outcome', '=', 'incompletion'),
-                roleEb('ps.statTypeId', '=', 1),
-              ]),
-              roleEb.and([
-                roleEb('pp.outcome', '=', 'interception'),
-                roleEb('ps.statTypeId', '=', 20),
-              ]),
-            ]);
-            const passerCount = roleEb.fn
-              .count<number | string>('ps.athleteId')
+  return kdb
+    .transaction()
+    .setIsolationLevel('repeatable read')
+    .setAccessMode('read only')
+    .execute(async (executor) => {
+      await disableTransactionJit(executor);
+      let query = executor
+        .selectFrom('game')
+        .innerJoin('drive', 'drive.gameId', 'game.id')
+        .innerJoin('play', 'play.driveId', 'drive.id')
+        // Join the small candidate set before role resolution. The existing
+        // unique-role predicate still rejects ambiguous or mismatched associations.
+        .$if(passerId !== undefined, (query) => {
+          if (passerId === undefined) return query;
+          return query.innerJoin(
+            executor
+              .selectFrom('playStat')
+              .select('playId')
               .distinct()
-              .filterWhere(passerStat);
-
-            return roleEb
-              .case()
-              .when(roleEb(passerCount, '=', 1))
-              .then(
-                roleEb.fn.min<string>('ps.athleteId').filterWhere(passerStat),
-              )
-              .end()
-              .as('passerId');
-          })
-          .whereRef('ps.playId', '=', 'pp.playId')
-          .as('roles'),
-      (join) => join.onTrue(),
-    )
-    .innerJoin('athlete as passer', 'roles.passerId', 'passer.id')
-    .innerJoin('team as offenseTeam', 'play.offenseId', 'offenseTeam.id')
-    .leftJoin('conferenceTeam as offenseCt', (join) =>
-      join
-        .onRef('offenseTeam.id', '=', 'offenseCt.teamId')
-        .on((eb) =>
-          eb('offenseCt.startYear', '<=', year ?? eb.ref('game.season')),
+              .where('athleteId', '=', passerId)
+              .where('statTypeId', 'in', [1, 4, 20])
+              .as('passerPlays'),
+            'passerPlays.playId',
+            'play.id',
+          );
+        })
+        .innerJoin('passPlay as pp', 'pp.playId', 'play.id')
+        .leftJoinLateral(passerRoles(), (join) => join.onTrue())
+        .innerJoin('athlete as passer', 'roles.passerId', 'passer.id')
+        .innerJoin('team as offenseTeam', 'play.offenseId', 'offenseTeam.id')
+        .leftJoin('conferenceTeam as offenseCt', (join) =>
+          join
+            .onRef('offenseTeam.id', '=', 'offenseCt.teamId')
+            .on((eb) =>
+              eb('offenseCt.startYear', '<=', year ?? eb.ref('game.season')),
+            )
+            .on((eb) =>
+              eb.or([
+                eb('offenseCt.endYear', '>=', year ?? eb.ref('game.season')),
+                eb('offenseCt.endYear', 'is', null),
+              ]),
+            ),
         )
-        .on((eb) =>
+        .leftJoin('conference as offenseConference', (join) =>
+          join.onRef('offenseCt.conferenceId', '=', 'offenseConference.id'),
+        )
+        .select([
+          'game.season',
+          'passer.id as playerId',
+          'passer.name as player',
+          'offenseTeam.school as team',
+          'offenseConference.abbreviation as conference',
+        ])
+        .select(aggregateSelections(undefined, false))
+        .where('offenseConference.division', '=', classification)
+        .groupBy([
+          'game.season',
+          'passer.id',
+          'passer.name',
+          'offenseTeam.school',
+          'offenseConference.abbreviation',
+        ])
+        .orderBy('game.season', 'desc')
+        .orderBy('offenseTeam.school')
+        .orderBy('passer.name');
+
+      if (year !== undefined) {
+        query = query.where('game.season', '=', year);
+      }
+      if (seasonType && seasonType !== SeasonType.Both) {
+        query = query.where('game.seasonType', '=', seasonType);
+      }
+      if (team !== undefined) {
+        const value = team.toLowerCase();
+        query = query.where((eb) =>
           eb.or([
-            eb('offenseCt.endYear', '>=', year ?? eb.ref('game.season')),
-            eb('offenseCt.endYear', 'is', null),
+            eb(eb.fn('lower', ['offenseTeam.school']), '=', value),
+            eb(eb.fn('lower', ['offenseTeam.abbreviation']), '=', value),
           ]),
-        ),
-    )
-    .leftJoin('conference as offenseConference', (join) =>
-      join.onRef('offenseCt.conferenceId', '=', 'offenseConference.id'),
-    )
-    .select([
-      'game.season',
-      'passer.id as playerId',
-      'passer.name as player',
-      'offenseTeam.school as team',
-      'offenseConference.abbreviation as conference',
-    ])
-    .select(aggregateSelections())
-    .where('offenseConference.division', '=', classification)
-    .groupBy([
-      'game.season',
-      'passer.id',
-      'passer.name',
-      'offenseTeam.school',
-      'offenseConference.abbreviation',
-    ])
-    .orderBy('game.season', 'desc')
-    .orderBy('offenseTeam.school')
-    .orderBy('passer.name');
+        );
+      }
+      if (conference !== undefined) {
+        const value = conference.toLowerCase();
+        query = query.where((eb) =>
+          eb.or([
+            eb(eb.fn('lower', ['offenseConference.name']), '=', value),
+            eb(eb.fn('lower', ['offenseConference.abbreviation']), '=', value),
+          ]),
+        );
+      }
+      if (passerId !== undefined) {
+        query = query.where('roles.passerId', '=', passerId);
+      }
 
-  if (year !== undefined) {
-    query = query.where('game.season', '=', year);
-  }
-  if (seasonType && seasonType !== SeasonType.Both) {
-    query = query.where('game.seasonType', '=', seasonType);
-  }
-  if (team !== undefined) {
-    const value = team.toLowerCase();
-    query = query.where((eb) =>
-      eb.or([
-        eb(eb.fn('lower', ['offenseTeam.school']), '=', value),
-        eb(eb.fn('lower', ['offenseTeam.abbreviation']), '=', value),
-      ]),
-    );
-  }
-  if (conference !== undefined) {
-    const value = conference.toLowerCase();
-    query = query.where((eb) =>
-      eb.or([
-        eb(eb.fn('lower', ['offenseConference.name']), '=', value),
-        eb(eb.fn('lower', ['offenseConference.abbreviation']), '=', value),
-      ]),
-    );
-  }
-  if (passerId !== undefined) {
-    query = query.where('roles.passerId', '=', passerId);
-  }
+      const rows = await query.execute();
+      const scored = new Map(
+        (
+          await playerSeasonCpoe(executor, {
+            year,
+            seasonType,
+            team,
+            conference,
+            passerId,
+          }).execute()
+        ).map((row) => [
+          playerSeasonKey(row.season, row.playerId, row.team, row.conference),
+          row,
+        ]),
+      );
 
-  const rows = await query
-    .leftJoin(
-      scopedCpoe(
-        kdb,
-        query
-          .clearSelect()
-          .clearGroupBy()
-          .clearOrderBy()
-          .select('game.id as gameId')
-          .distinct(),
-      ).as('cp'),
-      (join) =>
-        join
-          .onRef('cp.gameId', '=', 'game.id')
-          .onRef('cp.playId', '=', 'pp.playId'),
-    )
-    .execute();
-
-  return rows.map((row) => ({
-    season: row.season,
-    playerId: row.playerId,
-    player: row.player,
-    team: row.team,
-    conference: row.conference,
-    ...mapProduction(row),
-  }));
+      return rows.map((row) => ({
+        season: row.season,
+        playerId: row.playerId,
+        player: row.player,
+        team: row.team,
+        conference: row.conference,
+        ...mapProduction({
+          ...row,
+          ...scored.get(
+            playerSeasonKey(row.season, row.playerId, row.team, row.conference),
+          ),
+        }),
+      }));
+    });
 };
 
 const buildPlayerPassingGameQuery = (
@@ -1304,8 +1538,12 @@ export const getTeamPassingBySeason = async (
   validateTeamPassingSeasonScope(year, team);
 
   // Team-season snapshots aggregate every season type, so only whole-season
-  // requests can be served from them. Any gap falls back to the live read.
-  if (!seasonType || seasonType === SeasonType.Both) {
+  // requests can be served from them. Only FBS snapshots are rebuilt daily;
+  // other divisions read live. Any gap falls back to the live read.
+  if (
+    (!seasonType || seasonType === SeasonType.Both) &&
+    classification === DivisionClassification.FBS
+  ) {
     const snapshot = await readTeamPassingSeasonSnapshots(database, {
       year,
       team,
@@ -1345,19 +1583,7 @@ export const queryTeamPassingBySeason = async (
     .setIsolationLevel('repeatable read')
     .setAccessMode('read only')
     .execute(async (executor) => {
-      // These scoped reads spend more time compiling JIT code than it saves.
-      // Transaction-local configuration resets before the pooled connection returns.
-      await executor
-        .selectNoFrom((eb) =>
-          eb
-            .fn<string>('set_config', [
-              eb.val('jit'),
-              eb.val('off'),
-              eb.val(true),
-            ])
-            .as('jit'),
-        )
-        .execute();
+      await disableTransactionJit(executor);
       let scope = executor
         .selectFrom('game')
         .innerJoin(

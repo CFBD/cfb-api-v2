@@ -699,12 +699,14 @@ describe('player passing aggregates', () => {
     await queryTeamPassingBySeason(2026);
     await getTeamPassingByGame(2026, 1);
 
-    expect(compiledQueries).toHaveLength(7);
+    // Player season: JIT setting, production, CPOE. Team season: JIT setting,
+    // participants, production, predictions.
+    expect(compiledQueries).toHaveLength(9);
     const aggregates = [
-      compiledQueries[0],
       compiledQueries[1],
-      compiledQueries[4],
+      compiledQueries[3],
       compiledQueries[6],
+      compiledQueries[8],
     ];
     for (const { sql } of aggregates) {
       expect(sql).toContain('from "game"');
@@ -719,7 +721,7 @@ describe('player passing aggregates', () => {
       expect(sql).not.toContain('home_team');
       expect(sql).not.toContain('representedTeam');
     }
-    for (const { sql } of compiledQueries.slice(0, 2)) {
+    for (const { sql } of aggregates.slice(0, 2)) {
       expect(sql).toContain('left join lateral');
       expect(sql).toContain('count(distinct "ps"."athlete_id")');
       expect(sql).toContain('"roles"."passer_id" = "passer"."id"');
@@ -787,16 +789,23 @@ describe('player passing aggregates', () => {
     );
     await queryTeamPassingBySeason(undefined, undefined, 'Michigan');
 
-    expect(compiledQueries[0].sql).toContain(
-      '"offense_ct"."start_year" <= "game"."season"',
-    );
-    expect(compiledQueries[0].sql).toContain(
-      '"offense_ct"."end_year" >= "game"."season"',
-    );
-    expect(compiledQueries[2].sql).toContain(
+    // Player production, its CPOE (by each scored row's season), then the
+    // team participant scope.
+    for (const [index, season] of [
+      [1, '"game"."season"'],
+      [2, '"scored"."season"'],
+    ] as const) {
+      expect(compiledQueries[index].sql).toContain(
+        `"offense_ct"."start_year" <= ${season}`,
+      );
+      expect(compiledQueries[index].sql).toContain(
+        `"offense_ct"."end_year" >= ${season}`,
+      );
+    }
+    expect(compiledQueries[4].sql).toContain(
       '"represented_ct"."start_year" <= "game"."season"',
     );
-    expect(compiledQueries[2].sql).toContain(
+    expect(compiledQueries[4].sql).toContain(
       '"represented_ct"."end_year" >= "game"."season"',
     );
 
@@ -1396,14 +1405,15 @@ describe('standalone CPOE contract', () => {
     },
   );
 
-  test('play/player/team-game queries use bounded current-prediction joins', async () => {
+  test('play/player-game/team-game queries use bounded current-prediction joins', async () => {
     const queries: CompiledQuery<unknown>[] = [];
     const db = createCompileDatabase(queries);
     selectFrom.mockImplementation(db.selectFrom.bind(db));
     await getPassingPlays(undefined, 2026, 1);
-    for (const handler of handlers.filter((h) => h.name !== 'team season'))
+    // Season reads aggregate predictions separately; see their own tests.
+    for (const handler of handlers.filter((h) => !h.name.endsWith('season')))
       await handler.run();
-    expect(queries).toHaveLength(4);
+    expect(queries).toHaveLength(3);
     for (const { sql, parameters } of queries) {
       expect(sql.match(/join "pass_play_cpoe_current"/g)).toHaveLength(1);
       expect(sql).toContain('"cpoe_predictions" as materialized');
@@ -1555,20 +1565,6 @@ describe('CPOE game scope', () => {
       boundary: '"game"."week" =',
       value: 2026,
       occurrences: 2,
-    },
-    {
-      name: 'player across seasons',
-      run: () =>
-        getPlayerPassingBySeason(
-          undefined,
-          SeasonType.Both,
-          undefined,
-          undefined,
-          '5141741',
-        ),
-      filter: '"roles"."passer_id" =',
-      boundary: '"offense_ct"."start_year" <= "game"."season"',
-      value: '5141741',
     },
     {
       name: 'player game with all filters',
@@ -1750,19 +1746,13 @@ describe('team-season passing source', () => {
     async (seasonType) => {
       readSnapshots.mockResolvedValue({ status: 'found', rows: stored });
       await expect(
-        getTeamPassingBySeason(
-          2026,
-          seasonType,
-          'Michigan',
-          'B1G',
-          DivisionClassification.FCS,
-        ),
+        getTeamPassingBySeason(2026, seasonType, 'Michigan', 'B1G'),
       ).resolves.toBe(stored);
       expect(readSnapshots).toHaveBeenCalledWith(kdb, {
         year: 2026,
         team: 'Michigan',
         conference: 'B1G',
-        classification: DivisionClassification.FCS,
+        classification: DivisionClassification.FBS,
       });
       expect(kdb.transaction).not.toHaveBeenCalled();
     },
@@ -1787,6 +1777,26 @@ describe('team-season passing source', () => {
     info.mockRestore();
   });
 
+  test.each([
+    DivisionClassification.FCS,
+    DivisionClassification.II,
+    DivisionClassification.III,
+  ])(
+    'reads %s live because only FBS snapshots are rebuilt daily',
+    async (classification) => {
+      selectFrom.mockReturnValue(createQueryBuilder());
+      await getTeamPassingBySeason(
+        2025,
+        undefined,
+        undefined,
+        undefined,
+        classification,
+      );
+      expect(readSnapshots).not.toHaveBeenCalled();
+      expect(kdb.transaction).toHaveBeenCalledTimes(1);
+    },
+  );
+
   test.each([SeasonType.Regular, SeasonType.Postseason])(
     'reads %s splits live because snapshots aggregate all season types',
     async (seasonType) => {
@@ -1796,4 +1806,170 @@ describe('team-season passing source', () => {
       expect(kdb.transaction).toHaveBeenCalledTimes(1);
     },
   );
+});
+
+describe('player-season CPOE read', () => {
+  const key = {
+    season: 2026,
+    team: 'Michigan',
+    conference: 'B1G',
+  };
+  const scored = {
+    cpoeAttemptsAvailable: '3',
+    cpoeCompletions: '2',
+    expectedCompletions: '1.23456',
+    cpoeVersions: '1',
+    cpoeModelVersion: 'test-v2',
+  };
+  const unavailableCpoeFields = {
+    cpoeAttemptsAvailable: 0,
+    cpoeCompletions: 0,
+    expectedCompletions: null,
+    expectedCompletionRate: null,
+    cpoe: null,
+  };
+
+  test('merges separately aggregated CPOE by season, passer, team and conference in one snapshot', async () => {
+    const builder = createQueryBuilder();
+    builder.execute
+      .mockResolvedValueOnce([
+        { ...key, playerId: '1', player: 'One', ...productionRow },
+        { ...key, playerId: '2', player: 'Two', ...productionRow },
+      ])
+      .mockResolvedValueOnce([
+        { ...key, playerId: '1', ...scored },
+        // Same passer and season for another team: never applied to Michigan.
+        { ...key, playerId: '2', team: 'Ohio State', ...scored },
+      ]);
+    selectFrom.mockReturnValue(builder);
+
+    const [one, two] = await getPlayerPassingBySeason(2026);
+
+    expect(one).toMatchObject({
+      playerId: '1',
+      attempts: 4,
+      cpoeAttemptsAvailable: 3,
+      cpoeCompletions: 2,
+      expectedCompletions: 1.235,
+      cpoe: 25.51,
+    });
+    expect(two).toMatchObject({ playerId: '2', attempts: 4 });
+    expect(two).toMatchObject(unavailableCpoeFields);
+    expect(kdb.transaction).toHaveBeenCalledTimes(1);
+    const transaction = (kdb.transaction as jest.Mock).mock.results[0].value;
+    expect(transaction.setIsolationLevel).toHaveBeenCalledWith(
+      'repeatable read',
+    );
+    expect(transaction.setAccessMode).toHaveBeenCalledWith('read only');
+  });
+
+  test('drives CPOE from current predictions and never joins them to season attempts', async () => {
+    const queries: CompiledQuery<unknown>[] = [];
+    const db = createCompileDatabase(queries);
+    selectFrom.mockImplementation(db.selectFrom.bind(db));
+
+    await getPlayerPassingBySeason(2026, SeasonType.Regular);
+
+    expect(
+      queries.some(({ sql }) => sql.includes('set_config($1, $2, $3)')),
+    ).toBe(true);
+    const base = queries.filter(({ sql }) =>
+      sql.includes('group by "game"."season", "passer"."id"'),
+    );
+    const cpoe = queries.filter(({ sql }) =>
+      sql.includes('pass_play_cpoe_current'),
+    );
+    expect(base).toHaveLength(1);
+    expect(cpoe).toHaveLength(1);
+    expect(base[0].sql).not.toContain('"cp".');
+    expect(base[0].sql).not.toContain('pass_play_cpoe');
+
+    const { sql, parameters } = cpoe[0];
+    expect(sql).toMatch(/^with "passer_predictions" as materialized \(/);
+    const [predictions, outer] = sql.split(') select "scored"."season"');
+    // Inner: predictions outward by key, before any team or conference.
+    expect(predictions).toMatch(/ from \(with "cpoe_games" as/);
+    expect(predictions).toContain('"stored_prediction_games" as materialized');
+    expect(predictions).toContain('"cpoe_predictions" as materialized');
+    expect(predictions).toContain(
+      'inner join "game" on "game"."id" = "cp"."game_id"',
+    );
+    expect(predictions).toContain(
+      'inner join "play" on "play"."id" = "cp"."play_id"',
+    );
+    expect(predictions).toContain(
+      'inner join "pass_play" as "pp" on "pp"."play_id" = "cp"."play_id"',
+    );
+    // The same passer-role resolution as the base aggregate.
+    expect(predictions).toContain('count(distinct "ps"."athlete_id")');
+    expect(predictions).toContain('"game"."season_type" =');
+    expect(predictions).toContain('count("cp"."play_id")');
+    expect(predictions).toContain('sum("cp"."completion_probability")');
+    expect(predictions).toContain(
+      'group by "game"."season", "roles"."passer_id", "play"."offense_id", "cp"."model_version"',
+    );
+    expect(predictions).not.toContain('"team"');
+    expect(predictions).not.toContain('"conference"');
+    // Outer: dimensions joined to the small per-team, per-version groups.
+    expect(outer).toContain(
+      'inner join "team" as "offense_team" on "offense_team"."id" = "scored"."offense_id"',
+    );
+    expect(outer).toContain('"offense_ct"."start_year" <= "scored"."season"');
+    expect(outer).toContain('count(distinct "scored"."model_version")');
+    expect(outer).toContain(
+      'group by "scored"."season", "scored"."passer_id", "offense_team"."school", "offense_conference"."abbreviation"',
+    );
+    expect(parameters).toContain(2026);
+    expect(parameters).toContain(SeasonType.Regular);
+    await db.destroy();
+  });
+
+  test('team and conference only narrow the prediction games', async () => {
+    const queries: CompiledQuery<unknown>[] = [];
+    const db = createCompileDatabase(queries);
+    selectFrom.mockImplementation(db.selectFrom.bind(db));
+
+    await getPlayerPassingBySeason(2026, undefined, 'Wyoming', 'MWC');
+
+    const [cpoe] = queries.filter(({ sql }) =>
+      sql.includes('pass_play_cpoe_current'),
+    );
+    const games = cpoe.sql
+      .split('with "cpoe_games" as (')[1]
+      .split('), "cpoe_predictions"')[0];
+    expect(games).toContain('lower("scope_team"."school") =');
+    expect(games).toContain('lower("scope_conference"."abbreviation") =');
+    expect(cpoe.parameters).toContain('wyoming');
+    expect(cpoe.parameters).toContain('mwc');
+    // Never a result filter: the merge key keeps excluded groups out.
+    const outer = cpoe.sql.split(') select "scored"."season"')[1];
+    expect(outer).not.toContain('lower(');
+    await db.destroy();
+  });
+
+  test('a passer without a year scopes prediction games to that passer', async () => {
+    const queries: CompiledQuery<unknown>[] = [];
+    const db = createCompileDatabase(queries);
+    selectFrom.mockImplementation(db.selectFrom.bind(db));
+
+    await getPlayerPassingBySeason(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      '5141741',
+    );
+
+    const [cpoe] = queries.filter(({ sql }) =>
+      sql.includes('pass_play_cpoe_current'),
+    );
+    const games = cpoe.sql
+      .split('with "cpoe_games" as (')[1]
+      .split('), "cpoe_predictions"')[0];
+    expect(games).toContain('from "play_stat"');
+    expect(games).toContain('"athlete_id" =');
+    expect(games).not.toContain('"game"."season" =');
+    expect(cpoe.parameters).toContain('5141741');
+    await db.destroy();
+  });
 });

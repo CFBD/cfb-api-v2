@@ -498,7 +498,7 @@ play text, repair data or call a provider. See the
 
 ## Passing team seasons
 
-`GET /passing/teams/season` without a season type, or with `both`, reads
+`GET /passing/teams/season` for FBS without a season type, or with `both`, reads
 `team_season_snapshot.payload -> 'passing'` for the season-valid participants in
 scope and projects stored CPOE through the season's selected model, like season
 overviews. The response comes from snapshots only when every in-scope
@@ -506,8 +506,9 @@ team-season with pass plays has a valid format-1 snapshot whose conference
 matches; unsnapshotted participants trigger a bounded pass-play probe. Any gap
 serves the live read below for the whole request rather than a partial result.
 Snapshots aggregate all season types, so `regular` and `postseason` always read
-live. Snapshot CPOE reflects the predictions current when services last rebuilt
-that team-season.
+live. Other divisions also read live, because only FBS snapshots are rebuilt
+daily (see [Rushing reads](#rushing-reads)). Snapshot CPOE reflects the
+predictions current when services last rebuilt that team-season.
 
 The live read uses a read-only repeatable-read transaction for
 three bulk SELECTs: filtered season-valid game participants, unchanged ordinary
@@ -519,5 +520,53 @@ conference grouping multiplicity, model consistency, defensive sign and final
 rounding. The shared snapshot prevents source or policy changes between reads
 from producing inconsistent results. A transaction-local JIT setting avoids
 compilation overhead and resets before the connection returns to the pool.
-Other passing routes retain their existing
-queries. See [performance verification](docs/references/passing-season-performance.md).
+See [performance verification](docs/references/passing-season-performance.md).
+
+## Passing player seasons
+
+`GET /passing/players/season` uses the same snapshot discipline in one
+read-only repeatable-read transaction: the unchanged production aggregate,
+then current-prediction CPOE read from the predictions outward. That second
+read resolves each predicted attempt's passer with the same role rules, groups
+by season, passer, offense team ID and model version, and only then joins team
+and conference to group by school and conference. Rows merge in memory by
+season, passer, school and conference. Joining predictions to every season
+attempt instead let small row estimates on both sides produce a nested loop
+over all pairs, and full-season requests exceeded the 60-second statement
+timeout. Team and conference filters only narrow the prediction games; the
+merge key excludes CPOE for groups the production aggregate filtered out.
+Other passing routes retain their existing queries.
+
+## Rushing reads
+
+`GET /rushing/teams/season` for FBS whole seasons (no season type, or `both`)
+reads `team_season_snapshot.payload -> 'rushing'` with the same participant,
+affiliation, gap, fallback and FBS-only rules as passing team seasons, and
+serves the stored rows unchanged. Only FBS snapshots are rebuilt daily; on
+October 26, 8 of 94 FCS 2025 snapshots, built on September 22, no longer matched
+the live aggregate. `regular` and `postseason` also read live. The live
+aggregate pairs every play with both game teams before its per-play work, and
+`rush_play` covering only recent seasons leaves the planner far below actual row
+counts, so full seasons took 5–11 seconds live against under a second from
+snapshots.
+
+Rushing plays, player seasons and player games start a team scope from that
+team's games (`game_team`) and a rusher scope from the athlete's rush and sack
+`play_stat` rows. Both are exact supersets: every rush play's offense and
+defense participate in its game, and every guarded rusher holds one of those
+stats. The original predicates still filter. Each join sits directly after
+the table it narrows; these queries exceed `join_collapse_limit`, and the same
+condition written as a later join or `WHERE … IN` was applied too late.
+
+## Player season stats
+
+`GET /stats/player/season` (and the player overview that reuses it) aggregates
+the scoped `game_player_stat` rows once, in a materialized `stat_totals` CTE
+with one row per player, team, category and stat type. Each total keeps the
+filter its consumer previously applied to raw rows, so values are only cast
+where they were before, and type names are unique within a category. The six
+result families (totals, longs, made, attempted, averages and percentages)
+then read those totals instead of each rescanning the season. On October 26,
+alternating runs under the same load cut database time 2–10× for category,
+conference and team scopes and roughly in half for full seasons, with
+identical responses.

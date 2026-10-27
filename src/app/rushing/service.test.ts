@@ -18,8 +18,13 @@ import {
   getRushingPlays,
   getTeamRushingByGame,
   getTeamRushingBySeason,
+  queryTeamRushingBySeason,
 } from './service';
+import { readTeamRushingSeasonSnapshots } from './teamSeasonSnapshots';
 
+jest.mock('./teamSeasonSnapshots', () => ({
+  readTeamRushingSeasonSnapshots: jest.fn(),
+}));
 jest.mock('../../config/database', () => ({
   db: {},
   authDb: {},
@@ -41,6 +46,10 @@ const createQueryBuilder = (rows: unknown[] = []) => {
   ]) {
     builder[method] = jest.fn().mockReturnValue(builder);
   }
+  builder.$if = jest.fn(
+    (condition: boolean, apply: (query: typeof builder) => unknown) =>
+      condition ? apply(builder) : builder,
+  );
   builder.execute = jest.fn().mockResolvedValue(rows);
   return builder;
 };
@@ -638,7 +647,7 @@ describe('team rushing aggregates', () => {
     ]);
     selectFrom.mockReturnValue(builder);
 
-    const [result] = await getTeamRushingBySeason(2026);
+    const [result] = await queryTeamRushingBySeason(2026);
 
     expect(result.offense).toEqual({
       attempts: 8,
@@ -731,7 +740,7 @@ describe('compiled rushing queries', () => {
     await getRushingPlays(undefined, 2026, 1);
     await getPlayerRushingBySeason(2026);
     await getPlayerRushingByGame(2026, 1);
-    await getTeamRushingBySeason(2026);
+    await queryTeamRushingBySeason(2026);
     await getTeamRushingByGame(2026, 1);
 
     expect(compiledQueries).toHaveLength(5);
@@ -799,4 +808,202 @@ describe('compiled rushing queries', () => {
 
     await compileDb.destroy();
   });
+});
+
+describe('compiled rushing scopes', () => {
+  const compile = async (
+    run: () => Promise<unknown>,
+  ): Promise<CompiledQuery<unknown>> => {
+    const compiledQueries: CompiledQuery<unknown>[] = [];
+    const compileDb = createCompileDatabase(compiledQueries);
+    selectFrom.mockImplementation(compileDb.selectFrom.bind(compileDb));
+    await run();
+    await compileDb.destroy();
+    expect(compiledQueries).toHaveLength(1);
+    return compiledQueries[0];
+  };
+  const parameter = (query: CompiledQuery<unknown>, placeholder: string) =>
+    query.parameters[Number(placeholder) - 1];
+  // Both joins must sit at these positions; a later join is applied too late.
+  const teamGames = new RegExp(
+    [
+      String.raw`from "game" inner join \(select distinct "scope_gt"\."game_id"`,
+      String.raw` from "game_team" as "scope_gt" inner join "team" as "scope_team"`,
+      String.raw` on "scope_team"\."id" = "scope_gt"\."team_id"`,
+      String.raw` where \(lower\("scope_team"\."school"\) = \$(\d+)`,
+      String.raw` or lower\("scope_team"\."abbreviation"\) = \$(\d+)\)\)`,
+      String.raw` as "team_games" on "team_games"\."game_id" = "game"\."id"`,
+      String.raw` inner join "drive"`,
+    ].join(''),
+  );
+  const rusherPlays = new RegExp(
+    [
+      String.raw`inner join "play" on "play"\."drive_id" = "drive"\."id"`,
+      String.raw` inner join \(select distinct "play_id" from "play_stat"`,
+      String.raw` where "athlete_id" = \$(\d+) and "stat_type_id" in \(([^)]*)\)\)`,
+      String.raw` as "rusher_plays" on "rusher_plays"\."play_id" = "play"\."id"`,
+      String.raw` inner join "rush_play" as "rp"`,
+    ].join(''),
+  );
+
+  const queries = [
+    {
+      name: 'plays',
+      team: () => getRushingPlays(undefined, 2026, undefined, undefined, 'WYO'),
+      rusher: () =>
+        getRushingPlays(
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          '4875127',
+        ),
+      week: () => getRushingPlays(undefined, 2026, 1),
+    },
+    {
+      name: 'player seasons',
+      team: () => getPlayerRushingBySeason(2026, undefined, 'WYO'),
+      rusher: () =>
+        getPlayerRushingBySeason(
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          '4875127',
+        ),
+      week: () => getPlayerRushingBySeason(2026, undefined, undefined, 'SEC'),
+    },
+    {
+      name: 'player games',
+      team: () => getPlayerRushingByGame(2026, undefined, undefined, 'WYO'),
+      rusher: () =>
+        getPlayerRushingByGame(
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          '4875127',
+        ),
+      week: () => getPlayerRushingByGame(2026, 1),
+    },
+  ];
+
+  describe.each(queries)('$name', ({ team, rusher, week }) => {
+    test('a team scope starts from that team’s games', async () => {
+      const query = await compile(team);
+
+      const match = teamGames.exec(query.sql);
+      expect(match).not.toBeNull();
+      const [, school, abbreviation] = match as RegExpExecArray;
+      expect(parameter(query, school)).toBe('wyo');
+      expect(parameter(query, abbreviation)).toBe('wyo');
+      // The play-level team predicate remains the filter.
+      expect(query.sql).toContain('(lower("offense_team"."school") = $');
+      expect(query.sql).not.toContain('"rusher_plays"');
+    });
+
+    test('a rusher scope starts from that athlete’s rush and sack plays', async () => {
+      const query = await compile(rusher);
+
+      const match = rusherPlays.exec(query.sql);
+      expect(match).not.toBeNull();
+      const [, athlete, types] = match as RegExpExecArray;
+      expect(parameter(query, athlete)).toBe('4875127');
+      expect(
+        types.split(',').map((type) => parameter(query, type.trim().slice(1))),
+      ).toEqual([7, 11]);
+      // The guarded role remains the filter.
+      expect(query.sql).toContain('"roles"."rusher_id" = $');
+      expect(query.sql).not.toContain('"team_games"');
+    });
+
+    test('other scopes are unchanged', async () => {
+      const query = await compile(week);
+
+      expect(query.sql).toContain('from "game" inner join "drive"');
+      expect(query.sql).not.toContain('"team_games"');
+      expect(query.sql).not.toContain('"rusher_plays"');
+    });
+  });
+});
+
+describe('team-season rushing source', () => {
+  const readSnapshots = readTeamRushingSeasonSnapshots as jest.Mock;
+  const stored = [{ season: 2026, team: 'Michigan', conference: 'B1G' }];
+
+  beforeEach(() => {
+    readSnapshots.mockReset();
+    selectFrom.mockReset();
+  });
+
+  test.each([undefined, SeasonType.Both])(
+    'serves seasonType=%s from complete snapshots',
+    async (seasonType) => {
+      readSnapshots.mockResolvedValue({ status: 'found', rows: stored });
+      await expect(
+        getTeamRushingBySeason(2026, seasonType, 'Michigan', 'B1G'),
+      ).resolves.toBe(stored);
+      expect(readSnapshots).toHaveBeenCalledWith(kdb, {
+        year: 2026,
+        team: 'Michigan',
+        conference: 'B1G',
+        classification: DivisionClassification.FBS,
+      });
+      expect(selectFrom).not.toHaveBeenCalled();
+    },
+  );
+
+  test('falls back to the live read when snapshots are incomplete', async () => {
+    readSnapshots.mockResolvedValue({
+      status: 'incomplete',
+      reason: 'missing-snapshot',
+      season: 2025,
+      teamId: 2,
+    });
+    const info = jest.spyOn(console, 'info').mockImplementation(() => {});
+    selectFrom.mockReturnValue(createQueryBuilder());
+    await expect(getTeamRushingBySeason(2025)).resolves.toEqual([]);
+    expect(info).toHaveBeenCalledWith('Team rushing season snapshot fallback', {
+      season: 2025,
+      teamId: 2,
+      reason: 'missing-snapshot',
+    });
+    expect(selectFrom).toHaveBeenCalledTimes(1);
+    info.mockRestore();
+  });
+
+  test.each([
+    DivisionClassification.FCS,
+    DivisionClassification.II,
+    DivisionClassification.III,
+  ])(
+    'reads %s live because only FBS snapshots are rebuilt daily',
+    async (classification) => {
+      selectFrom.mockReturnValue(createQueryBuilder());
+      await getTeamRushingBySeason(
+        2025,
+        undefined,
+        undefined,
+        undefined,
+        classification,
+      );
+      expect(readSnapshots).not.toHaveBeenCalled();
+      expect(selectFrom).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test.each([SeasonType.Regular, SeasonType.Postseason])(
+    'reads %s splits live because snapshots aggregate all season types',
+    async (seasonType) => {
+      selectFrom.mockReturnValue(createQueryBuilder());
+      await getTeamRushingBySeason(2026, seasonType);
+      expect(readSnapshots).not.toHaveBeenCalled();
+      expect(selectFrom).toHaveBeenCalledTimes(1);
+    },
+  );
 });

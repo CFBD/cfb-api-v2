@@ -8,6 +8,9 @@ Whole-season requests (no season type, or `both`) now read stored passing from
 `team_season_snapshot`, which services builds with the same aggregate
 expressions. The live read below remains for `regular`/`postseason` and for any
 scope where an in-scope team-season with pass plays lacks a valid snapshot.
+Since October 26 only FBS requests read snapshots; other divisions read live,
+because non-FBS snapshots are not rebuilt daily. The 2025 FCS snapshots then
+dated from September 22.
 
 Read-only observations through the actual service, from a workstation about
 35 ms from the database; times include JSON transfer:
@@ -186,3 +189,33 @@ all current prediction columns for both seasons. It performs no production DDL.
 The services migration guide documents the synthetic regression fixture,
 manual application and view-only rollback. Raw follow-up observations are in
 `/tmp/cpoe-view-benchmark.jsonl`.
+
+## Player-season read (October 26)
+
+Full-season `GET /passing/players/season` requests (`year`, default `fbs`
+classification) ran longer than 300 seconds and failed at the role's 60-second
+statement timeout. The CPOE left join to the materialized current predictions
+was estimated at 420 rows (about 26,000 actual) against about 1,900 attempts
+(tens of thousands actual), so PostgreSQL chose a nested loop over every pair.
+The same plan appears with the view definition before services migration `018`.
+Since October 25, at most about 10% of these requests completed.
+
+The read now aggregates CPOE separately from the predictions outward (see
+[`ARCHITECTURE.md`](../../ARCHITECTURE.md#passing-player-seasons)). Read-only
+observations through the actual service, from the same workstation:
+
+| Scope                          | Before            | After             |
+| ------------------------------ | ----------------- | ----------------- |
+| 2026 FBS, all passers          | over 300 s        | 5.9–6.3 s         |
+| 2025 FBS, all passers          | not completed     | 7.2 s             |
+| SEC 2026 / B1G 2025 / MAC 2026 | 7.8 / 7.3 / 6.1 s | 7.5 / 9.1 / 2.8 s |
+| Wyoming / Stanford 2026        | 0.7 / 0.7 s       | 1.1 / 1.8 s       |
+| FCS 2026, all passers          | 4.6 s             | 6.4 s             |
+
+Complete responses were identical between the two implementations for ten
+scopes: four single teams and four conferences (one of each regular season
+only), one passer without a year and the 2026 FCS season. Single-team
+scopes pay about 0.5–1 second for the extra reads. A first attempt that joined
+team before aggregating rescanned all resolved predictions once per team
+(about 50 million comparisons, 13.7 seconds), so aggregation happens per team
+ID and model version before any dimension join.

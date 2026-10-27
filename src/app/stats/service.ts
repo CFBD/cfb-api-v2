@@ -11,7 +11,9 @@ import {
   PlayerStat,
   TeamStat,
 } from './types';
-import { sql } from 'kysely';
+import { QueryCreator, sql } from 'kysely';
+
+import type { DB } from '../../config/types/db';
 
 const PASSING_PLAY_STAT_TYPE_IDS = [1, 4, 20];
 const RUSHING_PLAY_STAT_TYPE_IDS = [7];
@@ -22,6 +24,18 @@ const PLAYER_SUCCESS_PLAY_STAT_TYPE_IDS = [
   ...RUSHING_PLAY_STAT_TYPE_IDS,
   SACK_TAKEN_PLAY_STAT_TYPE_ID,
 ];
+
+// One athlete's credited plays, joined straight after play. Without this
+// bound the planner can read every play in history before probing play_stat,
+// and with this many joins it keeps them roughly in written order.
+const creditedPlays = (eb: QueryCreator<DB>, playerId: number) =>
+  eb
+    .selectFrom('playStat')
+    .select('playId')
+    .distinct()
+    .where('athleteId', '=', playerId.toString())
+    .where('statTypeId', 'in', PLAYER_SUCCESS_PLAY_STAT_TYPE_IDS)
+    .as('playerPlays');
 
 type NumericResult = number | string | null;
 
@@ -119,7 +133,7 @@ export const getPlayerSeasonStats = async (
   category?: string,
   playerId?: number,
 ): Promise<PlayerStat[]> => {
-  let baseQuery = replicaKdb
+  let scope = replicaKdb
     .selectFrom('game')
     .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
     .innerJoin('gamePlayerStat', 'gameTeam.id', 'gamePlayerStat.gameTeamId')
@@ -144,19 +158,12 @@ export const getPlayerSeasonStats = async (
       'playerStatCategory.id',
     )
     .innerJoin('playerStatType', 'gamePlayerStat.typeId', 'playerStatType.id')
-    .select([
-      'game.season',
-      'athlete.id as playerId',
-      'athlete.name as player',
-      'position.abbreviation as position',
-      'team.school as team',
-      'conference.name as conference',
-      'playerStatCategory.name as category',
-    ])
-    .where('game.season', '=', year);
+    .where('game.season', '=', year)
+    .where('gamePlayerStat.stat', '<>', '--')
+    .where('gamePlayerStat.stat', 'not like', '--/--');
 
   if (conference) {
-    baseQuery = baseQuery.where((eb) =>
+    scope = scope.where((eb) =>
       eb(
         eb.fn('lower', ['conference.abbreviation']),
         '=',
@@ -166,25 +173,25 @@ export const getPlayerSeasonStats = async (
   }
 
   if (team) {
-    baseQuery = baseQuery.where((eb) =>
+    scope = scope.where((eb) =>
       eb(eb.fn('lower', ['team.school']), '=', team.toLowerCase()),
     );
   }
 
   if (startWeek) {
-    baseQuery = baseQuery.where('game.week', '>=', startWeek);
+    scope = scope.where('game.week', '>=', startWeek);
   }
 
   if (endWeek) {
-    baseQuery = baseQuery.where('game.week', '<=', endWeek);
+    scope = scope.where('game.week', '<=', endWeek);
   }
 
   if (seasonType && seasonType !== SeasonType.Both) {
-    baseQuery = baseQuery.where('game.seasonType', '=', seasonType);
+    scope = scope.where('game.seasonType', '=', seasonType);
   }
 
   if (category) {
-    baseQuery = baseQuery.where((eb) =>
+    scope = scope.where((eb) =>
       eb(
         eb.fn('lower', ['playerStatCategory.name']),
         '=',
@@ -194,47 +201,132 @@ export const getPlayerSeasonStats = async (
   }
 
   if (playerId) {
-    baseQuery = baseQuery.where('athlete.id', '=', String(playerId));
+    scope = scope.where('athlete.id', '=', String(playerId));
   }
 
-  let query = baseQuery
-    .where('gamePlayerStat.stat', '<>', '--')
-    .where('gamePlayerStat.stat', 'not like', '--/--')
-    .where((eb) =>
-      eb.or([
-        eb('playerStatType.id', 'in', [8, 14, 22]),
-        eb.and([
-          eb('playerStatCategory.id', '=', 1),
-          eb('playerStatType.id', '=', 11),
-        ]),
-        eb.and([
-          eb('playerStatCategory.id', '=', 2),
-          eb('playerStatType.id', '=', 5),
-        ]),
-        eb.and([
-          eb('playerStatCategory.id', '=', 3),
-          eb('playerStatType.id', 'in', [6, 21]),
-        ]),
-        eb.and([
-          eb('playerStatCategory.id', '=', 6),
-          eb('playerStatType.id', '=', 18),
-        ]),
-        eb('playerStatCategory.id', '=', 7),
-        eb.and([
-          eb('playerStatCategory.id', '=', 8),
-          eb('playerStatType.id', '=', 9),
-        ]),
-        eb.and([
-          eb('playerStatCategory.id', '=', 9),
-          eb('playerStatType.id', '=', 18),
-        ]),
-        eb('playerStatCategory.id', '=', 10),
-      ]),
-    )
-    .select('playerStatType.name as statType')
-    .select((eb) =>
-      eb.fn.sum<number>(eb.cast('gamePlayerStat.stat', 'numeric')).as('stat'),
-    )
+  const rushingAverages = [
+    'rushing',
+    'punting',
+    'kickReturns',
+    'puntReturns',
+    'interceptions',
+    'receiving',
+  ];
+  // One row per player, team, category and stat type, summed once from the
+  // scoped game rows. Each total keeps the filter its consumer applied to raw
+  // rows, so a value is only cast where it was before. Type names are unique
+  // within a category, so these groups match the name-based groups below.
+  const statTotals = scope
+    .select([
+      'game.season',
+      'athlete.id as playerId',
+      'athlete.name as player',
+      'position.abbreviation as position',
+      'team.school as team',
+      'conference.name as conference',
+      'playerStatCategory.id as categoryId',
+      'playerStatCategory.name as category',
+      'playerStatType.id as statTypeId',
+      'playerStatType.name as statTypeName',
+    ])
+    .select((eb) => [
+      eb.fn
+        .sum<number>(eb.cast('gamePlayerStat.stat', 'numeric'))
+        .filterWhere(
+          eb.or([
+            eb('playerStatType.id', 'in', [8, 14, 22]),
+            eb.and([
+              eb('playerStatCategory.id', '=', 1),
+              eb('playerStatType.id', '=', 11),
+            ]),
+            eb.and([
+              eb('playerStatCategory.id', '=', 2),
+              eb('playerStatType.id', '=', 5),
+            ]),
+            eb.and([
+              eb('playerStatCategory.id', '=', 3),
+              eb('playerStatType.id', 'in', [6, 21]),
+            ]),
+            eb.and([
+              eb('playerStatCategory.id', '=', 6),
+              eb('playerStatType.id', '=', 18),
+            ]),
+            eb('playerStatCategory.id', '=', 7),
+            eb.and([
+              eb('playerStatCategory.id', '=', 8),
+              eb('playerStatType.id', '=', 9),
+            ]),
+            eb.and([
+              eb('playerStatCategory.id', '=', 9),
+              eb('playerStatType.id', '=', 18),
+            ]),
+            eb('playerStatCategory.id', '=', 10),
+          ]),
+        )
+        .as('total'),
+      eb.fn
+        .max<number>(eb.cast('gamePlayerStat.stat', 'integer'))
+        .filterWhere('playerStatType.id', '=', 15)
+        .as('longest'),
+      eb.fn
+        .sum<number>(
+          eb.cast(
+            sql<string>`split_part(game_player_stat.stat, '/', 1)`,
+            'integer',
+          ),
+        )
+        .filterWhere(
+          eb.or([
+            eb.and([
+              eb('playerStatCategory.id', '=', 2),
+              eb('playerStatType.id', 'in', [2, 10]),
+            ]),
+            eb.and([
+              eb('playerStatCategory.id', '=', 9),
+              eb('playerStatType.id', '=', 3),
+            ]),
+          ]),
+        )
+        .as('made'),
+      eb.fn
+        .sum<number>(
+          eb.cast(
+            sql<string>`split_part(game_player_stat.stat, '/', 2)`,
+            'integer',
+          ),
+        )
+        .filterWhere(
+          eb.or([
+            eb.and([
+              eb('playerStatCategory.id', '=', 2),
+              eb('playerStatType.id', 'in', [2, 10]),
+            ]),
+            eb.and([
+              eb('playerStatCategory.id', '=', 9),
+              eb('playerStatType.id', '=', 3),
+            ]),
+          ]),
+        )
+        .as('attempted'),
+      eb.fn
+        .sum<number>(eb.cast('gamePlayerStat.stat', 'integer'))
+        .filterWhere(
+          eb.and([
+            eb('playerStatCategory.id', 'in', [1, 3, 4, 5, 6, 8, 9]),
+            eb.or([
+              eb('playerStatType.name', 'in', [
+                'YDS',
+                'CAR',
+                'NO',
+                'INT',
+                'REC',
+              ]),
+              eb('playerStatType.id', '=', 8),
+            ]),
+          ]),
+        )
+        .as('counted'),
+    ])
     .groupBy([
       'game.season',
       'athlete.id',
@@ -242,70 +334,66 @@ export const getPlayerSeasonStats = async (
       'position.abbreviation',
       'team.school',
       'conference.name',
+      'playerStatCategory.id',
       'playerStatCategory.name',
+      'playerStatType.id',
       'playerStatType.name',
     ]);
 
-  query = query
-    .union(
-      baseQuery
-        .where('playerStatType.id', '=', 15)
-        .where('gamePlayerStat.stat', '<>', '--')
-        .where('gamePlayerStat.stat', 'not like', '--/--')
-        .select('playerStatType.name as statType')
-        .select((eb) =>
-          eb.fn
-            .max<number>(eb.cast('gamePlayerStat.stat', 'integer'))
-            .as('stat'),
-        )
-        .groupBy([
-          'game.season',
-          'athlete.id',
-          'athlete.name',
-          'position.abbreviation',
-          'team.school',
-          'conference.name',
-          'playerStatCategory.name',
-          'playerStatType.name',
-        ]),
+  const key = [
+    'statTotals.season',
+    'statTotals.playerId',
+    'statTotals.player',
+    'statTotals.position',
+    'statTotals.team',
+    'statTotals.conference',
+    'statTotals.category',
+  ] as const;
+
+  const query = replicaKdb
+    .with(
+      (cte) => cte('statTotals').materialized(),
+      () => statTotals,
     )
-    .union(
-      baseQuery
-        .where((eb) =>
-          eb.or([
-            eb.and([
-              eb('playerStatCategory.id', '=', 2),
-              eb('playerStatType.id', 'in', [2, 10]),
-            ]),
-            eb.and([
-              eb('playerStatCategory.id', '=', 9),
-              eb('playerStatType.id', '=', 3),
-            ]),
-          ]),
-        )
-        .where('gamePlayerStat.stat', '<>', '--')
-        .where('gamePlayerStat.stat', 'not like', '--/--')
+    .selectFrom('statTotals')
+    .select(key)
+    .select(['statTotals.statTypeName as statType', 'statTotals.total as stat'])
+    .where('statTotals.total', 'is not', null)
+    .union((eb) =>
+      eb
+        .selectFrom('statTotals')
+        .select(key)
+        .select([
+          'statTotals.statTypeName as statType',
+          'statTotals.longest as stat',
+        ])
+        .where('statTotals.statTypeId', '=', 15),
+    )
+    .union((eb) =>
+      eb
+        .selectFrom('statTotals')
+        .select(key)
         .select((eb) =>
           eb
             .case()
             .when(
               eb.and([
-                eb('playerStatCategory.name', '=', 'kicking'),
-                eb('playerStatType.name', '=', 'FG'),
+                eb('statTotals.category', '=', 'kicking'),
+                eb('statTotals.statTypeName', '=', 'FG'),
               ]),
             )
             .then('FGM')
             .when(
               eb.and([
-                eb('playerStatCategory.name', '=', 'kicking'),
-                eb('playerStatType.name', '=', 'XP'),
+                eb('statTotals.category', '=', 'kicking'),
+                eb('statTotals.statTypeName', '=', 'XP'),
               ]),
             )
             .then('XPM')
             .when(
               eb.and([
-                eb('playerStatCategory.name', '=', 'passing'),
-                eb('playerStatType.name', '=', 'C/ATT'),
+                eb('statTotals.category', '=', 'passing'),
+                eb('statTotals.statTypeName', '=', 'C/ATT'),
               ]),
             )
             .then('COMPLETIONS')
@@ -313,64 +401,34 @@ export const getPlayerSeasonStats = async (
             .end()
             .as('statType'),
         )
-        .select((eb) =>
-          eb.fn
-            .sum<number>(
-              eb.cast(
-                sql<string>`split_part(game_player_stat.stat, '/', 1)`,
-                'integer',
-              ),
-            )
-            .as('stat'),
-        )
-        .groupBy([
-          'game.season',
-          'athlete.id',
-          'athlete.name',
-          'position.abbreviation',
-          'team.school',
-          'conference.name',
-          'playerStatCategory.name',
-          'playerStatType.name',
-        ]),
+        .select('statTotals.made as stat')
+        .where('statTotals.made', 'is not', null),
     )
-    .union(
-      baseQuery
-        .where((eb) =>
-          eb.or([
-            eb.and([
-              eb('playerStatCategory.id', '=', 2),
-              eb('playerStatType.id', 'in', [2, 10]),
-            ]),
-            eb.and([
-              eb('playerStatCategory.id', '=', 9),
-              eb('playerStatType.id', '=', 3),
-            ]),
-          ]),
-        )
-        .where('gamePlayerStat.stat', '<>', '--')
-        .where('gamePlayerStat.stat', 'not like', '--/--')
+    .union((eb) =>
+      eb
+        .selectFrom('statTotals')
+        .select(key)
         .select((eb) =>
           eb
             .case()
             .when(
               eb.and([
-                eb('playerStatCategory.name', '=', 'kicking'),
-                eb('playerStatType.name', '=', 'FG'),
+                eb('statTotals.category', '=', 'kicking'),
+                eb('statTotals.statTypeName', '=', 'FG'),
               ]),
             )
             .then('FGA')
             .when(
               eb.and([
-                eb('playerStatCategory.name', '=', 'kicking'),
-                eb('playerStatType.name', '=', 'XP'),
+                eb('statTotals.category', '=', 'kicking'),
+                eb('statTotals.statTypeName', '=', 'XP'),
               ]),
             )
             .then('XPA')
             .when(
               eb.and([
-                eb('playerStatCategory.name', '=', 'passing'),
-                eb('playerStatType.name', '=', 'C/ATT'),
+                eb('statTotals.category', '=', 'passing'),
+                eb('statTotals.statTypeName', '=', 'C/ATT'),
               ]),
             )
             .then('ATT')
@@ -378,45 +436,26 @@ export const getPlayerSeasonStats = async (
             .end()
             .as('statType'),
         )
-        .select((eb) =>
-          eb.fn
-            .sum<number>(
-              eb.cast(
-                sql<string>`split_part(game_player_stat.stat, '/', 2)`,
-                'integer',
-              ),
-            )
-            .as('stat'),
-        )
-        .groupBy([
-          'game.season',
-          'athlete.id',
-          'athlete.name',
-          'position.abbreviation',
-          'team.school',
-          'conference.name',
-          'playerStatCategory.name',
-          'playerStatType.name',
-        ]),
+        .select('statTotals.attempted as stat')
+        .where('statTotals.attempted', 'is not', null),
     )
-    .union(
-      baseQuery
-        .where('playerStatCategory.id', 'in', [1, 3, 4, 5, 6, 8, 9])
-        .where('gamePlayerStat.stat', '<>', '--')
-        .where('gamePlayerStat.stat', 'not like', '--/--')
+    .union((eb) =>
+      eb
+        .selectFrom('statTotals')
+        .select(key)
         .select((eb) =>
           eb
             .case()
-            .when(eb('playerStatCategory.name', '=', 'rushing'))
+            .when(eb('statTotals.category', '=', 'rushing'))
             .then('YPC')
-            .when(eb('playerStatCategory.name', '=', 'receiving'))
+            .when(eb('statTotals.category', '=', 'receiving'))
             .then('YPR')
-            .when(eb('playerStatCategory.name', '=', 'punting'))
+            .when(eb('statTotals.category', '=', 'punting'))
             .then('YPP')
-            .when(eb('playerStatCategory.name', '=', 'passing'))
+            .when(eb('statTotals.category', '=', 'passing'))
             .then('YPA')
             .when(
-              eb('playerStatCategory.name', 'in', [
+              eb('statTotals.category', 'in', [
                 'kickReturns',
                 'puntReturns',
                 'interceptions',
@@ -427,162 +466,110 @@ export const getPlayerSeasonStats = async (
             .end()
             .as('statType'),
         )
-        .select((eb) =>
-          eb
+        .select((eb) => {
+          const carries = eb.fn
+            .sum<number>('statTotals.counted')
+            .filterWhere('statTotals.statTypeName', 'in', [
+              'CAR',
+              'NO',
+              'INT',
+              'REC',
+            ]);
+          const yards = eb.fn
+            .sum<number>('statTotals.counted')
+            .filterWhere('statTotals.statTypeName', '=', 'YDS');
+          const passYards = eb.fn
+            .sum<number>('statTotals.counted')
+            .filterWhere('statTotals.statTypeId', '=', 8);
+          const passAttempts = eb.fn
+            .sum<number>('statTotals.attempted')
+            .filterWhere('statTotals.statTypeId', '=', 3);
+          return eb
             .case()
             .when(
               eb.and([
-                eb('playerStatCategory.name', 'in', [
-                  'rushing',
-                  'punting',
-                  'kickReturns',
-                  'puntReturns',
-                  'interceptions',
-                  'receiving',
-                ]),
-                eb(
-                  eb.fn
-                    .sum<number>(eb.cast('gamePlayerStat.stat', 'integer'))
-                    .filterWhere(
-                      eb('playerStatType.name', 'in', [
-                        'CAR',
-                        'NO',
-                        'INT',
-                        'REC',
-                      ]),
-                    ),
-                  '=',
-                  0,
-                ),
+                eb('statTotals.category', 'in', rushingAverages),
+                eb(carries, '=', 0),
               ]),
             )
             .then(0)
-            .when(
-              eb('playerStatCategory.name', 'in', [
-                'rushing',
-                'punting',
-                'kickReturns',
-                'puntReturns',
-                'interceptions',
-                'receiving',
-              ]),
-            )
-            .then(
-              sql<number>`ROUND(COALESCE(SUM(CAST(game_player_stat.stat AS INT)) FILTER(WHERE player_stat_type.name = 'YDS'), 0) / SUM(CAST(game_player_stat.stat AS NUMERIC)) FILTER(WHERE player_stat_type.name IN('CAR', 'NO', 'INT', 'REC')), 1)`,
-            )
+            .when(eb('statTotals.category', 'in', rushingAverages))
+            .then(sql<number>`ROUND(COALESCE(${yards}, 0) / ${carries}, 1)`)
             .when(
               eb.and([
-                eb('playerStatCategory.name', '=', 'passing'),
-                eb(
-                  eb.fn
-                    .sum<number>(
-                      eb.cast(
-                        sql<string>`split_part(game_player_stat.stat, '/', 2)`,
-                        'integer',
-                      ),
-                    )
-                    .filterWhere('playerStatType.id', '=', 3),
-                  '=',
-                  0,
-                ),
+                eb('statTotals.category', '=', 'passing'),
+                eb(passAttempts, '=', 0),
               ]),
             )
             .then(0)
-            .when(eb('playerStatCategory.name', '=', 'passing'))
-            .then(
-              sql<number>`ROUND(SUM(CAST(game_player_stat.stat AS INT)) FILTER(WHERE player_stat_type.id = 8) / SUM(CAST(split_part(game_player_stat.stat, '/', 2) AS NUMERIC)) FILTER(WHERE player_stat_type.id = 3), 1)`,
-            )
+            .when(eb('statTotals.category', '=', 'passing'))
+            .then(sql<number>`ROUND(${passYards} / ${passAttempts}, 1)`)
             .else(0)
             .end()
-            .as('stat'),
-        )
+            .as('stat');
+        })
+        .where('statTotals.categoryId', 'in', [1, 3, 4, 5, 6, 8, 9])
         .groupBy([
-          'game.season',
-          'athlete.id',
-          'athlete.name',
-          'position.abbreviation',
-          'team.school',
-          'conference.name',
-          'playerStatCategory.name',
+          'statTotals.season',
+          'statTotals.playerId',
+          'statTotals.player',
+          'statTotals.position',
+          'statTotals.team',
+          'statTotals.conference',
+          'statTotals.category',
         ]),
     )
-    .union(
-      baseQuery
-        .where('playerStatCategory.id', 'in', [2, 9])
-        .where('gamePlayerStat.stat', '<>', '--')
-        .where('gamePlayerStat.stat', '<>', '--/--')
-        .select((eb) =>
-          eb
-            .case()
-            .when(eb('playerStatCategory.name', '=', 'kicking'))
-            .then('PCT')
-            .when(eb('playerStatCategory.name', '=', 'passing'))
-            .then('PCT')
-            .else('')
-            .end()
-            .as('statType'),
-        )
-        .select((eb) =>
-          eb
+    .union((eb) =>
+      eb
+        .selectFrom('statTotals')
+        .select(key)
+        .select(sql<string>`'PCT'`.as('statType'))
+        .select((eb) => {
+          const made = sql<number>`CAST(${eb.ref('statTotals.made')} AS NUMERIC)`;
+          const attempted = sql<number>`CAST(${eb.ref('statTotals.attempted')} AS NUMERIC)`;
+          return eb
             .case()
             .when(
               eb.and([
-                eb('playerStatCategory.name', '=', 'passing'),
-                eb(
-                  eb.fn
-                    .sum<number>(
-                      eb.cast(
-                        sql<string>`split_part(game_player_stat.stat, '/', 2)`,
-                        'integer',
-                      ),
-                    )
-                    .filterWhere('playerStatType.id', '=', 3),
-                  '=',
-                  0,
-                ),
+                eb('statTotals.category', '=', 'passing'),
+                eb('statTotals.statTypeId', '=', 3),
+                eb('statTotals.attempted', '=', 0),
               ]),
             )
             .then(0)
-            .when(eb('playerStatCategory.name', '=', 'passing'))
-            .then(
-              sql<number>`ROUND(SUM(CAST(split_part(game_player_stat.stat, '/', 1) AS INT)) FILTER(WHERE player_stat_type.id = 3) / SUM(CAST(split_part(game_player_stat.stat, '/', 2) AS NUMERIC)) FILTER(WHERE player_stat_type.id = 3), 3)`,
-            )
             .when(
               eb.and([
-                eb('playerStatCategory.name', '=', 'kicking'),
-                eb(
-                  eb.fn
-                    .sum<number>(
-                      eb.cast(
-                        sql<string>`split_part(game_player_stat.stat, '/', 2)`,
-                        'integer',
-                      ),
-                    )
-                    .filterWhere('playerStatType.id', '=', 2),
-                  '=',
-                  0,
-                ),
+                eb('statTotals.category', '=', 'passing'),
+                eb('statTotals.statTypeId', '=', 3),
+              ]),
+            )
+            .then(sql<number>`ROUND(${made} / ${attempted}, 3)`)
+            .when(
+              eb.and([
+                eb('statTotals.category', '=', 'kicking'),
+                eb('statTotals.statTypeId', '=', 2),
+                eb('statTotals.attempted', '=', 0),
               ]),
             )
             .then(0)
-            .when(eb('playerStatCategory.name', '=', 'kicking'))
-            .then(
-              sql<number>`ROUND(SUM(CAST(split_part(game_player_stat.stat, '/', 1) AS INT)) FILTER(WHERE player_stat_type.id = 2) / SUM(CAST(split_part(game_player_stat.stat, '/', 2) AS NUMERIC)) FILTER(WHERE player_stat_type.id = 2), 3)`,
+            .when(
+              eb.and([
+                eb('statTotals.category', '=', 'kicking'),
+                eb('statTotals.statTypeId', '=', 2),
+              ]),
             )
+            .then(sql<number>`ROUND(${made} / ${attempted}, 3)`)
             .else(0)
             .end()
-            .as('stat'),
-        )
-        .groupBy([
-          'game.season',
-          'athlete.id',
-          'athlete.name',
-          'position.abbreviation',
-          'team.school',
-          'conference.name',
-          'playerStatCategory.name',
-          'playerStatType.name',
-        ]),
+            .as('stat');
+        })
+        .where('statTotals.categoryId', 'in', [2, 9])
+        .where((eb) =>
+          eb.or([
+            eb('statTotals.statTypeId', '=', 3),
+            eb('statTotals.statTypeId', '=', 2),
+          ]),
+        ),
     );
 
   const results = await query.execute();
@@ -640,6 +627,14 @@ export const getPlayerSeasonSuccessRates = async (
         .selectFrom('game as g')
         .innerJoin('drive as d', 'd.gameId', 'g.id')
         .innerJoin('play as p', 'p.driveId', 'd.id')
+        .$if(playerId !== undefined, (query) => {
+          if (playerId === undefined) return query;
+          return query.innerJoin(
+            creditedPlays(eb, playerId),
+            'playerPlays.playId',
+            'p.id',
+          );
+        })
         .innerJoin('team as ot', 'ot.id', 'p.offenseId')
         .innerJoin('gameTeam as ogt', (join) =>
           join
@@ -811,6 +806,14 @@ export const getPlayerGameSuccessRates = async (
         .selectFrom('game as g')
         .innerJoin('drive as d', 'd.gameId', 'g.id')
         .innerJoin('play as p', 'p.driveId', 'd.id')
+        .$if(playerId !== undefined, (query) => {
+          if (playerId === undefined) return query;
+          return query.innerJoin(
+            creditedPlays(eb, playerId),
+            'playerPlays.playId',
+            'p.id',
+          );
+        })
         .innerJoin('team as ot', 'ot.id', 'p.offenseId')
         .innerJoin('gameTeam as ogt', (join) =>
           join

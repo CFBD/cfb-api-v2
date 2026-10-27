@@ -23,6 +23,7 @@ import {
   TeamRushingProduction,
   TeamRushingSeason,
 } from './types';
+import { readTeamRushingSeasonSnapshots } from './teamSeasonSnapshots';
 
 const mapGameSeasonType = (value: string): SeasonType => {
   const seasonType = Object.values(SeasonType).find(
@@ -127,6 +128,36 @@ const guardedRusherRoles = () => {
     })
     .whereRef('ps.playId', '=', 'rp.playId')
     .as('roles');
+};
+
+// Every guarded rusher holds a rush (7) or sack (11) stat on the play, so these
+// plays are a superset of the rusher's attempts that can drive the scan.
+const creditedRushes = (rusherId: string) =>
+  expressionBuilder<DB>()
+    .selectFrom('playStat')
+    .select('playId')
+    .distinct()
+    .where('athleteId', '=', rusherId)
+    .where('statTypeId', 'in', [7, 11])
+    .as('rusherPlays');
+
+// Rush offenses and defenses are participants in their game, so a team's games
+// bound its plays before the season's plays are read. Joined directly after
+// game: beyond the join collapse limit, a later join is applied too late.
+const teamGames = (team: string) => {
+  const value = team.toLowerCase();
+  return expressionBuilder<DB>()
+    .selectFrom('gameTeam as scopeGt')
+    .innerJoin('team as scopeTeam', 'scopeTeam.id', 'scopeGt.teamId')
+    .select('scopeGt.gameId')
+    .distinct()
+    .where((eb) =>
+      eb.or([
+        eb(eb.fn('lower', ['scopeTeam.school']), '=', value),
+        eb(eb.fn('lower', ['scopeTeam.abbreviation']), '=', value),
+      ]),
+    )
+    .as('teamGames');
 };
 
 const validateRushingPlayScope = (
@@ -713,8 +744,18 @@ export const getRushingPlays = async (
 
   let query = kdb
     .selectFrom('game')
+    .$if(team !== undefined, (qb) =>
+      qb.innerJoin(teamGames(team as string), 'teamGames.gameId', 'game.id'),
+    )
     .innerJoin('drive', 'drive.gameId', 'game.id')
     .innerJoin('play', 'play.driveId', 'drive.id')
+    .$if(rusherId !== undefined, (qb) =>
+      qb.innerJoin(
+        creditedRushes(rusherId as string),
+        'rusherPlays.playId',
+        'play.id',
+      ),
+    )
     .innerJoin('rushPlay as rp', 'rp.playId', 'play.id')
     .innerJoin('gameTeam as homeTeam', (join) =>
       join
@@ -964,8 +1005,18 @@ export const getPlayerRushingBySeason = async (
 
   let query = kdb
     .selectFrom('game')
+    .$if(team !== undefined, (qb) =>
+      qb.innerJoin(teamGames(team as string), 'teamGames.gameId', 'game.id'),
+    )
     .innerJoin('drive', 'drive.gameId', 'game.id')
     .innerJoin('play', 'play.driveId', 'drive.id')
+    .$if(rusherId !== undefined, (qb) =>
+      qb.innerJoin(
+        creditedRushes(rusherId as string),
+        'rusherPlays.playId',
+        'play.id',
+      ),
+    )
     .innerJoin('rushPlay as rp', 'rp.playId', 'play.id')
     .leftJoinLateral(guardedRusherRoles(), (join) => join.onTrue())
     .innerJoin('athlete as rusher', 'roles.rusherId', 'rusher.id')
@@ -1045,11 +1096,25 @@ export const getPlayerRushingBySeason = async (
   }));
 };
 
-const buildPlayerRushingGameQuery = (executor: Kysely<DB>) => {
+const buildPlayerRushingGameQuery = (
+  executor: Kysely<DB>,
+  scope: { team?: string; rusherId?: string } = {},
+) => {
+  const { team, rusherId } = scope;
   return executor
     .selectFrom('game')
+    .$if(team !== undefined, (qb) =>
+      qb.innerJoin(teamGames(team as string), 'teamGames.gameId', 'game.id'),
+    )
     .innerJoin('drive', 'drive.gameId', 'game.id')
     .innerJoin('play', 'play.driveId', 'drive.id')
+    .$if(rusherId !== undefined, (qb) =>
+      qb.innerJoin(
+        creditedRushes(rusherId as string),
+        'rusherPlays.playId',
+        'play.id',
+      ),
+    )
     .innerJoin('rushPlay as rp', 'rp.playId', 'play.id')
     .leftJoinLateral(guardedRusherRoles(), (join) => join.onTrue())
     .innerJoin('athlete as rusher', 'roles.rusherId', 'rusher.id')
@@ -1132,7 +1197,7 @@ export const getPlayerRushingByGame = async (
 ): Promise<PlayerRushingGame[]> => {
   validatePlayerRushingGameScope(year, week, team, rusherId);
 
-  let query = buildPlayerRushingGameQuery(kdb).where(
+  let query = buildPlayerRushingGameQuery(kdb, { team, rusherId }).where(
     'offenseConference.division',
     '=',
     classification,
@@ -1186,6 +1251,46 @@ export const getPlayerRushingByGame = async (
 };
 
 export const getTeamRushingBySeason = async (
+  year?: number,
+  seasonType?: SeasonType,
+  team?: string,
+  conference?: string,
+  classification: DivisionClassification = DivisionClassification.FBS,
+  database: Kysely<DB> = kdb,
+): Promise<TeamRushingSeason[]> => {
+  validateTeamRushingSeasonScope(year, team);
+
+  // Team-season snapshots aggregate every season type, so only whole-season
+  // requests can be served from them. Only FBS snapshots are rebuilt daily;
+  // other divisions read live. Any gap falls back to the live read.
+  if (
+    (!seasonType || seasonType === SeasonType.Both) &&
+    classification === DivisionClassification.FBS
+  ) {
+    const snapshot = await readTeamRushingSeasonSnapshots(database, {
+      year,
+      team,
+      conference,
+      classification,
+    });
+    if (snapshot.status === 'found') return snapshot.rows;
+    console.info('Team rushing season snapshot fallback', {
+      season: snapshot.season,
+      teamId: snapshot.teamId,
+      reason: snapshot.reason,
+    });
+  }
+  return queryTeamRushingBySeason(
+    year,
+    seasonType,
+    team,
+    conference,
+    classification,
+  );
+};
+
+/** Live team-season aggregate over rush plays. */
+export const queryTeamRushingBySeason = async (
   year?: number,
   seasonType?: SeasonType,
   team?: string,
