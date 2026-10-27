@@ -1,3 +1,10 @@
+## [5.33.1](https://github.com/CFBD/cfb-api-v2/compare/v5.33.0...v5.33.1) (2026-10-27)
+
+
+### Bug Fixes
+
+* **perf:** several performance tweaks ([368d1a5](https://github.com/CFBD/cfb-api-v2/commit/368d1a525e4e499b6b741ef1d3fc1296f8ebe03f))
+
 # [5.33.0](https://github.com/CFBD/cfb-api-v2/compare/v5.32.1...v5.33.0) (2026-10-18)
 
 
