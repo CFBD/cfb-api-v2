@@ -72,7 +72,7 @@ export const validateSeasonOverviewQuery: RequestHandler = (
 @Tags('teams')
 export class TeamsController extends Controller {
   /**
-   * Returns a stored full-season team overview, including postseason and garbage time.
+   * Returns a full-season team overview, including postseason and garbage time.
    * @param year Season year.
    * @param team Team name.
    * @isInt year

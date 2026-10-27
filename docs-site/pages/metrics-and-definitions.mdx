@@ -16,6 +16,10 @@ shared building blocks.
 - **Offense** fields describe value created by the team in possession.
   **Defense** or **allowed** fields describe what opponents produced against
   that defense. Lower allowed values are generally better.
+- **Player** rows include only plays attributed to an identified player.
+  **Team** rows also include team-only plays, such as kneels and team rushes,
+  and plays without an identified player, so player rows are not expected to
+  sum to team totals.
 - A **rating** is a model value. A **ranking** is the ordered position produced
   by sorting those values.
 - `null` means the value is unavailable or not applicable. It should not be

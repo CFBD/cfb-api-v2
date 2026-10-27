@@ -82,8 +82,7 @@ export class PlayersController extends Controller {
   }
 
   /**
-   * Returns a player season overview with box score, usage, and Predicted
-   * Points Added (PPA) data.
+   * Returns a player season overview with box score, usage, and PPA data.
    * @param year Season year.
    * @param playerId Player ID.
    * @isInt year

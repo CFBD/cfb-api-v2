@@ -62,6 +62,10 @@ export interface RushingPlay {
   isKneel: boolean;
   isTeamRush: boolean;
   attributionStatus: RushAttributionStatus;
+  /**
+   * Whether the attempt is an ordinary rush included in direction analysis.
+   * Eligible attempts can still have an unknown direction.
+   */
   directionAnalysisEligible: boolean;
   parseStatus: RushParseStatus;
   ppa: number | null;
@@ -132,6 +136,7 @@ export interface RushingProduction {
   };
 }
 
+/** Includes sacks, kneels, team-only attempts, and unattributed attempts. */
 export interface TeamRushingProduction extends RushingProduction {
   /** @isInt */
   touchdownStatusAvailable: number;
@@ -139,6 +144,11 @@ export interface TeamRushingProduction extends RushingProduction {
   rushingTouchdowns: number;
 }
 
+/**
+ * Individually attributed rushing, including attributed sacks. Team-only and
+ * unattributed attempts are excluded, so player totals may not sum to team
+ * totals.
+ */
 export interface PlayerRushingSeason extends RushingProduction {
   /** @isInt */
   season: number;
@@ -148,6 +158,11 @@ export interface PlayerRushingSeason extends RushingProduction {
   conference: string | null;
 }
 
+/**
+ * Individually attributed rushing, including attributed sacks. Team-only and
+ * unattributed attempts are excluded, so player totals may not sum to team
+ * totals.
+ */
 export interface PlayerRushingGame extends RushingProduction {
   /** @isInt */
   gameId: number;
@@ -169,6 +184,7 @@ export interface TeamRushingSeason {
   team: string;
   conference: string | null;
   offense: TeamRushingProduction;
+  /** Rushing production allowed. */
   defense: TeamRushingProduction;
 }
 
@@ -184,5 +200,6 @@ export interface TeamRushingGame {
   conference: string | null;
   opponent: string;
   offense: TeamRushingProduction;
+  /** Rushing production allowed. */
   defense: TeamRushingProduction;
 }

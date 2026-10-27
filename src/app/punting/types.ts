@@ -212,7 +212,11 @@ export interface TeamPuntingProduction extends PlayerPuntingProduction {
   receivingTeamTurnovers: number;
 }
 
-/** Null when the player has no punts or returns in that role. */
+/**
+ * Individually attributed punts and returns. Team-only and unattributed plays
+ * are excluded, so player totals may not sum to team totals. `punting` or
+ * `returning` is null when the player has no punts or returns in that role.
+ */
 export interface PlayerPuntingSeason {
   /** @isInt */
   season: number;
@@ -224,7 +228,11 @@ export interface PlayerPuntingSeason {
   returning: PlayerPuntReturnProduction | null;
 }
 
-/** Null when the player has no punts or returns in that role. */
+/**
+ * Individually attributed punts and returns. Team-only and unattributed plays
+ * are excluded, so player totals may not sum to team totals. `punting` or
+ * `returning` is null when the player has no punts or returns in that role.
+ */
 export interface PlayerPuntingGame {
   /** @isInt */
   gameId: number;
@@ -248,6 +256,7 @@ export interface TeamPuntingSeason {
   team: string;
   conference: string | null;
   punting: TeamPuntingProduction;
+  /** Opponent punts and the team's returns. */
   returning: TeamPuntingProduction;
 }
 
@@ -263,5 +272,6 @@ export interface TeamPuntingGame {
   conference: string | null;
   opponent: string;
   punting: TeamPuntingProduction;
+  /** Opponent punts and the team's returns. */
   returning: TeamPuntingProduction;
 }

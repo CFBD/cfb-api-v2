@@ -112,6 +112,10 @@ export interface PreviewTeamStatistics {
   statRankings?: TeamSeasonStatRankings | null;
   /** @isInt */
   season: number;
+  /**
+   * True when team statistics come from the previous season. Players and game
+   * context always use the game season.
+   */
   isPreviousSeason: boolean;
   advanced: TeamSeasonAdvancedStats;
   passing: TeamPassingSeason | null;
@@ -229,6 +233,10 @@ export interface FreePreviewAnalysis {
 export interface PreviewAdjustedTeamMetrics {
   /** @isInt */
   season: number;
+  /**
+   * True when team metrics come from the previous season. Player metrics always
+   * use the game season.
+   */
   isPreviousSeason: boolean;
   metrics: AdjustedTeamMetrics;
 }
@@ -266,6 +274,7 @@ export interface GamePreview {
   game: GamePreviewMetadata;
   availability: 'pregame' | 'metadata_only';
   reason: PreviewReason;
+  /** Null once the game is completed or when kickoff is unknown. */
   analysis: FreePreviewAnalysis | null;
 }
 export interface AdjustedGamePreview {
@@ -274,6 +283,7 @@ export interface AdjustedGamePreview {
   game: GamePreviewMetadata;
   availability: 'pregame' | 'metadata_only';
   reason: PreviewReason;
+  /** Null once the game is completed or when kickoff is unknown. */
   analysis: AdjustedPreviewAnalysis | null;
 }
 export interface GamePreviewError {

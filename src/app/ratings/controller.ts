@@ -27,7 +27,6 @@ import { DivisionClassification, SeasonType } from '../enums';
 export class RatingsController extends Controller {
   /**
    * Returns Context & Opponent-Relative Efficiency (CORE) ratings.
-   * At least one of `year` or `team` is required.
    * @param year Season year. Required unless `team` is specified.
    * @param team Exact team name. Required unless `year` is specified.
    * @param conference Conference name or abbreviation.

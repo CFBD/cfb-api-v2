@@ -23,7 +23,7 @@ import { DivisionClassification, SeasonType } from '../enums';
 @Tags('passing')
 export class PassingController extends Controller {
   /**
-   * Returns enriched pass attempts with PPA, success, completion probability, and CPOE.
+   * Returns enriched pass attempts with completion probability and CPOE.
    * @param year Season year.
    * @param team Team name on either side of the pass. Either team or week is required.
    * @param week Week number. Either team or week is required.
@@ -72,7 +72,7 @@ export class PassingController extends Controller {
   }
 
   /**
-   * Returns passer production, CPOE, advanced metrics, and pass-location breakdowns by season.
+   * Returns player passing statistics and CPOE by season.
    * @param year Season year. Required unless passerId is specified.
    * @param seasonType Season type.
    * @param team Team name.
@@ -101,7 +101,7 @@ export class PassingController extends Controller {
   }
 
   /**
-   * Returns passer production, CPOE, advanced metrics, and pass-location breakdowns by game.
+   * Returns player passing statistics and CPOE by game.
    * @param year Season year. Required.
    * @param week Week number. Either passerId, team, or week is required.
    * @param seasonType Season type.
@@ -134,8 +134,7 @@ export class PassingController extends Controller {
   }
 
   /**
-   * Returns team passing production, CPOE, advanced metrics, and pass-location
-   * breakdowns by season for offense and defense.
+   * Returns team passing statistics and CPOE by season.
    * @param year Season year. Required unless team is specified.
    * @param seasonType Season type.
    * @param team Team name. Required unless year is specified.
@@ -161,8 +160,7 @@ export class PassingController extends Controller {
   }
 
   /**
-   * Returns team passing production, CPOE, advanced metrics, and pass-location
-   * breakdowns by game for offense and defense.
+   * Returns team passing statistics and CPOE by game.
    * @param year Season year. Required.
    * @param week Week number. Either team or week is required.
    * @param seasonType Season type.

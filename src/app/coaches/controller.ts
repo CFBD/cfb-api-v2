@@ -100,10 +100,9 @@ export class CoachesController extends Controller {
   }
 
   /**
-   * Returns continuous head-coaching tenures and their attributed records.
-   * Requires coachId or team; year and active only filter the results.
-   * @param coachId Coach ID.
-   * @param team Team name.
+   * Returns head coaching tenures and their records.
+   * @param coachId Coach ID. Required unless `team` is specified.
+   * @param team Team name. Required unless `coachId` is specified.
    * @param year Season year contained within the tenure.
    * @param active Filters by active status when specified.
    * @isInt coachId

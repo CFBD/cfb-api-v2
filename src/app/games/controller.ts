@@ -253,8 +253,10 @@ export class GamesController extends Controller {
   }
 
   /**
-   * Returns the active or next calendar slate, including completed games.
-   * Explicit windows require year, seasonType, and week together.
+   * Returns games for the current, next, or requested week.
+   * @param year Season year. Requires `seasonType` and `week`.
+   * @param seasonType Season type. Requires `year` and `week`.
+   * @param week Week number. Requires `year` and `seasonType`.
    * @param classification Division of either participant. Defaults to fbs.
    * @param conference Conference abbreviation of either participant.
    * @isInt year
@@ -301,8 +303,7 @@ export class GamesController extends Controller {
   }
 
   /**
-   * Returns pregame team comparisons and key players. Analysis remains available until the game is completed.
-   * Team statistics may use the previous season; players and context stay in the game season.
+   * Returns pregame team comparisons and key players for a game.
    * @isInt gameId
    */
   @Get('{gameId}/preview')
@@ -330,8 +331,8 @@ export class GamesController extends Controller {
   }
 
   /**
-   * Returns stored adjusted team and player metrics until game completion. Requires Patreon Tier 1.
-   * Team metrics may use the previous season; players remain current-season.
+   * Returns adjusted pregame team and player metrics for a game.
+   * Requires Patreon Tier 1.
    * @isInt gameId
    */
   @Get('{gameId}/preview/adjusted')

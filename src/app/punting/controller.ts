@@ -22,8 +22,7 @@ import { DivisionClassification, SeasonType } from '../enums';
 @Tags('punting')
 export class PuntingController extends Controller {
   /**
-   * Returns enriched punt plays with gross, return, and net yardage, field
-   * position, and punt outcomes.
+   * Returns enriched punt plays with yardage, field position, and outcomes.
    * @param gameId Game ID.
    * @param year Season year. Required unless gameId is specified.
    * @param week Week number. Either week, a team filter, punterId, or returnerId is required with year.
@@ -69,11 +68,7 @@ export class PuntingController extends Controller {
   }
 
   /**
-   * Returns individually attributed punting and punt return production by
-   * season.
-   *
-   * Player totals do not include team-only or unattributed punts and returns,
-   * and therefore are not expected to sum to team totals.
+   * Returns player punting and punt return statistics by season.
    * @param year Season year. Required.
    * @param seasonType Season type.
    * @param team Team name.
@@ -102,11 +97,7 @@ export class PuntingController extends Controller {
   }
 
   /**
-   * Returns individually attributed punting and punt return production by
-   * game.
-   *
-   * Player totals do not include team-only or unattributed punts and returns,
-   * and therefore are not expected to sum to team totals.
+   * Returns player punting and punt return statistics by game.
    * @param year Season year. Required.
    * @param week Week number.
    * @param seasonType Season type.
@@ -139,10 +130,7 @@ export class PuntingController extends Controller {
   }
 
   /**
-   * Returns team punting and punt return production by season.
-   *
-   * Punting describes the team's punts. Returning describes opponent punts and
-   * the team's returns.
+   * Returns team punting and punt return statistics by season.
    * @param year Season year. Required.
    * @param seasonType Season type.
    * @param team Team name.
@@ -168,10 +156,7 @@ export class PuntingController extends Controller {
   }
 
   /**
-   * Returns team punting and punt return production by game.
-   *
-   * Punting describes the team's punts. Returning describes opponent punts and
-   * the team's returns.
+   * Returns team punting and punt return statistics by game.
    * @param year Season year. Required.
    * @param week Week number.
    * @param seasonType Season type.

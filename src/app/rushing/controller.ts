@@ -24,11 +24,7 @@ import { DivisionClassification, SeasonType } from '../enums';
 @Tags('rushing')
 export class RushingController extends Controller {
   /**
-   * Returns enriched rushing attempts.
-   *
-   * Team results include sacks, kneels, team-only attempts, and unresolved
-   * attribution. Direction eligibility identifies the ordinary-rush analysis
-   * population; eligible attempts can still have an unknown direction.
+   * Returns enriched rushing attempts with direction and attribution.
    * @param gameId Game ID.
    * @param year Season year. Requires team or week.
    * @param week Week number. Requires year; either team or week is required with year.
@@ -92,11 +88,7 @@ export class RushingController extends Controller {
   }
 
   /**
-   * Returns individually attributed rusher production by season.
-   *
-   * Player totals include only guarded rusher attribution, including
-   * individually attributed sacks. They do not include team-only or unresolved
-   * attempts and therefore are not expected to sum to team totals.
+   * Returns player rushing statistics by season.
    * @param year Season year. Required unless rusherId is specified.
    * @param seasonType Season type.
    * @param team Team name.
@@ -125,11 +117,7 @@ export class RushingController extends Controller {
   }
 
   /**
-   * Returns individually attributed rusher production by game.
-   *
-   * Player totals include only guarded rusher attribution, including
-   * individually attributed sacks. They do not include team-only or unresolved
-   * attempts and therefore are not expected to sum to team totals.
+   * Returns player rushing statistics by game.
    * @param year Season year. Requires team or week; optional when rusherId is specified alone.
    * @param week Week number. Requires year; either team or week is required with year.
    * @param seasonType Season type.
@@ -162,10 +150,7 @@ export class RushingController extends Controller {
   }
 
   /**
-   * Returns team rushing production by season.
-   *
-   * Team totals include sacks, kneels, team-only attempts, and unresolved
-   * attribution. Defense contains rushing production allowed.
+   * Returns team rushing statistics by season.
    * @param year Season year. Required unless team is specified.
    * @param seasonType Season type.
    * @param team Team name. Required unless year is specified.
@@ -191,10 +176,7 @@ export class RushingController extends Controller {
   }
 
   /**
-   * Returns team rushing production by game.
-   *
-   * Team totals include sacks, kneels, team-only attempts, and unresolved
-   * attribution. Defense contains rushing production allowed.
+   * Returns team rushing statistics by game.
    * @param year Season year. Required.
    * @param week Week number. Either team or week is required.
    * @param seasonType Season type.

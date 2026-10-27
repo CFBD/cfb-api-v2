@@ -24,8 +24,8 @@ export class InfoController extends Controller {
   }
 
   /**
-   * Returns recent usage for the authenticated user's shared CFB and CBB call
-   * pool. Returns `null` when the request is not authenticated.
+   * Returns recent usage of the authenticated user's shared CFB and CBB quota.
+   * Returns `null` when the request is not authenticated.
    * @param days Trailing days to include. Defaults to 7; maximum 31.
    * @param limit Maximum endpoint and request rows to return. Defaults to 10;
    * maximum 50.

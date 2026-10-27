@@ -19,8 +19,8 @@ import { UnsupportedBoxScoreError } from './wire';
 @Tags('games')
 export class BoxScoresController extends Controller {
   /**
-   * Returns an advanced box score for a game. Games without play-by-play
-   * data, including games not yet played, return 404.
+   * Returns an advanced box score for a game.
+   * Returns 404 for games without play-by-play data.
    * @param id Game ID.
    * @isInt id
    */

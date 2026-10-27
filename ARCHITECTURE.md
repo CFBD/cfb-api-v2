@@ -65,6 +65,11 @@ Controllers are the public API contract:
   `@Middlewares(middlewares.standard)`.
 - Decorate handlers with TSOA HTTP method decorators such as `@Get`.
 - Document query parameters in JSDoc so generated OpenAPI output stays useful.
+- Start each handler JSDoc with one `Returns ...` sentence that fits on one
+  line, such as `Returns team rushing statistics by season.` Clients use it as
+  the endpoint label. Add at most one more sentence, and only for an access
+  tier, parameter rule, or status behavior. Put data semantics in response
+  type JSDoc or `docs-site/pages/metrics-and-definitions.mdx`.
 - Keep handlers thin; they should collect parameters and call service
   functions.
 
