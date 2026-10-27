@@ -1,3 +1,10 @@
+## [5.33.2](https://github.com/CFBD/cfb-api-v2/compare/v5.33.1...v5.33.2) (2026-10-27)
+
+
+### Bug Fixes
+
+* **docs:** making descriptions more concise ([f0d7125](https://github.com/CFBD/cfb-api-v2/commit/f0d7125dbd71be58844e4940de17c3b737131253))
+
 ## [5.33.1](https://github.com/CFBD/cfb-api-v2/compare/v5.33.0...v5.33.1) (2026-10-27)
 
 
