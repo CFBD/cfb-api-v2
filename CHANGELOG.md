@@ -1,3 +1,10 @@
+## [5.33.3](https://github.com/CFBD/cfb-api-v2/compare/v5.33.2...v5.33.3) (2026-11-14)
+
+
+### Bug Fixes
+
+* **games:** handling canceled and postponed games ([cc38118](https://github.com/CFBD/cfb-api-v2/commit/cc381187715365eedc671f0f6d1d15791eb55515))
+
 ## [5.33.2](https://github.com/CFBD/cfb-api-v2/compare/v5.33.1...v5.33.2) (2026-10-27)
 
 
