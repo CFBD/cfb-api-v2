@@ -8,7 +8,7 @@ import {
   LiveGameTeam,
   LiveGame,
 } from './types';
-import { UserMessageError } from '../../globals';
+import { HIDDEN_GAME_STATUSES, UserMessageError } from '../../globals';
 
 const PLAYS_URL: string = process.env.PLAYS_URL || '';
 const ML_URL: string | undefined = process.env.ML_API_URL;
@@ -18,7 +18,7 @@ const epaTypes = [
 ];
 const passTypes = [3, 4, 6, 7, 24, 26, 36, 37, 38, 39, 51, 67];
 const rushTypes = [5, 9, 29, 39, 68];
-const unsuccessfulTypes = [20, 26, 34, 36, 37, 38, 39, 63];
+const unsuccessfulTypes = [20, 26, 34, 36, 37, 38, 39, 60, 63];
 const resultTtlMs = 5_000;
 const maxCachedGames = 128;
 const feedTimeoutMs = 10_000;
@@ -101,13 +101,36 @@ const getPlaySuccess = (play: GamePlay): boolean => {
   );
 };
 
+// Fumbles on punts and kickoffs share play types with rushing fumbles.
+const isKickFumble = (play: GamePlay): boolean =>
+  [9, 29].includes(parseInt(play.type.id)) &&
+  /\b(punt|kickoff)\b/i.test(play.text);
+
+// The feed occasionally reports a play's end yard line from the wrong side of the field.
+const getEndYardsToEndzone = (play: GamePlay): number => {
+  const end = play.end.yardsToEndzone;
+  if (
+    end == null ||
+    play.start.yardsToEndzone == null ||
+    play.scoringPlay ||
+    play.end.team?.id !== play.start.team.id
+  ) {
+    return end;
+  }
+
+  const expected = play.start.yardsToEndzone - play.statYardage;
+  return 100 - end === expected && Math.abs(end - expected) > 10
+    ? 100 - end
+    : end;
+};
+
 const getPlayType = (play: GamePlay): 'pass' | 'rush' | 'other' => {
   const typeId = parseInt(play.type.id);
   if (passTypes.includes(typeId)) {
     return 'pass';
   }
 
-  if (rushTypes.includes(typeId)) {
+  if (rushTypes.includes(typeId) && !isKickFumble(play)) {
     return 'rush';
   }
 
@@ -131,9 +154,9 @@ const getGarbageTime = (play: GamePlay): boolean => {
   }
 
   return (
-    (play.period.number == 2 && score <= 38) ||
-    (play.period.number == 3 && score <= 28) ||
-    (play.period.number == 4 && score <= 22)
+    (play.period.number == 2 && score > 38) ||
+    (play.period.number == 3 && score > 28) ||
+    (play.period.number == 4 && score > 22)
   );
 };
 
@@ -142,6 +165,13 @@ const fetchLivePlays = async (gameId: number): Promise<LiveGame> => {
     await loadPpas();
   }
 
+  const hidden = await kdb
+    .selectFrom('game')
+    .select('id')
+    .where('id', '=', gameId)
+    .where('status', 'in', HIDDEN_GAME_STATUSES)
+    .executeTakeFirst();
+  if (hidden) throw new UserMessageError('No plays found for game.');
   const response = await axios.get<PlayByPlayGameResponse>(PLAYS_URL, {
     params: {
       event: gameId,
@@ -208,8 +238,10 @@ const fetchLivePlays = async (gameId: number): Promise<LiveGame> => {
     for (const play of drive.plays.filter((p) => p.type && p.start.team)) {
       const playTeam =
         play.start.team.id === offense?.team.id ? offense.team : defense?.team;
+      const typeId = Number(play.type.id);
+      const endYardsToEndzone = getEndYardsToEndzone(play);
       let epa = null;
-      if (epaTypes.includes(Number(play.type.id))) {
+      if (epaTypes.includes(typeId) && !isKickFumble(play)) {
         const startingEP = ppas?.get(
           ppaKey(
             play.start.down,
@@ -219,17 +251,22 @@ const fetchLivePlays = async (gameId: number): Promise<LiveGame> => {
         );
         let endingEP = null;
 
+        // The feed does not send scoreValue, so scoring plays are identified by type.
         if (play.scoringPlay) {
-          if (play.scoreValue === 6) {
-            endingEP =
-              play.end.team.id === offense?.team.id ? { ppa: 6 } : { ppa: -6 };
-          } else if (play.scoreValue === 3) {
+          if (typeId === 59) {
             endingEP = { ppa: 3 };
+          } else if (typeId !== 20) {
+            endingEP =
+              play.end.team?.id === offense?.team.id ? { ppa: 6 } : { ppa: -6 };
           }
         } else {
           endingEP = ppas?.get(
-            ppaKey(play.end.down, play.end.distance, play.end.yardsToEndzone),
+            ppaKey(play.end.down, play.end.distance, endYardsToEndzone),
           );
+          // End state is from the new offense's perspective after a change of possession.
+          if (endingEP && play.end.team?.id !== play.start.team.id) {
+            endingEP = { ppa: -endingEP.ppa };
+          }
         }
 
         if (startingEP && endingEP) {
@@ -237,7 +274,12 @@ const fetchLivePlays = async (gameId: number): Promise<LiveGame> => {
         }
       }
 
-      if (play.end.yardsToEndzone <= 40) {
+      if (
+        getPlayType(play) !== 'other' &&
+        play.start.team.id === offense?.team.id &&
+        (play.start.yardsToEndzone <= 40 ||
+          (play.end.team?.id === offense?.team.id && endYardsToEndzone <= 40))
+      ) {
         d.scoringOpportunity = true;
       }
 
@@ -284,10 +326,14 @@ const fetchLivePlays = async (gameId: number): Promise<LiveGame> => {
   const teamStats = teams.map((t): LiveGameTeam => {
     const teamDrives = drives.filter((d) => d.offenseId === Number(t.team.id));
     const scoringOpps = teamDrives.filter((d) => d.scoringOpportunity);
-    const teamPlays = plays.filter((p) => p.teamId === Number(t.team.id));
+    const teamPlays = plays.filter(
+      (p) => p.teamId === Number(t.team.id) && p.rushPass !== 'other',
+    );
     const epaPlays = teamPlays.filter((p) => p.epa !== null);
     const rushingPlays = teamPlays.filter((p) => p.rushPass === 'rush');
     const passingPlays = teamPlays.filter((p) => p.rushPass === 'pass');
+    const rushingEpaPlays = epaPlays.filter((p) => p.rushPass === 'rush');
+    const passingEpaPlays = epaPlays.filter((p) => p.rushPass === 'pass');
     const standardDowns = teamPlays.filter((p) => p.downType === 'standard');
     const passingDowns = teamPlays.filter((p) => p.downType === 'passing');
     const successfulPlays = teamPlays.filter((p) => p.success);
@@ -295,7 +341,7 @@ const fetchLivePlays = async (gameId: number): Promise<LiveGame> => {
     const lineYards = rushingPlays
       .map((r) => {
         if (r.yardsGained < 0) {
-          return -1.2 * r.yardsGained;
+          return 1.2 * r.yardsGained;
         } else if (r.yardsGained <= 4) {
           return r.yardsGained;
         } else if (r.yardsGained <= 10) {
@@ -383,10 +429,10 @@ const fetchLivePlays = async (gameId: number): Promise<LiveGame> => {
         Math.round(
           passingPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) * 10,
         ) / 10,
-      epaPerPass: passingPlays.length
+      epaPerPass: passingEpaPlays.length
         ? Math.round(
-            (passingPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) /
-              passingPlays.length) *
+            (passingEpaPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) /
+              passingEpaPlays.length) *
               1000,
           ) / 1000
         : 0,
@@ -394,10 +440,10 @@ const fetchLivePlays = async (gameId: number): Promise<LiveGame> => {
         Math.round(
           rushingPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) * 10,
         ) / 10,
-      epaPerRush: rushingPlays.length
+      epaPerRush: rushingEpaPlays.length
         ? Math.round(
-            (rushingPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) /
-              rushingPlays.length) *
+            (rushingEpaPlays.map((t) => t.epa ?? 0).reduce((p, v) => p + v, 0) /
+              rushingEpaPlays.length) *
               1000,
           ) / 1000
         : 0,

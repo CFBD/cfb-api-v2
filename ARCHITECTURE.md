@@ -73,6 +73,9 @@ Controllers are the public API contract:
 - Keep handlers thin; they should collect parameters and call service
   functions.
 
+Postponed and cancelled football games retain their database IDs. Public game
+queries exclude those statuses, including lookup by ID and the scoreboard.
+
 Services are the behavior boundary:
 
 - Export named async functions.

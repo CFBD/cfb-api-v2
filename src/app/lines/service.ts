@@ -1,3 +1,4 @@
+import { HIDDEN_GAME_STATUSES } from '../../globals';
 import { ValidateError } from 'tsoa';
 import { kdb } from '../../config/database';
 import { DivisionClassification, SeasonType } from '../enums';
@@ -25,6 +26,7 @@ export const getLines = async (
 
   let gamesQuery = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam as hgt', (join) =>
       join.onRef('game.id', '=', 'hgt.gameId').on('hgt.homeAway', '=', 'home'),
     )

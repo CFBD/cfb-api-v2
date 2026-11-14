@@ -1,3 +1,4 @@
+import { HIDDEN_GAME_STATUSES } from '../../globals';
 import { randomUUID } from 'crypto';
 import { Selectable } from 'kysely';
 import { kdb } from '../../config/database';
@@ -126,7 +127,11 @@ export const mapScoreboardGame = (
 });
 
 const queryAllScoreboard = async (): Promise<Selectable<ScoreboardRow>[]> =>
-  kdb.selectFrom('scoreboard').selectAll().execute();
+  kdb
+    .selectFrom('scoreboard')
+    .where('status', 'not in', HIDDEN_GAME_STATUSES)
+    .selectAll()
+    .execute();
 
 const queryFilteredScoreboard = async (
   classification: DivisionClassification,
@@ -134,6 +139,7 @@ const queryFilteredScoreboard = async (
 ): Promise<Selectable<ScoreboardRow>[]> => {
   let query = kdb
     .selectFrom('scoreboard')
+    .where('status', 'not in', HIDDEN_GAME_STATUSES)
     .where((eb) =>
       eb.or([
         eb('homeClassification', '=', classification),
@@ -197,7 +203,10 @@ const parseSnapshot = (
           !game ||
           typeof game !== 'object' ||
           !game.response ||
-          typeof game.response !== 'object',
+          typeof game.response !== 'object' ||
+          HIDDEN_GAME_STATUSES.some(
+            (status) => status === String(game.response.status),
+          ),
       )
     ) {
       return null;

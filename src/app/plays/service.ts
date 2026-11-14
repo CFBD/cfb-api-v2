@@ -1,3 +1,4 @@
+import { HIDDEN_GAME_STATUSES } from '../../globals';
 import { sql } from 'kysely';
 import { kdb, replicaKdb } from '../../config/database';
 import { DivisionClassification, SeasonType } from '../enums';
@@ -18,6 +19,7 @@ export const getPlays = async (
 ): Promise<Play[]> => {
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('drive', 'game.id', 'drive.gameId')
     .innerJoin('play', 'drive.id', 'play.driveId')
     .innerJoin('team as offense', 'play.offenseId', 'offense.id')
@@ -288,6 +290,7 @@ export const getPlayStats = async (
     )
     .innerJoin('team as opponent', 'gt2.teamId', 'opponent.id')
     .innerJoin('game', 'gt.gameId', 'game.id')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('drive', 'game.id', 'drive.gameId')
     .innerJoin('play', 'drive.id', 'play.driveId')
     .innerJoin('playStat', 'play.id', 'playStat.playId')

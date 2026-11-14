@@ -11,7 +11,7 @@ import {
   ReturningProduction,
 } from './types';
 import { SelectQueryBuilder, sql } from 'kysely';
-import { PASS_PLAY_TYPES } from '../../globals';
+import { HIDDEN_GAME_STATUSES, PASS_PLAY_TYPES } from '../../globals';
 import { DB, PlayerUsageStats } from 'src/config/types/db';
 import { TransferEligibility } from '../enums';
 import { getPredictedPointsAddedByPlayerSeason } from '../metrics/service';
@@ -434,6 +434,7 @@ export const generateMeanPassingChart = async (
     .with('plays', (cte) =>
       cte
         .selectFrom('game')
+        .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
         .innerJoin('drive', 'game.id', 'drive.gameId')
         .innerJoin('play', (join) =>
           join
@@ -675,6 +676,7 @@ const getPlayerSeasonOverviewGameCounts = async (
 ): Promise<PlayerSeasonOverviewGameCount[]> => {
   const results = await kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
     .innerJoin('gamePlayerStat', 'gameTeam.id', 'gamePlayerStat.gameTeamId')
     .innerJoin('athlete', 'gamePlayerStat.athleteId', 'athlete.id')

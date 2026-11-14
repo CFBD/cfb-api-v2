@@ -10,7 +10,12 @@ export type Division = 'fbs' | 'fcs' | 'ii' | 'ii/iii' | 'iii';
 
 export type DownType = 'passing' | 'standard';
 
-export type GameStatus = 'completed' | 'in_progress' | 'scheduled';
+export type GameStatus =
+  | 'cancelled'
+  | 'completed'
+  | 'in_progress'
+  | 'postponed'
+  | 'scheduled';
 
 export type Generated<T> =
   T extends ColumnType<infer S, infer I, infer U>

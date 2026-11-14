@@ -11,7 +11,11 @@ import {
   FieldGoalEP,
   PlayWinProbability,
 } from './types';
-import { PASS_PLAY_TYPES, RUSH_PLAY_TYPES } from '../../globals';
+import {
+  HIDDEN_GAME_STATUSES,
+  PASS_PLAY_TYPES,
+  RUSH_PLAY_TYPES,
+} from '../../globals';
 import { DivisionClassification, SeasonType } from '../enums';
 import { SelectQueryBuilder, sql } from 'kysely';
 import { DB, PlayerUsageStats } from 'src/config/types/db';
@@ -53,6 +57,7 @@ export const getPredictedPointsAddedByTeam = async (
 
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
     .innerJoin('team', 'gameTeam.teamId', 'team.id')
     .innerJoin('conferenceTeam', (join) =>
@@ -336,6 +341,7 @@ export const getPredictedPointsAddedByGame = async (
 ): Promise<TeamGamePredictedPointsAdded[]> => {
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
     .innerJoin('team', 'gameTeam.teamId', 'team.id')
     .innerJoin('conferenceTeam', (join) =>
@@ -630,6 +636,8 @@ export const getPredictedPointsAddedByPlayerGame = async (
   }
 
   let query = baseQuery
+    .innerJoin('game', 'game.id', 'usage.gameId')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('team', 'usage.school', 'team.school')
     .innerJoin('gameTeam', (join) =>
       join
@@ -751,6 +759,8 @@ export const getPredictedPointsAddedByPlayerSeason = async (
   }
 
   let query = baseQuery
+    .innerJoin('game', 'game.id', 'usage.gameId')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('team', 'usage.school', 'team.school')
     .leftJoin('conferenceTeam', (join) =>
       join
@@ -894,6 +904,7 @@ export const getPregameWinProbabilities = async (
 
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam as gt', (join) =>
       join.onRef('game.id', '=', 'gt.gameId').on('gt.homeAway', '=', 'home'),
     )
@@ -1000,6 +1011,7 @@ export const getWinProbabilities = async (
 ): Promise<PlayWinProbability[]> => {
   const results = await kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam as gt', (join) =>
       join.onRef('game.id', '=', 'gt.gameId').on('gt.homeAway', '=', 'home'),
     )

@@ -3,7 +3,7 @@ import { ValidateError } from 'tsoa';
 
 import { kdb } from '../../config/database';
 import { DB } from '../../config/types/db';
-import { UserMessageError } from '../../globals';
+import { HIDDEN_GAME_STATUSES, UserMessageError } from '../../globals';
 import { DivisionClassification, SeasonType } from '../enums';
 import {
   aggregatePlayerGames,
@@ -115,6 +115,7 @@ function validate(query: Scope, mode: Mode): Scope {
 function gamesQuery(db: Kysely<DB>, scope: Scope) {
   let query = db
     .selectFrom('game as g')
+    .where('g.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam as gt', 'gt.gameId', 'g.id')
     .innerJoin('team as t', 't.id', 'gt.teamId')
     .select([

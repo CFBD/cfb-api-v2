@@ -132,6 +132,7 @@ describe('getGames playoff query construction', () => {
     expect(builder.where.mock.calls).toEqual(
       expect.arrayContaining([
         ['game.id', '=', 123],
+        ['game.status', 'not in', ['postponed', 'cancelled']],
         ['playoffTournament.competition', '=', PlayoffCompetition.Cfp],
         ['game.seasonType', '=', SeasonType.Postseason],
         ['playoffRound.code', '=', PlayoffRound.Semifinal],

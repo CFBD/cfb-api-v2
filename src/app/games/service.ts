@@ -1,3 +1,4 @@
+import { HIDDEN_GAME_STATUSES } from '../../globals';
 import { ValidateError } from 'tsoa';
 import { sql } from 'kysely';
 import { kdb } from '../../config/database';
@@ -124,6 +125,7 @@ export const getGames = async (
 
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam as hgt', (join) =>
       join.onRef('game.id', '=', 'hgt.gameId').on('hgt.homeAway', '=', 'home'),
     )
@@ -397,6 +399,7 @@ export const getGameTeamStats = async (
     .selectFrom('team')
     .innerJoin('gameTeam as gt', 'team.id', 'gt.teamId')
     .innerJoin('game', 'gt.gameId', 'game.id')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam as gt2', (join) =>
       join.onRef('game.id', '=', 'gt2.gameId').onRef('gt2.id', '<>', 'gt.id'),
     )
@@ -561,6 +564,7 @@ export const getGamePlayerStats = async (
     .selectFrom('team')
     .innerJoin('gameTeam as gt', 'team.id', 'gt.teamId')
     .innerJoin('game', 'gt.gameId', 'game.id')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam as gt2', (join) =>
       join.onRef('game.id', '=', 'gt2.gameId').onRef('gt2.id', '<>', 'gt.id'),
     )
@@ -736,6 +740,7 @@ export const getMedia = async (
 ): Promise<GameMedia[]> => {
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameMedia', 'game.id', 'gameMedia.gameId')
     .innerJoin('gameTeam as homeTeam', (join) =>
       join
@@ -873,6 +878,7 @@ export const getWeather = async (
 
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('venue', 'game.venueId', 'venue.id')
     .innerJoin('gameWeather', 'game.id', 'gameWeather.gameId')
     .innerJoin('gameTeam as homeTeam', (join) =>

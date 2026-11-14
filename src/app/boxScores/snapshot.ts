@@ -1,3 +1,4 @@
+import { HIDDEN_GAME_STATUSES } from '../../globals';
 import { CamelCasePlugin, Kysely } from 'kysely';
 import { DB } from '../../config/types/db';
 import { BoxScoreWire, UnsupportedBoxScoreError } from './wire';
@@ -5,6 +6,7 @@ import { BoxScoreWire, UnsupportedBoxScoreError } from './wire';
 export const canonicalQuery = (db: Kysely<DB>, id: number) =>
   db
     .selectFrom('game as g')
+    .where('g.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam as home', (j) =>
       j.onRef('home.gameId', '=', 'g.id').on('home.homeAway', '=', 'home'),
     )

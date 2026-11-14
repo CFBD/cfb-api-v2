@@ -1,3 +1,4 @@
+import { HIDDEN_GAME_STATUSES } from '../../globals';
 import {
   Kysely,
   AliasedExpression,
@@ -744,6 +745,7 @@ export const getRushingPlays = async (
 
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .$if(team !== undefined, (qb) =>
       qb.innerJoin(teamGames(team as string), 'teamGames.gameId', 'game.id'),
     )
@@ -1005,6 +1007,7 @@ export const getPlayerRushingBySeason = async (
 
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .$if(team !== undefined, (qb) =>
       qb.innerJoin(teamGames(team as string), 'teamGames.gameId', 'game.id'),
     )
@@ -1103,6 +1106,7 @@ const buildPlayerRushingGameQuery = (
   const { team, rusherId } = scope;
   return executor
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .$if(team !== undefined, (qb) =>
       qb.innerJoin(teamGames(team as string), 'teamGames.gameId', 'game.id'),
     )
@@ -1301,6 +1305,7 @@ export const queryTeamRushingBySeason = async (
 
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('drive', 'drive.gameId', 'game.id')
     .innerJoin('play', 'play.driveId', 'drive.id')
     .innerJoin('rushPlay as rp', 'rp.playId', 'play.id')
@@ -1388,6 +1393,7 @@ export const queryTeamRushingBySeason = async (
 const buildTeamRushingGameQuery = (executor: Kysely<DB>) => {
   return executor
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('drive', 'drive.gameId', 'game.id')
     .innerJoin('play', 'play.driveId', 'drive.id')
     .innerJoin('rushPlay as rp', 'rp.playId', 'play.id')

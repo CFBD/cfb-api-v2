@@ -1,3 +1,4 @@
+import { HIDDEN_GAME_STATUSES } from '../../globals';
 import { ValidateError } from 'tsoa';
 import { kdb } from '../../config/database';
 import {
@@ -407,6 +408,7 @@ export const getMatchup = async (
 ): Promise<Matchup> => {
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam as home', (join) =>
       join
         .onRef('game.id', '=', 'home.gameId')

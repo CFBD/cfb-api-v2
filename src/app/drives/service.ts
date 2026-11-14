@@ -1,3 +1,4 @@
+import { HIDDEN_GAME_STATUSES } from '../../globals';
 import { sql } from 'kysely';
 import { kdb } from '../../config/database';
 import { DivisionClassification, SeasonType } from '../enums';
@@ -19,6 +20,7 @@ export const getDrives = async (
     .with('drives', (eb) => {
       let cte = eb
         .selectFrom('game')
+        .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
         .innerJoin('gameTeam', (join) =>
           join
             .onRef('game.id', '=', 'gameTeam.gameId')

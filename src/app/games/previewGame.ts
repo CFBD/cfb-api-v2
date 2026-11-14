@@ -1,3 +1,4 @@
+import { HIDDEN_GAME_STATUSES } from '../../globals';
 import { Kysely } from 'kysely';
 import { DB } from '../../config/types/db';
 import { DivisionClassification, GameStatus, SeasonType } from '../enums';
@@ -12,6 +13,7 @@ import { PreviewDataError, storedUtc } from './previewRead';
 export const previewGameQuery = (db: Kysely<DB>) =>
   db
     .selectFrom('game as g')
+    .where('g.status', 'not in', HIDDEN_GAME_STATUSES)
     .leftJoin('gameTeam as h', (j) =>
       j.onRef('h.gameId', '=', 'g.id').on('h.homeAway', '=', 'home'),
     )

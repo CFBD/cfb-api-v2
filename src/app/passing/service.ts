@@ -1,3 +1,4 @@
+import { HIDDEN_GAME_STATUSES } from '../../globals';
 import {
   Kysely,
   AliasedExpression,
@@ -526,6 +527,7 @@ export const getPassingPlays = async (
 
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('drive', 'drive.gameId', 'game.id')
     .innerJoin('play', 'play.driveId', 'drive.id')
     .innerJoin('passPlay as pp', 'pp.playId', 'play.id')
@@ -973,7 +975,10 @@ const playerSeasonCpoe = (
   },
 ) => {
   const { year, seasonType, team, conference, passerId } = scope;
-  let games = executor.selectFrom('game').select('game.id as gameId');
+  let games = executor
+    .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
+    .select('game.id as gameId');
   if (year !== undefined) {
     games = games.where('game.season', '=', year);
   }
@@ -1084,6 +1089,7 @@ const playerSeasonCpoe = (
           db
             .selectFrom(scopedCpoe(executor, predictionGames).as('cp'))
             .innerJoin('game', 'game.id', 'cp.gameId')
+            .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
             .innerJoin('play', 'play.id', 'cp.playId')
             .innerJoin('passPlay as pp', 'pp.playId', 'cp.playId')
             .leftJoinLateral(passerRoles(), (join) => join.onTrue())
@@ -1175,6 +1181,7 @@ export const getPlayerPassingBySeason = async (
       await disableTransactionJit(executor);
       let query = executor
         .selectFrom('game')
+        .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
         .innerJoin('drive', 'drive.gameId', 'game.id')
         .innerJoin('play', 'play.driveId', 'drive.id')
         // Join the small candidate set before role resolution. The existing
@@ -1301,6 +1308,7 @@ const buildPlayerPassingGameQuery = (
   return (
     executor
       .selectFrom('game')
+      .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
       .innerJoin('drive', 'drive.gameId', 'game.id')
       .innerJoin('play', 'play.driveId', 'drive.id')
       // Join the small candidate set before role resolution. The existing
@@ -1586,6 +1594,7 @@ export const queryTeamPassingBySeason = async (
       await disableTransactionJit(executor);
       let scope = executor
         .selectFrom('game')
+        .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
         .innerJoin(
           'gameTeam as representedGt',
           'game.id',
@@ -1768,6 +1777,7 @@ export const queryTeamPassingBySeason = async (
 const buildTeamPassingGameQuery = (executor: Kysely<DB>, year?: number) => {
   return executor
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('drive', 'drive.gameId', 'game.id')
     .innerJoin('play', 'play.driveId', 'drive.id')
     .innerJoin('passPlay as pp', 'pp.playId', 'play.id')

@@ -1,4 +1,4 @@
-import type { PlayByPlayGameResponse } from './types';
+import type { GamePlay, PlayByPlayGameResponse } from './types';
 
 jest.mock('axios', () => ({
   __esModule: true,
@@ -100,7 +100,14 @@ describe('live play caching and EPA lookup', () => {
     const builder = { select: jest.fn(), execute };
     builder.select.mockReturnValue(builder);
     const { kdb } = await import('../../config/database');
-    (kdb.selectFrom as jest.Mock).mockReturnValue(builder);
+    const visibility = {
+      select: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      executeTakeFirst: jest.fn().mockResolvedValue(undefined),
+    };
+    (kdb.selectFrom as jest.Mock).mockImplementation((table) =>
+      table === 'game' ? visibility : builder,
+    );
     ({ getLivePlays } = await import('./service'));
   });
 
@@ -163,6 +170,113 @@ describe('live play caching and EPA lookup', () => {
     play.scoreValue = 6;
     get.mockResolvedValueOnce({ data });
     expect((await getLivePlays(1)).drives[0].plays[0].epa).toBe(4.75);
+  });
+
+  test('scores touchdowns and field goals by play type when scoreValue is absent', async () => {
+    const data = feed();
+    Object.assign(data.drives.previous[0].plays[0], {
+      type: { id: '68', text: 'Rushing Touchdown' },
+      scoringPlay: true,
+    });
+    Object.assign(data.drives.previous[1].plays[0], {
+      type: { id: '59', text: 'Field Goal Good' },
+      scoringPlay: true,
+    });
+    get.mockResolvedValueOnce({ data });
+    const game = await getLivePlays(1);
+    expect(game.drives[0].plays[0].epa).toBe(4.75);
+    expect(game.drives[1].plays[0].epa).toBe(1.75);
+  });
+
+  test('negates ending EP after a change of possession', async () => {
+    const data = feed();
+    data.drives.previous[0].plays[0].end.team = { id: '2' };
+    get.mockResolvedValueOnce({ data });
+    expect((await getLivePlays(1)).drives[0].plays[0].epa).toBe(-3.75);
+  });
+
+  test('corrects end yard lines reported from the wrong side of the field', async () => {
+    execute.mockResolvedValueOnce([
+      ...rows,
+      { down: 1, distance: 10, yardLine: 75, ppa: 0.5 },
+      { down: 2, distance: 10, yardLine: 75, ppa: 0.25 },
+      { down: 2, distance: 10, yardLine: 25, ppa: 3.5 },
+    ]);
+    const data = feed();
+    Object.assign(data.drives.previous[0].plays[0], {
+      start: { team: { id: '1' }, down: 1, distance: 10, yardsToEndzone: 75 },
+      end: { team: { id: '1' }, down: 2, distance: 10, yardsToEndzone: 25 },
+      statYardage: 0,
+    });
+    get.mockResolvedValueOnce({ data });
+    const game = await getLivePlays(1);
+    expect(game.drives[0].plays[0].epa).toBe(-0.25);
+    expect(game.drives[0].scoringOpportunity).toBe(false);
+  });
+
+  test('treats fumbles on kicks as special teams plays', async () => {
+    const data = feed();
+    Object.assign(data.drives.previous[0].plays[0], {
+      type: { id: '29', text: 'Fumble Recovery (Opponent)' },
+      text: 'punt 43 yards to the RU22 fumbled by #18 Q.Redding',
+    });
+    get.mockResolvedValueOnce({ data });
+    const game = await getLivePlays(1);
+    expect(game.drives[0].plays[0]).toMatchObject({
+      epa: null,
+      rushPass: 'other',
+    });
+    expect(game.teams[0].plays).toBe(0);
+  });
+
+  test('flags garbage time only when the margin exceeds the threshold', async () => {
+    const data = feed();
+    Object.assign(data.drives.previous[0].plays[0], {
+      period: { number: 4 },
+      homeScore: 30,
+    });
+    Object.assign(data.drives.previous[1].plays[0], {
+      period: { number: 2 },
+      homeScore: 4,
+    });
+    get.mockResolvedValueOnce({ data });
+    const game = await getLivePlays(1);
+    expect(game.drives[0].plays[0].garbageTime).toBe(true);
+    expect(game.drives[1].plays[0].garbageTime).toBe(false);
+  });
+
+  test('counts rushing losses as negative line yards', async () => {
+    const data = feed();
+    data.drives.previous[0].plays[0].statYardage = -4;
+    get.mockResolvedValueOnce({ data });
+    expect((await getLivePlays(1)).teams[0].lineYards).toBeCloseTo(-4.8);
+  });
+
+  test('limits team rates and scoring opportunities to offensive scrimmage plays', async () => {
+    const data = feed();
+    const rush = data.drives.previous[0].plays[0];
+    data.drives.previous[0].plays.push(
+      {
+        ...rush,
+        id: 'timeout',
+        type: { id: '21', text: 'Timeout' },
+        start: { team: { id: '2' }, down: 2, distance: 5, yardsToEndzone: 16 },
+        end: { team: { id: '1' }, down: 2, distance: 5, yardsToEndzone: 16 },
+        statYardage: 0,
+      } as unknown as GamePlay,
+      {
+        ...rush,
+        id: 'missed-fg',
+        type: { id: '60', text: 'Field Goal Missed' },
+        statYardage: 48,
+      },
+    );
+    get.mockResolvedValueOnce({ data });
+    const game = await getLivePlays(1);
+    expect(game.drives[0].scoringOpportunity).toBe(false);
+    expect(game.drives[0].plays[2].success).toBe(false);
+    expect(game.teams[0]).toMatchObject({ plays: 1, successRate: 1 });
+    expect(game.teams[1].plays).toBe(1);
   });
 
   test('shares concurrent same-game work and caches from completion for five seconds', async () => {

@@ -1,3 +1,4 @@
+import { HIDDEN_GAME_STATUSES } from '../../globals';
 import { kdb } from '../../config/database';
 import { GameStatus } from '../enums';
 import {
@@ -423,7 +424,11 @@ const loadCfpPlayoffRecords = async (
       .execute(),
     kdb
       .selectFrom('playoffMatchup as matchup')
-      .leftJoin('game', 'matchup.gameId', 'game.id')
+      .leftJoin('game', (join) =>
+        join
+          .onRef('matchup.gameId', '=', 'game.id')
+          .on('game.status', 'not in', HIDDEN_GAME_STATUSES),
+      )
       .leftJoin('gameTeam as homeGameTeam', (join) =>
         join
           .onRef('game.id', '=', 'homeGameTeam.gameId')
@@ -477,7 +482,7 @@ const loadCfpPlayoffRecords = async (
         'matchup.sequence',
         'matchup.startDate',
         'matchup.bowlName',
-        'matchup.gameId',
+        'game.id as gameId',
         'game.startDate as gameStartDate',
         'game.status as gameStatus',
         'homeTeam.id as homeTeamId',

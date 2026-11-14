@@ -1,3 +1,4 @@
+import { HIDDEN_GAME_STATUSES } from '../../globals';
 import { ValidateError } from 'tsoa';
 import { kdb, replicaDb, replicaKdb } from '../../config/database';
 import { DivisionClassification, SeasonType } from '../enums';
@@ -135,6 +136,7 @@ export const getPlayerSeasonStats = async (
 ): Promise<PlayerStat[]> => {
   let scope = replicaKdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
     .innerJoin('gamePlayerStat', 'gameTeam.id', 'gamePlayerStat.gameTeamId')
     .innerJoin('athlete', 'gamePlayerStat.athleteId', 'athlete.id')
@@ -625,6 +627,7 @@ export const getPlayerSeasonSuccessRates = async (
     .with('creditedPlayerPlays', (eb) => {
       let withClause = eb
         .selectFrom('game as g')
+        .where('g.status', 'not in', HIDDEN_GAME_STATUSES)
         .innerJoin('drive as d', 'd.gameId', 'g.id')
         .innerJoin('play as p', 'p.driveId', 'd.id')
         .$if(playerId !== undefined, (query) => {
@@ -804,6 +807,7 @@ export const getPlayerGameSuccessRates = async (
     .with('creditedPlayerPlays', (eb) => {
       let withClause = eb
         .selectFrom('game as g')
+        .where('g.status', 'not in', HIDDEN_GAME_STATUSES)
         .innerJoin('drive as d', 'd.gameId', 'g.id')
         .innerJoin('play as p', 'p.driveId', 'd.id')
         .$if(playerId !== undefined, (query) => {
@@ -990,6 +994,7 @@ export const getTeamStats = async (
 
   let baseQuery = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
     .innerJoin('team', 'gameTeam.teamId', 'team.id')
     .innerJoin('gameTeamStat', 'gameTeam.id', 'gameTeamStat.gameTeamId')
@@ -1021,6 +1026,7 @@ export const getTeamStats = async (
 
   let baseQueryOpp = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam', 'game.id', 'gameTeam.gameId')
     .innerJoin('team', 'gameTeam.teamId', 'team.id')
     .innerJoin('gameTeam as gt2', (join) =>
@@ -1848,6 +1854,7 @@ export const getAdvancedGameStats = async (
     .with('plays', (eb) => {
       let withClause = eb
         .selectFrom('game')
+        .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
         .innerJoin('gameTeam as gt', 'game.id', 'gt.gameId')
         .innerJoin('team as t', 'gt.teamId', 't.id')
         .innerJoin('gameTeam as gt2', (join) =>
@@ -2201,6 +2208,7 @@ export const getGameHavocStats = async (
 
   let query = kdb
     .selectFrom('game')
+    .where('game.status', 'not in', HIDDEN_GAME_STATUSES)
     .innerJoin('gameTeam as gt', 'game.id', 'gt.gameId')
     .innerJoin('team as t', 'gt.teamId', 't.id')
     .innerJoin('gameTeam as gt2', (join) =>
