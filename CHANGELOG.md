@@ -1,3 +1,10 @@
+# [5.34.0](https://github.com/CFBD/cfb-api-v2/compare/v5.33.3...v5.34.0) (2026-11-18)
+
+
+### Features
+
+* **meta:** enhanced request tracking ([36c6387](https://github.com/CFBD/cfb-api-v2/commit/36c6387dc8461729418d934df7c32463f6b16040))
+
 ## [5.33.3](https://github.com/CFBD/cfb-api-v2/compare/v5.33.2...v5.33.3) (2026-11-14)
 
 
