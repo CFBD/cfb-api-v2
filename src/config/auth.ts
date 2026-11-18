@@ -10,6 +10,64 @@ import {
 
 const keyPattern = /^Bearer (?<token>\S+)$/;
 
+const trackRequestMetrics = (request: Request, startedAt: number) => {
+  let requestMetrics:
+    | {
+        userId: number;
+        endpoint: string;
+        query: Request['query'];
+        userAgent: string | undefined;
+      }
+    | undefined;
+  let outcome: { statusCode: number; durationMs: number } | undefined;
+
+  const writeMetrics = async () => {
+    if (!requestMetrics || !outcome) return;
+
+    try {
+      await authDb.none(
+        `
+          INSERT INTO metrics (
+            user_id, endpoint, query, user_agent, api_version, status_code, duration_ms
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `,
+        [
+          requestMetrics.userId,
+          requestMetrics.endpoint,
+          requestMetrics.query,
+          requestMetrics.userAgent,
+          '2',
+          outcome.statusCode,
+          outcome.durationMs,
+        ],
+      );
+    } catch {
+      console.error('API metrics write failed.');
+    }
+  };
+
+  // The response can close while the user lookup is pending.
+  const res = request.res;
+  res?.once('close', () => {
+    outcome = {
+      statusCode: res.writableFinished ? res.statusCode : 499,
+      durationMs: Math.round(performance.now() - startedAt),
+    };
+    void writeMetrics();
+  });
+
+  return (userId: number, endpoint: string) => {
+    requestMetrics = {
+      userId,
+      endpoint,
+      query: request.query,
+      userAgent: request.get('user-agent'),
+    };
+    void writeMetrics();
+  };
+};
+
 type AuthOutcome =
   | 'allowed'
   | 'missing'
@@ -39,6 +97,7 @@ export const expressAuthentication = async (
   request: Request,
   securityName: string,
 ) => {
+  const startedAt = performance.now();
   if (securityName !== 'apiKey') {
     logAuthOutcome(request, 'malformed', 'unknown');
     return Promise.reject(new AuthorizationError('Unauthorized'));
@@ -59,6 +118,7 @@ export const expressAuthentication = async (
     );
   }
 
+  const recordAuthenticatedRequest = trackRequestMetrics(request, startedAt);
   const user = await authDb.oneOrNone(
     `SELECT * FROM "user" WHERE token = $1`,
     token.groups['token'],
@@ -93,24 +153,7 @@ export const expressAuthentication = async (
     return Promise.reject(new AuthorizationError('Unauthorized'));
   }
 
-  try {
-    await authDb.none(
-      `
-            INSERT INTO metrics (user_id, endpoint, query, user_agent, api_version)
-                VALUES ($1, $2, $3, $4, $5)
-          `,
-      [
-        user.id,
-        matchedPath ?? request.path,
-        request.query,
-        request.get('user-agent'),
-        '2',
-      ],
-    );
-  } catch (err) {
-    console.error(err);
-  }
-
+  recordAuthenticatedRequest(user.id, matchedPath ?? request.path);
   logAuthOutcome(request, 'allowed', principalClass);
 
   return Promise.resolve({

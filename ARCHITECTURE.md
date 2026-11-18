@@ -1,6 +1,6 @@
 # CFB API v2 Architecture
 
-Last reviewed: 2026-09-25
+Last reviewed: 2026-11-17
 
 ## System Purpose
 
@@ -96,6 +96,13 @@ ID. The page user can call only the explicit website-page operation set. The
 exporter user can call documented GET operations except the reviewed deny set.
 Scope denial happens before successful metrics, quota, controller, or database
 work.
+
+After authentication and scope checks pass, request metrics are written
+asynchronously once the response closes. The row records the final HTTP status
+and elapsed milliseconds from authentication entry to close. A client
+disconnect before the response finishes is recorded as `499`. The shared auth
+database supplies the insert timestamp, so a request appears in `/info/usage`
+after its metrics row lands.
 
 Production requires these private configuration values:
 
